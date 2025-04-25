@@ -19,19 +19,27 @@
   import { ref } from 'vue'
   import { useAuthStore } from '@/stores/auth'
   import { useRouter } from 'vue-router'
+
   
   const email = ref('')
   const password = ref('')
   const auth = useAuthStore()
   const router = useRouter()
   
+  
   const onLogin = async () => {
-    try {
-      await auth.login(email.value, password.value)
-      router.push('/') // หรือ redirect ตาม role
-    } catch (err) {
-      alert('เข้าสู่ระบบไม่สำเร็จ')
+  try {
+    const user = await auth.login(email.value, password.value) //ดึง user จาก return stores\auth.ts
+
+    if (user.role === 'ADMIN') {
+      router.push('/admin') 
+    } else {
+      router.push('/dashboard') // หน้า default หลัง login
     }
+  } catch (err: any) {
+    alert(err?.response?.data?.error || 'เข้าสู่ระบบไม่สำเร็จ')
+    Response.json({error : 'เข้าสู่ระบบไม่สำเร็จ'})
   }
+}
   </script>
   
