@@ -1,6 +1,6 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import authRoutes from '@/routes/auth.routes'
+import routes from './routes'
 import { authenticateToken } from '@/middleware/auth.middleware'
 
 dotenv.config()
@@ -17,7 +17,7 @@ app.get("/", (req, res) => {
 })
 
 
-app.use('/api', authRoutes)
+app.use('/api', routes)
 
 app.get('/api/protected', authenticateToken, (req, res) => {
   // @ts-ignore
