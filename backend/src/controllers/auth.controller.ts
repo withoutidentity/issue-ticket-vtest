@@ -19,13 +19,22 @@ export const register = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body
-  const user = await prisma.user.findUnique({ where: { email } })
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      password: true,
+      role: true,
+      name: true, //เพิ่ม name ด้วย
+    },
+  })
   if (!user) return res.status(401).json({ error: 'Invalid credentials' })
 
   const match = await bcrypt.compare(password, user.password)
   if (!match) return res.status(401).json({ error: 'Invalid credentials' })
 
-  const accessToken = jwt.sign({ id: user.id, role: user.role }, accessSecret, { expiresIn: '15m' })
+  const accessToken = jwt.sign({ id: user.id, role: user.role, name: user.name }, accessSecret, { expiresIn: '15m' })
   const refreshToken = jwt.sign({ id: user.id }, refreshSecret, { expiresIn: '7d' })
 
   await prisma.user.update({
@@ -33,7 +42,7 @@ export const login = async (req: Request, res: Response) => {
     data: { refreshToken },
   })
 
-  res.json({ accessToken, refreshToken })
+  res.json({ accessToken, refreshToken, user })
 }
 
 export const refresh = async (req: Request, res: Response) => {
