@@ -11,40 +11,44 @@ interface User {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    accessToken: null as string | null,
-    user: null as { id: string; email: string; role: string } | null,
+    accessToken: '',
+    user: { id: '', email: '', role: '', name: '' },
   }),
   actions: {
     async login(email: string, password: string) {
       const res = await axios.post(`${config.apiUrl}/api/auth/login`, { email, password })
-      this.token = res.data.accessToken
-      this.role = parseJwt(res.data.accessToken).role
-      localStorage.setItem('token', this.token)
+      this.accessToken = res.data.accessToken
+      const payload = parseJwt(this.accessToken)
+      this.user = {
+        id: payload.id,
+        email: payload.email,
+        role: payload.role,
+        name: payload.name,
+      }
+      localStorage.setItem('accessToken', this.accessToken)
 
-      const userRes = await axios.get('http://localhost:3000/api/protected', {
+      const userRes = await axios.get(`${config.apiUrl}/api/protected`, {
         headers: {
-          Authorization: `Bearer ${this.token}`,
+          Authorization: `Bearer ${this.accessToken}`,
         },
       })
 
-      this.user = userRes.data.user
-
-      return this.user //return ให้ใช้ได้ต่อ
+      return this.user
     },
+
     logout() {
-      this.token = ''
-      this.role = ''
-      this.name = ''
-      localStorage.removeItem('token')
-    }
-  }
+      this.accessToken = ''
+      this.user = { id: '', email: '', role: '', name: '' }
+      localStorage.removeItem('accessToken')
+    },
+  },
+  persist: true,
 })
 
-function parseJwt(token) {
+function parseJwt(token: string) {
   try {
     return JSON.parse(atob(token.split('.')[1]))
   } catch {
     return {}
   }
 }
-

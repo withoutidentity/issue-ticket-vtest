@@ -11,10 +11,14 @@ declare module 'vue-router' {
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/',
+    path: '/home',
     name: 'Home',
     component: () => import('@/pages/HomePage.vue'),
-    meta: { requiresAuth: true, roles: ['user', 'admin'] },
+    meta: { requiresAuth: true, roles: ['USER', 'ADMIN', 'OFFICER'] },
+  },
+  {
+    path: '/',
+    redirect: '/login' // ให้ redirect ไป /login เมื่อเข้าหน้าแรก
   },
   {
     path: '/login',
@@ -30,7 +34,7 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     name: 'AdminDashboard',
     component: () => import('@/pages/AdminDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['admin'] },
+    meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
   },
   {
     path: '/403',
@@ -48,14 +52,18 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
 
+  console.log("Navigation to:", to.path)
+  console.log("Token:", auth.accessToken)
+  console.log("Role:", auth.user?.role)
+
   const requiresAuth = to.meta.requiresAuth ?? false
   const allowedRoles = to.meta.roles
 
-  if (requiresAuth && !auth.token) {
+  if (requiresAuth && !auth.accessToken) {
     return next('/login')
   }
 
-  if (Array.isArray(allowedRoles) && !allowedRoles.includes(auth.role)) {
+  if (Array.isArray(allowedRoles) && (!auth.user || !allowedRoles.includes(auth.user.role))) {
     return next('/403')
   }
 

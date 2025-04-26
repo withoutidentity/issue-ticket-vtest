@@ -1,7 +1,7 @@
 <template>
     <AppLayout>
       <h1 class="text-3xl font-bold">แดชบอร์ดผู้ดูแลระบบ</h1>
-      <p class="mt-4">ยินดีต้อนรับคุณ {{ auth.user }}</p>
+      <p class="mt-4">ยินดีต้อนรับคุณ {{ auth.user.role }}</p>
     </AppLayout>
   </template>
   

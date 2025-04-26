@@ -3,7 +3,7 @@
       <nav class="flex justify-between items-center px-6 py-4 border-b bg-black text-white">
         <div class="text-xl font-bold">🎫 Issue Tracker</div>
         <div class="flex items-center space-x-4">
-          <span>{{ auth.name }} ({{ auth.role }})</span>
+          <span>{{ auth.user.name }} ({{ auth.user.role }})</span>
           <button @click="logout" class="bg-white text-black px-3 py-1 rounded hover:bg-gray-100">Logout</button>
         </div>
       </nav>
@@ -22,7 +22,7 @@
   
   const logout = () => {
     auth.logout()
-    router.push('/login')
+    router.push('/')
   }
   </script>
   

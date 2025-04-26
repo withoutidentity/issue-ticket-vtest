@@ -21,7 +21,12 @@ app.use('/api', routes)
 
 app.get('/api/protected', authenticateToken, (req, res) => {
   // @ts-ignore
-  res.json({ message: 'You have access', user: req.user })
+  try {
+    // @ts-ignore
+    res.json({ message: 'You have access', user: req.user })
+  }catch (error) {
+    res.status(500).json({ error: 'cant access this message at /src/index.ts'})
+  }
 })
 
 app.listen(PORT, () => {
