@@ -14,7 +14,7 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           Int   @id @default(autoincrement())
   email        String   @unique
   password     String   // Hashed password
   name         String
@@ -22,6 +22,7 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   refreshToken String?  // สำหรับ Refresh Token
+  tickets Ticket[]
 
   @@map("users")
 }
@@ -30,4 +31,25 @@ enum Role {
   USER
   OFFICER
   ADMIN
+}
+
+model Ticket {
+  id          Int       @id @default(autoincrement())
+  user_id     Int?
+  title       String    @db.VarChar(255)
+  description String?
+  type        String?   @db.VarChar(255)
+  priority    String?   @db.VarChar(255)
+  status      TicketStatus @default(open)
+  created_at  DateTime  @default(now())
+  updated_at  DateTime  @default(now())
+  
+  user        User?     @relation(fields: [user_id], references: [id])
+}
+
+enum TicketStatus {
+  open
+  in_progress
+  resolved
+  closed
 }

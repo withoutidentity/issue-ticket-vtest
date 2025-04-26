@@ -1116,7 +1116,7 @@ export namespace Prisma {
     name: "User"
     objects: {}
     scalars: $Extensions.GetPayloadResult<{
-      id: string
+      id: Number
       email: string
       password: string
       name: string
