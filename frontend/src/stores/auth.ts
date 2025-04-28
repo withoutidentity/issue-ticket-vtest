@@ -4,7 +4,7 @@ import axios from 'axios'
 import { config } from '@/config'
 
 interface User {
-  id: string
+  id: number
   email: string
   role: string
   name: string
@@ -13,7 +13,7 @@ interface User {
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     accessToken: '',
-    user: { id: '', email: '', role: '', name: '' },
+    user: { id: null, email: '', role: '', name: '' },
   }),
   actions: {
     async login(email: string, password: string) {
@@ -39,7 +39,7 @@ export const useAuthStore = defineStore('auth', {
 
     logout() {
       this.accessToken = ''
-      this.user = { id: '', email: '', role: '', name: '' }
+      this.user = { id: null, email: '', role: '', name: '' }
       localStorage.removeItem('accessToken')
     },
   },
