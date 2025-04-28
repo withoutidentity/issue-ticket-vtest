@@ -41,6 +41,18 @@ const routes: RouteRecordRaw[] = [
     name: 'Forbidden',
     component: () => import('@/pages/ForbiddenPage.vue'),
   },
+  {
+    path: '/dashboard',
+    name: 'Dashboard',
+    component: () => import('@/pages/DashboardPage.vue'),
+    meta: { requiresAuth: true, roles: ['USER'] },
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/pages/ProfilePage.vue'),
+    meta: { requiresAuth: true, roles: ['USER'] },
+  },
 ]
 
 const router = createRouter({
