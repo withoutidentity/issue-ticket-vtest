@@ -1,5 +1,5 @@
 <template>
-    <aside class="w-64 bg-black text-white h-screen">
+    <aside class="w-64 bg-black text-white h-screen flex flex-col">
         <router-link :to="isAdmin ? '/admin' : '/home'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>
@@ -8,17 +8,19 @@
         </router-link>
         <nav class="space-y-4 p-4" v-if="isAdmin">
             <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
-            <button @click="Setting" class="w-full text-center hover:bg-gray-800 p-2 rounded">Setting</button>
-            <button @click="profile" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
-            <button @click="logout" class="w-full text-center hover:bg-gray-800 p-2 rounded">Logout</button>
+            <button @click="setting" class="w-full text-center hover:bg-gray-800 p-2 rounded">Setting</button>
+            <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
             <button @click="newticket" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
             <button @click="dashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="profile" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
-            <button @click="logout" class="w-full text-center hover:bg-gray-800 p-2 rounded">Logout</button>
         </nav>
+
+        <div class="mt-auto p-4">
+            <button @click="logout" class="w-full text-center hover:bg-gray-800 p-2 rounded">Logout</button>
+        </div>
     </aside>
 </template>
 
@@ -54,8 +56,11 @@ const admindashboard = () => {
     router.push('/admin')
 }
 
-const Setting = () => {
+const setting = () => {
     router.push('/setting')
 }
 
+const users = () => {
+    router.push('/users')
+}
 </script>
