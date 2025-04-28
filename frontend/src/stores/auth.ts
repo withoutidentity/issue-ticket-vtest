@@ -15,6 +15,10 @@ export const useAuthStore = defineStore('auth', {
     accessToken: '',
     user: { id: null, email: '', role: '', name: '' },
   }),
+  getters: {
+    isAdmin: (state) => state.user?.role === 'ADMIN',
+    isUser: (state) => state.user?.role === 'USER',
+  },
   actions: {
     async login(email: string, password: string) {
       const res = await axios.post(`${config.apiUrl}/api/auth/login`, { email, password })
