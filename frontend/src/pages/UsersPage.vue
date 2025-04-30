@@ -15,8 +15,7 @@
                 <tr class="border-b">
                   <th class="text-left py-3 px-4 font-medium">ชื่อผู้ใช้</th>
                   <th class="text-left py-3 px-4 font-medium">อีเมล</th>
-                  <th class="text-left py-3 px-4 font-medium">บทบาท</th>
-                  <th class="text-left py-3 px-4 font-medium">สถานะ</th>
+                  <th class="text-left py-3 px-8 font-medium">บทบาท</th>
                   <th class="text-left py-3 px-4 font-medium">การจัดการ</th>
                 </tr>
               </thead>
@@ -26,16 +25,13 @@
                   <td class="py-3 px-4">{{ user.email }}</td>
                   <td class="py-3 px-4">
                     <span :class="{
-                      'bg-red-100 text-red-700': user.role === 'ADMIN',
+                      'bg-purple-100 text-purple-700': user.role === 'ADMIN',
                       'bg-blue-100 text-blue-700': user.role === 'OFFICER',
-                      'bg-purple-100 text-purple-700': user.role === 'USER',
-                      'bg-gray-100 text-gray-700': user.role === 'BANNED',
+                      'bg-gray-100 text-gray-700': user.role === 'USER',
+                      'bg-red-100 text-red-700': user.role === 'BANNED',
                     }" class="px-3 py-1 rounded-full text-sm">
                       {{ roleName(user.role) }}
                     </span>
-                  </td>
-                  <td class="py-3 px-4">
-                    <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">ใช้งาน</span>
                   </td>
                   <td class="py-3 px-4 space-x-2">
                     <button @click="openEdit(user)" class="border px-3 py-1 rounded">แก้ไข</button>
@@ -123,9 +119,10 @@ const cancelEdit = () => {
 
 const updateRole = async () => {
   if (!editingUser.value) return
-  await axios.put(`${config.apiUrl}/api/users/${editingUser.value.id}`, {
+  await axios.put(`${config.apiUrl}/api/users/update/${editingUser.value.id}`, {
     role: selectedRole.value,
   })
+  console.log('select Role: ',selectedRole.value)
   editingUser.value = null
   fetchUsers()
 }
