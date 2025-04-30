@@ -19,6 +19,13 @@ import topbar from '@/components/topbar.vue';
 .app-layout {
   display: flex;
   min-height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: screen;
+  width: 100%;
+  overflow-y: auto;
+  z-index: 50;
 }
 
 .main-content {
@@ -28,7 +35,7 @@ import topbar from '@/components/topbar.vue';
 }
 
 .content-wrapper {
-  padding: 20px;
+  padding: 33px;
   flex: 1;
 }
 </style>

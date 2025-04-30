@@ -1,11 +1,12 @@
 <template>
     <AppLayout>
-        <div>
-          <h1 class="text-3xl font-bold">Setting Page For admin</h1>
-        </div>
+        <cardtitle>
+          <h1 class="font-bold">การตั้งค่า</h1>
+        </cardtitle>
     </AppLayout>
   </template>
 
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
+import cardtitle from '@/ui/cardtitle.vue';
 </script>

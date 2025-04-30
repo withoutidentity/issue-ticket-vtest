@@ -2,6 +2,7 @@ import express from 'express'
 import dotenv from 'dotenv'
 import routes from './routes'
 import { authenticateToken } from '@/middleware/auth.middleware'
+import userRoutes from '@/routes/user.routes'
 
 dotenv.config()
 
@@ -28,6 +29,9 @@ app.get('/api/protected', authenticateToken, (req, res) => {
     res.status(500).json({ error: 'cant access this message at /src/index.ts'})
   }
 })
+
+//users
+app.use('/api/users', userRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

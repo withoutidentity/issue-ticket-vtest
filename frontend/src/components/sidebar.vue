@@ -1,5 +1,5 @@
 <template>
-    <aside class="w-64 bg-black text-white h-screen flex flex-col">
+    <aside class="w-64 bg-black text-white h-screen flex flex-col position: sticky overflow-y-auto">
         <router-link :to="isAdmin ? '/admin' : '/home'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>
@@ -8,8 +8,8 @@
         </router-link>
         <nav class="space-y-4 p-4" v-if="isAdmin">
             <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
-            <button @click="setting" class="w-full text-center hover:bg-gray-800 p-2 rounded">Setting</button>
             <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
+            <button @click="setting" class="w-full text-center hover:bg-gray-800 p-2 rounded">Setting</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
