@@ -24,8 +24,12 @@ const targetRoute = computed(() => {
   if (userRole.value === 'ADMIN' || userRole.value === 'OFFICER') {
     return '/admin'
   }
-  // USER หรือ role อื่นๆ กลับไป /home
-  return '/home'
+  // USER กลับไป /home
+  else if (userRole.value === 'USER'){
+    return '/home'
+  }
+  // โรลอื่นๆกลับหน้าล็อกอิน
+  return '/'
 })
 
 // Computed property สำหรับข้อความบนลิงก์
@@ -34,6 +38,9 @@ const linkText = computed(() => {
     // อาจจะใช้คำว่า 'กลับหน้าผู้ดูแล' ถ้า OFFICER ก็ใช้หน้านี้
     return 'กลับหน้าแอดมิน'
   }
-  return 'กลับหน้าหลัก'
+  else if (userRole.value === 'USER'){
+    return 'กลับหน้าหลัก'
+  }
+  return 'กลับหน้าล็อกอิน'
 })
 </script>

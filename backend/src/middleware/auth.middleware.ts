@@ -34,7 +34,7 @@ export function authorizeRoles(roles: string[]) {
       res.status(403).json({ error: 'Forbidden: Access denied' })
       return
     }
-    else if (req.user.role === 'SUSPENDED') {
+    else if (req.user.role === 'BANNED') {
       throw new Error('บัญชีนี้ถูกระงับการใช้งาน')
     }
     next()
