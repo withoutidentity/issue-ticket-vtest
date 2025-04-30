@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,17 +8,43 @@ datasource db {
 }
 
 model User {
-  id           Int   @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   email        String   @unique
-  password     String   // Hashed password
+  password     String // Hashed password
   name         String
   role         Role     @default(USER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  refreshToken String?  // สำหรับ Refresh Token
-  tickets Ticket[]
+  refreshToken String? // สำหรับ Refresh Token
+  tickets      Ticket[]
 
   @@map("users")
+}
+
+model Ticket {
+  id           Int           @id @default(autoincrement())
+  user_id      Int?
+  title        String        @db.VarChar(255)
+  description  String?
+  type_id      Int?
+  priority     String?       @db.VarChar(255)
+  status       TicketStatus  @default(open)
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @default(now())
+  ticket_types ticket_types? @relation(fields: [type_id], references: [id])
+  user         User?         @relation(fields: [user_id], references: [id])
+
+  @@index([type_id], map: "idx_tickets_type_id")
+  @@map("tickets")
+}
+
+model ticket_types {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  description String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @default(now())
+  tickets     Ticket[]
 }
 
 enum Role {
@@ -32,21 +52,6 @@ enum Role {
   OFFICER
   ADMIN
   BANNED
-}
-
-model Ticket {
-  id          Int       @id @default(autoincrement())
-  user_id     Int?
-  title       String    @db.VarChar(255)
-  description String?
-  type        String?   @db.VarChar(255)
-  priority    String?   @db.VarChar(255)
-  status      TicketStatus @default(open)
-  created_at  DateTime  @default(now())
-  updated_at  DateTime  @default(now())
-  
-  user        User?     @relation(fields: [user_id], references: [id])
-  @@map("tickets")
 }
 
 enum TicketStatus {
