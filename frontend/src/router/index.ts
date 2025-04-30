@@ -54,9 +54,9 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: ['USER'] },
   },
   {
-    path: '/setting',
-    name: 'Setting',
-    component: () => import('@/pages/SettingPage.vue'),
+    path: '/types',
+    name: 'Type',
+    component: () => import('@/pages/TypesPage.vue'),
     meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
   },
   {
