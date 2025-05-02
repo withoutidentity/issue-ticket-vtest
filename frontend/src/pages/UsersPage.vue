@@ -27,7 +27,7 @@
                     <span :class="{
                       'bg-purple-100 text-purple-700': user.role === 'ADMIN',
                       'bg-blue-100 text-blue-700': user.role === 'OFFICER',
-                      'bg-gray-100 text-gray-700': user.role === 'USER',
+                      'bg-green-100 text-green-700': user.role === 'USER',
                       'bg-red-100 text-red-700': user.role === 'BANNED',
                     }" class="px-3 py-1 rounded-full text-sm">
                       {{ roleName(user.role) }}
@@ -89,6 +89,7 @@ const selectedRole = ref('USER')
 const fetchUsers = async () => {
   const res = await axios.get(`${config.apiUrl}/api/users`)
   users.value = res.data
+  console.log('users: ', typeof users.value)
 }
 
 onMounted(fetchUsers)

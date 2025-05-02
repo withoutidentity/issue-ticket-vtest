@@ -1,63 +1,75 @@
-import { Router } from 'express'
-import { PrismaClient, Role } from '@prisma/client'
+import { Router } from 'express';
+import { Request, Response } from 'express';
+import {
+  getAllTicketTypes,
+  createTicketType,
+  deleteTicketType
+} from '../services/tickettype.service';
 
-const router = Router()
-const prisma = new PrismaClient()
-import { Request, Response } from 'express'
+const router = Router();
 
-// GET /api/types
+// GET /api/types - ดึงประเภท Ticket ทั้งหมด
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const types = await prisma.ticket_types.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-      },
-    })
-    res.json(types)
+    const result = await getAllTicketTypes();
+    res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ error: 'Internal server error' })
+    console.error(error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
-})
+});
 
-// Post /api/types/create
+// POST /api/types/create - สร้างประเภท Ticket ใหม่
 router.post('/create', async (req: Request, res: Response) => {
-    try {
-      const newTicketType = await prisma.ticket_types.create({
-        data: {
-          name: req.body.name,
-          description: req.body.description || null,
-        },
+  try {
+    if (!req.body.name) {
+      res.status(400).json({
+        success: false,
+        message: 'Ticket type name is required'
       });
-      res.json({ 
-        success: true,
-        message: 'Ticket type created successfully',
-        data: newTicketType,
-      });
-    } catch (error) {
-      console.error(error)
-      res.status(500).json({ error: 'Internal server error' })
     }
-  })
 
-// Delete /api/types/delete/:id
+    const result = await createTicketType({
+      name: req.body.name,
+      description: req.body.description
+    });
+    
+    res.status(result.success ? 201 : 500).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// DELETE /api/types/delete/:id - ลบประเภท Ticket
 router.delete('/delete/:id', async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id)
-    try {
-        const deletedTicketType = await prisma.ticket_types.delete({
-        where: { id },
-        })
-        res.json({ 
-        success: true,
-        message: 'Ticket type deleted successfully',
-        data: deletedTicketType,
-        })
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: 'Internal server error' })
+  try {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid ticket type ID'
+      });
     }
-})
 
-export default router
+    const result = await deleteTicketType(id);
+    res.status(result.success ? 200 : 500).json(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+export default router;

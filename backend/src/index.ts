@@ -4,6 +4,7 @@ import routes from './routes'
 import { authenticateToken } from '@/middleware/auth.middleware'
 import userRoutes from '@/routes/user.routes'
 import typeRoutes from '@/routes/tickettype.routes'
+import ticketRoutes from '@/routes/tickets.routes'
 
 dotenv.config()
 
@@ -36,6 +37,9 @@ app.use('/api/users', userRoutes)
 
 //ticet types
 app.use('/api/types', typeRoutes)
+
+//ticket 
+app.use('/api/tickets', ticketRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

@@ -76,9 +76,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
 
-  console.log("Navigation to:", to.path)
-  console.log("Token:", auth.accessToken)
-  console.log("Role:", auth.user?.role)
+  // console.log("Navigation to:", to.path)
+  // console.log("Token:", auth.accessToken)
+  // console.log("Role:", auth.user?.role)
 
   const requiresAuth = to.meta.requiresAuth ?? false
   const allowedRoles = to.meta.roles

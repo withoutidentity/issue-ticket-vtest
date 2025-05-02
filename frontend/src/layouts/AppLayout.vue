@@ -19,7 +19,6 @@ import topbar from '@/components/topbar.vue';
 .app-layout {
   display: flex;
   min-height: 100vh;
-  position: fixed;
   top: 0;
   left: 0;
   height: screen;
@@ -32,10 +31,14 @@ import topbar from '@/components/topbar.vue';
   flex: 1;
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  position: sticky;
 }
 
 .content-wrapper {
   padding: 33px;
   flex: 1;
+  overflow-y: auto; /* เปิดการเลื่อนแนวตั้ง */
+  height: 100vh;
 }
 </style>

@@ -49,11 +49,11 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="type in types" :key="type.id" class="border-b hover:bg-gray-50">
-                  <td class="py-3 px-4">{{ type.name }}</td>
-                  <td class="py-3 px-4">{{ type.description }}</td>
+                <tr v-for="data in types" :key="data.id" class="border-b hover:bg-gray-50">
+                  <td class="py-3 px-4">{{ data.name }}</td>
+                  <td class="py-3 px-4">{{ data.description }}</td>
                   <td class="py-3 px-4 space-x-2">
-                    <button @click="deletetype(type.id)"
+                    <button @click="deletetype(data.id)"
                       class="border px-3 py-1 rounded text-red-600">ลบหมวดหมู่</button>
                   </td>
                 </tr>
@@ -88,7 +88,7 @@ const types = ref<ticket_types[]>([])
 
 const fetchTypes = async () => {
   const res = await axios.get(`${config.apiUrl}/api/types`)
-  types.value = res.data
+  types.value = res.data.data
 }
 
 onMounted(fetchTypes)
@@ -99,7 +99,7 @@ const deletetype = async (id: number) => {
     console.log('id: ', id)
     fetchTypes()
   } catch (error) {
-    console.error('Error deleting user:', error)
+    console.error('Error deleting type:', error) // ลบหมวดหมู่ไม่่สำเร็จ
   }
 }
 

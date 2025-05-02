@@ -9,7 +9,7 @@
         <nav class="space-y-4 p-4" v-if="isAdmin">
             <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
-            <button @click="setting" class="w-full text-center hover:bg-gray-800 p-2 rounded">Setting</button>
+            <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
@@ -56,8 +56,8 @@ const admindashboard = () => {
     router.push('/admin')
 }
 
-const setting = () => {
-    router.push('/setting')
+const types = () => {
+    router.push('/types')
 }
 
 const users = () => {
