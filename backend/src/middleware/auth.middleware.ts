@@ -2,8 +2,15 @@ import { Request, Response, NextFunction } from 'express'
 import { verifyAccessToken } from '@/utils/jwt'
 import jwt from 'jsonwebtoken'
 
-interface AuthenticatedRequest extends Request {
-  user?: any // หรือจะใช้เป็น type ที่ชัดเจน เช่น { id: string, role: string }
+export interface JwtPayload {
+  id: number
+  email: string
+  role: "USER" | "OFFICER" | "ADMIN" | "BANNED"
+}
+
+export interface AuthenticatedRequest extends Request {
+  user?: JwtPayload
+  
 }
 
 const accessSecret = process.env.ACCESS_TOKEN_SECRET!

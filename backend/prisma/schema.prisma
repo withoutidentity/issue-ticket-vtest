@@ -27,12 +27,15 @@ model Ticket {
   title        String        @db.VarChar(255)
   description  String?
   type_id      Int?
-  priority     String?       @db.VarChar(255)
+  priority     TicketPriority?
+  contact      String?       @db.VarChar(255)
+  department   String?       @db.VarChar(255)
   status       TicketStatus  @default(open)
   created_at   DateTime      @default(now())
   updated_at   DateTime      @default(now())
   ticket_types ticket_types? @relation(fields: [type_id], references: [id])
   user         User?         @relation(fields: [user_id], references: [id])
+  files        TicketFile[]  // แนบหลายไฟล์ต่อ Ticket
 
   @@index([type_id], map: "idx_tickets_type_id")
   @@map("tickets")
@@ -47,6 +50,18 @@ model ticket_types {
   tickets     Ticket[]
 }
 
+model TicketFile {
+  id        Int      @id @default(autoincrement())
+  ticket_id Int
+  filename  String   @db.VarChar(255)
+  filepath  String   @db.VarChar(512)
+  uploaded  DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticket_id], references: [id])
+
+  @@index([ticket_id])
+  @@map("ticket_files")
+}
+
 enum Role {
   USER
   OFFICER
@@ -59,4 +74,10 @@ enum TicketStatus {
   in_progress
   resolved
   closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
 }

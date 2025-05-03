@@ -10,13 +10,13 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-refresh-secre
 export interface UserJwtPayload {
   id: number
   email: string
-  role: 'USER' | 'OFFICER' | 'ADMIN'
+  role: 'USER' | 'OFFICER' | 'ADMIN' | 'BANNED'
 }
 
 interface UserPayload {
   id: number
   email: string
-  role: 'USER' | 'OFFICER' | 'ADMIN'
+  role: 'USER' | 'OFFICER' | 'ADMIN' | 'BANNED'
 }
 
 export function generateAccessToken(user: UserPayload): string {

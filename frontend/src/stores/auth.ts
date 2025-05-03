@@ -31,7 +31,8 @@ export const useAuthStore = defineStore('auth', {
         name: payload.name,
       }
       localStorage.setItem('accessToken', this.accessToken)
-
+      // console.log('token', this.accessToken)
+      // console.log('local token: ',localStorage.getItem('accessToken'))
       const userRes = await axios.get(`${config.apiUrl}/api/protected`, {
         headers: {
           Authorization: `Bearer ${this.accessToken}`,

@@ -41,6 +41,9 @@ app.use('/api/types', typeRoutes)
 //ticket 
 app.use('/api/tickets', ticketRoutes)
 
+// server uploaded files
+app.use('/uploads', express.static('uploads')) 
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })
