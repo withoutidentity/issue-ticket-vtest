@@ -51,11 +51,9 @@ router.post(
 // GET /api/tickets
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = req.body.user
-    console.log('user: ', user)
-
+    const user = req.user
     const tickets = await prisma.ticket.findMany({
-      where: user.role === 'ADMIN' ? {} : { user_id: user.id },
+      where: user?.role === 'ADMIN' ? {} : { user_id: user?.id },
       include: {
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
@@ -69,7 +67,6 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     res.status(500).json({ error: 'Failed to fetch tickets' })
   }
 })
-
 
 
 export default router

@@ -8,6 +8,7 @@ export const getAllTickets = async (): Promise<ApiResponse<any>> => {
     const tickets = await prisma.ticket.findMany({
         select: {
             id: true,
+            user_id: true,
             title: true,
             description: true
         },
