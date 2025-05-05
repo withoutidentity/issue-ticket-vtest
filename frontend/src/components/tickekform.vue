@@ -23,13 +23,13 @@
                 <option value="high">สูง</option>
             </select>
 
-            <select v-model="status" class="input">
+            <!-- <select v-model="status" class="input">
                 <option disabled value="">-- สถานะ --</option>
                 <option value="open">เปิด</option>
                 <option value="in_progress">กำลังดำเนินการ</option>
                 <option value="resolved">ได้รับการแก้ไขแล้ว</option>
                 <option value="closed">ปิดแล้ว</option>
-            </select>
+            </select> -->
 
             <input type="file" multiple 
                 @change="handleFileChange" 
@@ -69,7 +69,7 @@ const title = ref('')
 const description = ref('')
 const type_id = ref('')
 const priority = ref('')
-const status = ref('')
+// const status = ref('')
 const contact = ref('')
 const department = ref('')
 const files = ref < File[] > ([])
@@ -124,7 +124,7 @@ const submitTicket = async () => {
     formData.append('description', description.value)
     formData.append('type_id', type_id.value)
     formData.append('priority', priority.value)
-    formData.append('status', status.value)
+    // formData.append('status', status.value)
     formData.append('contact', contact.value)
     formData.append('department', department.value)
     formData.append('user_id', userId)

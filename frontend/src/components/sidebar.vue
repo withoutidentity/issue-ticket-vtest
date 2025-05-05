@@ -1,6 +1,6 @@
 <template>
     <aside class="w-64 bg-black text-white h-screen flex flex-col position: sticky overflow-y-auto">
-        <router-link :to="isAdmin ? '/admin' : '/home'" class="border-b-2 border-[#333333] w-full">
+        <router-link :to="isAdmin ? '/dashboard' : '/home'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>
                 <h2 class="text-[#6C6B6B]">ระบบแจ้งปัญหา</h2>
@@ -53,7 +53,7 @@ const profile = () => {
 
 //admin
 const admindashboard = () => {
-    router.push('/admin')
+    router.push('/dashboard')
 }
 
 const types = () => {

@@ -5,14 +5,10 @@
     <card>
       <cardcontent>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <button>เพิ่มผู้ใช้งาน</button>
-          </div>
-
           <div className="overflow-x-auto">
             <table class="w-full">
               <thead>
-                <tr class="border-b">
+                <tr class="bg-gray-200">
                   <th class="text-left py-3 px-4 font-medium">ชื่อผู้ใช้</th>
                   <th class="text-left py-3 px-4 font-medium">อีเมล</th>
                   <th class="text-left py-3 px-8 font-medium">บทบาท</th>

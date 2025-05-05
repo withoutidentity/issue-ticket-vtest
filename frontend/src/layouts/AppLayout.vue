@@ -36,6 +36,7 @@ import topbar from '@/components/topbar.vue';
 }
 
 .content-wrapper {
+  background-color: #F1F1F1;
   padding: 33px;
   flex: 1;
   overflow-y: auto; /* เปิดการเลื่อนแนวตั้ง */

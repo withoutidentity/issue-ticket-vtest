@@ -35,7 +35,7 @@ const onLogin = async () => {
     const role = auth.user?.role
 
     if (role === 'ADMIN' || role === 'OFFICER') {
-      router.push('/admin')
+      router.push('/dashboard')
     } else {
       router.push('/home')
     }

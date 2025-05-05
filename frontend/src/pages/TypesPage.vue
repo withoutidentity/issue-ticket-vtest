@@ -4,7 +4,7 @@
     <card>
       <cardcontent>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mt-2">
             <button @click="openAddModal" class="border px-3 py-1 rounded bg-black/80 text-white">เพิ่มหมวดหมู่</button>
 
             <div v-if="isAddModalOpen" class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
@@ -43,9 +43,10 @@
           <div className="overflow-x-auto">
             <table class="w-full">
               <thead>
-                <tr class="border-b">
+                <tr class="bg-gray-200">
                   <th class="text-left py-3 px-4 font-medium">ชื่อหมวดหมู่</th>
                   <th class="text-left py-3 px-4 font-medium">คำอธิบาย</th>
+                  <th class="text-left py-3 px-4 font-medium"></th>
                 </tr>
               </thead>
               <tbody>

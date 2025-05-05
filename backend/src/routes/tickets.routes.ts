@@ -58,7 +58,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
       },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: 'asc' },
     })
 
     res.json(tickets)

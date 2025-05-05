@@ -6,7 +6,7 @@
         <div class="space-y-6 overflow-y-auto">
           <table class="w-full">
             <thead>
-              <tr class="bg-gray-200 border-b">
+              <tr class="bg-gray-200">
                 <th class="text-left py-3 px-4 font-medium">หัวข้อ</th>
                 <th class="text-left py-3 px-4 font-medium">คำอธิบาย</th>
                 <th class="text-left py-3 px-4 font-medium">ประเภท</th>
@@ -19,7 +19,7 @@
               <tr
                 v-for="ticket in tickets"
                 :key="ticket.id"
-                class="border-b hover:bg-gray-100"
+                class="border-b hover:bg-gray-50"
               >
                 <td class="py-3 px-4">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
