@@ -1,7 +1,8 @@
 <template>
-    <div class="max-w-2xl mx-auto p-4 overflow-y-auto h-screen">
-        <h1 class="text-2xl font-bold mb-4">สร้าง Ticket ใหม่</h1>
-        <form @submit.prevent="submitTicket" class="space-y-4">
+    <cardtitle>สร้าง Ticket ใหม่</cardtitle>
+    <card>
+        <cardcontent>
+            <form @submit.prevent="submitTicket" class="space-y-4">
             <input v-model="title" type="text" placeholder="หัวข้อปัญหา" class="input" required />
             <textarea v-model="description" placeholder="รายละเอียด" class="input" rows="5" />
 
@@ -30,7 +31,9 @@
                 <option value="closed">ปิดแล้ว</option>
             </select>
 
-            <input type="file" multiple @change="handleFileChange" class="input" />
+            <input type="file" multiple 
+                @change="handleFileChange" 
+                class="input" accept=".pdf, .jpg, .jpeg, .png"/>
             <!-- แสดงรายการไฟล์ที่เลือก -->
             <ul class="mt-2 space-y-1">
                 <li v-for="(file, index) in files" :key="index"
@@ -45,8 +48,10 @@
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                 ส่ง Ticket
             </button>
-        </form>
-    </div>
+            </form>
+        </cardcontent>
+    </card>
+    
 </template>
 
 <script setup lang="ts">
@@ -56,6 +61,9 @@ import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
 import { config } from '@/config';
 
+import cardtitle from '@/ui/cardtitle.vue';
+import card from '@/ui/card.vue';
+import cardcontent from '@/ui/cardcontent.vue';
 
 const title = ref('')
 const description = ref('')
@@ -68,18 +76,29 @@ const files = ref < File[] > ([])
 const types = ref([])
 
 function handleFileChange(event: Event) {
-  const input = event.target as HTMLInputElement
-  if (!input.files) return
+const input = event.target as HTMLInputElement
+if (!input.files) return
 
-  const selectedFiles = Array.from(input.files)
+const selectedFiles = Array.from(input.files)
+const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
 
-  if (selectedFiles.length > 5) {
+if (selectedFiles.length > 5) {
     alert('ไม่สามารถแนบไฟล์เกิน 5 ไฟล์ได้')
     input.value = '' // รีเซ็ต input
     return
-  }
+}
 
-  files.value = selectedFiles
+const validFiles: File[] = []
+for (let i = 0; i < selectedFiles.length; i++) {
+    const file = selectedFiles[i]
+    if (allowedTypes.includes(file.type)) {
+        validFiles.push(file)
+    } else {
+        alert(`ไม่อนุญาตให้แนบไฟล์ประเภท: ${file.type}`)
+    }
+}
+
+files.value = validFiles
 }
 
 onMounted(async () => {
@@ -94,6 +113,11 @@ const submitTicket = async () => {
 
     const decoded: any = jwtDecode(token)
     const userId = decoded.userId || decoded.id
+
+    if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department.value) {
+    alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+    return;
+    }
 
     const formData = new FormData()
     formData.append('title', title.value)

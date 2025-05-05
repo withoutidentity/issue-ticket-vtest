@@ -19,7 +19,7 @@
             :key="ticket.id"
             class="hover:bg-gray-100"
           >
-            <td class="p-2 border">{{ ticket.title }}</td>
+            <td class="p-2 border text-center">{{ ticket.title }}</td>
             <td class="p-2 border">{{ ticket.description }}</td>
             <td class="p-2 border">{{ ticket.ticket_types?.name || "-" }}</td>
             <td class="p-2 border">{{ ticket.status }}</td>
