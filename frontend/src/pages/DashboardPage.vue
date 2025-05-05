@@ -24,10 +24,19 @@
                 <td class="py-3 px-4">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
                 <td class="py-3 px-4">{{ ticket.ticket_types?.name || "-" }}</td>
-                <td class="py-3 px-4">{{ ticket.status }}</td>
+                <td class="py-3 px-4">
+                  <span :class="{
+                      'bg-blue-100 text-blue-700': ticket.status === 'open',
+                      'bg-green-100 text-green-700': ticket.status === 'in_progress',
+                      'bg-purple-100 text-purple-700': ticket.status === 'resolved',
+                      'bg-red-100 text-red-700': ticket.status === 'closed',
+                    }" class="px-3 py-1 rounded-full text-sm">
+                      {{ statusName(ticket.status) }}
+                    </span>
+                </td>
                 <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4">{{ ticket.user?.name || "-" }}</td>
                 <td class="py-3 px-4">
-                  {{ new Date(ticket.created_at).toLocaleString() }}
+                  {{ formatDateDDMMYYYY(ticket.created_at) }}
                 </td>
               </tr>
             </tbody>
@@ -64,4 +73,27 @@ onMounted(async () => {
     console.error("Failed to load tickets", err);
   }
 });
+
+const statusName = (status: string) => {
+  switch (status) {
+    case "open":
+      return "เปิด";
+    case "in_progress":
+      return "กำลังดำเนินการ";
+    case "resolved":
+      return "แก้ไขแล้ว";
+    case "closed":
+      return "ปิดแล้ว";
+    default:
+      return status;
+  }
+};
+
+const formatDateDDMMYYYY = (dateString: string | Date): string => {
+  const date = new Date(dateString);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // เดือนเริ่มที่ 0 ต้อง +1
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
 </script>
