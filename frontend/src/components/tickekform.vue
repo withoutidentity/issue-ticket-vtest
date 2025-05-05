@@ -85,7 +85,7 @@ function handleFileChange(event: Event) {
 onMounted(async () => {
     const res = await axios.get(`${config.apiUrl}/api/types`)
     types.value = res.data.data
-    console.log('type: ', types.value)
+    // console.log('type: ', types.value)
 })
 
 const submitTicket = async () => {
