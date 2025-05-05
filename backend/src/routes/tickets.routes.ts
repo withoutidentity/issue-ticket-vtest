@@ -29,7 +29,7 @@ router.post(
           user_id: req.user!.id,
           files: {
             create: files.map((file) => ({
-              filename: file.originalname,
+              filename: file.filename ,
               filepath: file.path,
             })),
           },
@@ -57,6 +57,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
       include: {
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
+        files: true
       },
       orderBy: { created_at: 'asc' },
     })

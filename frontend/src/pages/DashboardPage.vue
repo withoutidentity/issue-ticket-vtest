@@ -3,7 +3,7 @@
     <cardtitle>รายงาน Ticket</cardtitle>
     <card>
       <cardcontent>
-        <div class="space-y-6 overflow-y-auto">
+        <div class="space-y-6 overflow-y-auto overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="bg-gray-200">
@@ -11,32 +11,44 @@
                 <th class="text-left py-3 px-4 font-medium">คำอธิบาย</th>
                 <th class="text-left py-3 px-4 font-medium">ประเภท</th>
                 <th class="text-left py-3 px-4 font-medium">สถานะ</th>
-                <th  v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="text-left py-3 px-4 font-medium">ผู้แจ้ง</th>
+                <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
+                  class="text-left py-3 px-4 font-medium">ผู้แจ้ง</th>
                 <th class="text-left py-3 px-4 font-medium">วันที่สร้าง</th>
+                <th class="text-left py-3 px-4 font-medium">ไฟล์</th>
               </tr>
             </thead>
             <tbody>
-              <tr
-                v-for="ticket in tickets"
-                :key="ticket.id"
-                class="border-b hover:bg-gray-50"
-              >
-                <td class="py-3 px-4">{{ ticket.title }}</td>
+              <tr v-for="ticket in tickets" :key="ticket.id" class="border-b hover:bg-gray-50">
+                <td class="py-3 px-4 ">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
                 <td class="py-3 px-4">{{ ticket.ticket_types?.name || "-" }}</td>
                 <td class="py-3 px-4">
                   <span :class="{
-                      'bg-blue-100 text-blue-700': ticket.status === 'open',
-                      'bg-green-100 text-green-700': ticket.status === 'in_progress',
-                      'bg-purple-100 text-purple-700': ticket.status === 'resolved',
-                      'bg-red-100 text-red-700': ticket.status === 'closed',
-                    }" class="px-3 py-1 rounded-full text-sm">
-                      {{ statusName(ticket.status) }}
-                    </span>
+                    'bg-blue-100 text-blue-700': ticket.status === 'open',
+                    'bg-green-100 text-green-700': ticket.status === 'in_progress',
+                    'bg-purple-100 text-purple-700': ticket.status === 'resolved',
+                    'bg-red-100 text-red-700': ticket.status === 'closed',
+                  }" class="px-3 py-1 rounded-full text-sm">
+                    {{ statusName(ticket.status) }}
+                  </span>
                 </td>
-                <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4">{{ ticket.user?.name || "-" }}</td>
+                <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4">{{
+                  ticket.user?.name || "-" }}</td>
                 <td class="py-3 px-4">
                   {{ formatDateDDMMYYYY(ticket.created_at) }}
+                </td>
+                <td class="py-3 px-4">
+                  <!-- <Filelink :filePath="ticket.filepath" /> -->
+                  <div v-if="ticket.files.length === 0" class="text-gray-400 italic">ไม่มีไฟล์แนบ</div>
+                  <div v-else>
+                    <ul>
+                      <li v-for="file in ticket.files" :key="file.id">
+                        <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer" class="truncate">
+                          📎 {{ file.filename }}
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </td>
               </tr>
             </tbody>
