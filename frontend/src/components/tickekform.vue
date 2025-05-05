@@ -27,7 +27,7 @@
                 <option disabled value="">-- สถานะ --</option>
                 <option value="open">เปิด</option>
                 <option value="in_progress">กำลังดำเนินการ</option>
-                <option value="resolved">ได้รับการแก้ไขแล้ว</option>
+                <option value="pending">รอดำเนินการ</option>
                 <option value="closed">ปิดแล้ว</option>
             </select> -->
 

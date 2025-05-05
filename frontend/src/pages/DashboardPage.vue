@@ -18,15 +18,15 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="ticket in tickets" :key="ticket.id" class="border-b hover:bg-gray-50">
-                <td class="py-3 px-4 ">{{ ticket.title }}</td>
+              <tr v-for="ticket in tickets" :key="ticket.id" class="border-b align-top hover:bg-gray-50">
+                <td class="py-3 px-4">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
                 <td class="py-3 px-4">{{ ticket.ticket_types?.name || "-" }}</td>
                 <td class="py-3 px-4">
                   <span :class="{
                     'bg-blue-100 text-blue-700': ticket.status === 'open',
                     'bg-green-100 text-green-700': ticket.status === 'in_progress',
-                    'bg-purple-100 text-purple-700': ticket.status === 'resolved',
+                    'bg-purple-100 text-purple-700': ticket.status === 'pending',
                     'bg-red-100 text-red-700': ticket.status === 'closed',
                   }" class="px-3 py-1 rounded-full text-sm">
                     {{ statusName(ticket.status) }}
@@ -43,7 +43,8 @@
                   <div v-else>
                     <ul>
                       <li v-for="file in ticket.files" :key="file.id">
-                        <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer" class="truncate">
+                        <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer" 
+                          class="truncate max-w-xs flex">
                           📎 {{ file.filename }}
                         </a>
                       </li>
@@ -92,8 +93,8 @@ const statusName = (status: string) => {
       return "เปิด";
     case "in_progress":
       return "กำลังดำเนินการ";
-    case "resolved":
-      return "แก้ไขแล้ว";
+    case "pending":
+      return "รอดำเนินการ";
     case "closed":
       return "ปิดแล้ว";
     default:

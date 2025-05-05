@@ -72,7 +72,7 @@ enum Role {
 enum TicketStatus {
   open
   in_progress
-  resolved
+  pending
   closed
 }
 
