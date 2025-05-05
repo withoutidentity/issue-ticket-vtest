@@ -53,7 +53,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
   try {
     const user = req.user
     const tickets = await prisma.ticket.findMany({
-      where: user?.role === 'ADMIN' ? {} : { user_id: user?.id },
+      where: user?.role === 'ADMIN' || user?.role === 'OFFICER' ? {} : { user_id: user?.id },
       include: {
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
