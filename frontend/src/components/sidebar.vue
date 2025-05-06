@@ -1,5 +1,5 @@
 <template>
-    <aside class="w-64 bg-black text-white h-screen flex flex-col position: sticky overflow-y-auto">
+    <aside class="w-64 bg-black text-white h-screen flex flex-col position: sticky">
         <router-link :to="isAdmin ? '/dashboard' : '/home'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>

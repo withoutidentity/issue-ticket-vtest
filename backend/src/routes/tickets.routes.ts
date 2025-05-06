@@ -1,5 +1,6 @@
+import { Ticket } from './../types/index';
 import { Router, Request, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, TicketStatus } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
 import { upload } from '../middleware/upload'
 
@@ -68,6 +69,38 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     res.status(500).json({ error: 'Failed to fetch tickets' })
   }
 })
+
+// PUT /api/tickets/updateStatus/:id
+router.put('/updateStatus/:id', async (req: Request, res: Response) => {
+  const ticketId = parseInt(req.params.id, 10)
+  const { status } = req.body
+
+  console.log('ticket: ',ticketId)
+  console.log('Status: ',status)
+
+  if (!['open', 'in_progress', 'pending', 'closed'].includes(status)) {
+    res.status(400).json({ error: 'Invalid role specified' })
+  }
+  
+  try {
+    const updatedTicketStatus = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: { status: status as TicketStatus },
+    });
+
+    res.status(200).json({
+      message: 'Status updated successfully',
+      data: updatedTicketStatus,
+    });
+  } catch (error) {
+    console.error('Error updating status:', error);
+    res.status(500).json({
+      message: 'Failed to update status',
+      error,
+    });
+  }
+})
+
 
 
 export default router

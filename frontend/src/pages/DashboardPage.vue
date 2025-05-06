@@ -3,7 +3,7 @@
     <cardtitle>รายการแจ้งปัญหา</cardtitle>
     <card>
       <cardcontent>
-        <div class="space-y-6 overflow-y-auto overflow-x-auto">
+        <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
           <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" />
           <table class="w-full">
             <thead>
@@ -11,7 +11,7 @@
                 <th class="text-left py-3 px-4 font-medium">หัวข้อ</th>
                 <th class="text-left py-3 px-4 font-medium">คำอธิบาย</th>
                 <th class="text-left py-3 px-4 font-medium">ประเภท</th>
-                <th class="text-left py-3 px-4 font-medium">สถานะ</th>
+                <th class="text-center py-3 px-4 font-medium">สถานะ</th>
                 <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
                   class="text-left py-3 px-4 font-medium">ผู้แจ้ง</th>
                 <th class="text-left py-3 px-4 font-medium">วันที่สร้าง</th>
@@ -22,16 +22,31 @@
               <tr v-for="ticket in tickets" :key="ticket.id" class="border-b align-top hover:bg-gray-50">
                 <td class="py-3 px-4">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
-                <td class="py-3 px-4">{{ ticket.ticket_types?.name || "-" }}</td>
                 <td class="py-3 px-4">
-                  <span :class="{
-                    'bg-blue-100 text-blue-700': ticket.status === 'open',
-                    'bg-green-100 text-green-700': ticket.status === 'in_progress',
-                    'bg-purple-100 text-purple-700': ticket.status === 'pending',
-                    'bg-red-100 text-red-700': ticket.status === 'closed',
-                  }" class="px-3 py-1 rounded-full text-sm">
-                    {{ statusName(ticket.status) }}
-                  </span>
+                  {{ ticket.ticket_types?.name || "-" }}
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <!-- update status-->
+                  <div v-if="editStatus?.id === ticket.id" class="flex items-center space-x-2">
+                    <select v-model="selectedStatus" class="border rounded px-2 py-1 focus:outline-none">
+                      <option value="open">เปิด</option>
+                      <option value="in_progress">กำลังดำเนินการ</option>
+                      <option value="pending">รอดำเนินการ</option>
+                      <option value="closed">ปิดแล้ว</option>
+                    </select>
+                    <button @click="updateStatus" class="text-green-600 hover:underline">บันทึก</button>
+                    <button @click="cancelEdit" class="text-red-600 hover:underline">ยกเลิก</button>
+                  </div>
+                  <div v-else @click="openEdit(ticket)" class="cursor-pointer">
+                    <span :class="{
+                      'bg-blue-100 text-blue-700': ticket.status === 'open',
+                      'bg-green-100 text-green-700': ticket.status === 'in_progress',
+                      'bg-purple-100 text-purple-700': ticket.status === 'pending',
+                      'bg-red-100 text-red-700': ticket.status === 'closed',
+                    }" class="px-3 py-1 rounded-full text-sm ">
+                      {{ statusName(ticket.status) }}
+                    </span>
+                  </div>
                 </td>
                 <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4">{{
                   ticket.user?.name || "-" }}</td>
@@ -44,9 +59,9 @@
                   <div v-else>
                     <ul>
                       <li v-for="file in ticket.files" :key="file.id">
-                        <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer" 
-                          class="truncate max-w-xs flex">
-                          📎 {{ file.filename }}
+                        <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer"
+                          class="truncate max-w-xs flex text-blue-600 hover:underline">
+                          • {{ file.filename }}
                         </a>
                       </li>
                     </ul>
@@ -73,10 +88,33 @@ import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { config } from "@/config";
 
-const tickets = ref([]);
-const auth = useAuthStore();
+interface ticket {
+  id: number;
+  title: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'pending' | 'closed'
+  created_at: string;
+  updated_at: string;
+  user?: {
+    name: string;
+    email: string;
+  };
+  ticket_types?: {
+    name: string;
+  };
+  files: Array<{
+    id: number;
+    filename: string;
+    filepath: string;
+  }>;
+}
 
-onMounted(async () => {
+const tickets = ref<ticket[]>([])
+const auth = useAuthStore();
+const editStatus = ref<ticket | null>(null)
+const selectedStatus = ref('open')
+
+const fetchTickets = async () => {
   try {
     const res = await axios.get(`${config.apiUrl}/api/tickets`, {
       headers: {
@@ -87,7 +125,31 @@ onMounted(async () => {
   } catch (err) {
     console.error("Failed to load tickets", err);
   }
-});
+};
+
+onMounted(fetchTickets)
+
+const openEdit = (ticket: ticket) => {
+  editStatus.value = ticket
+  selectedStatus.value = ticket.status
+}
+
+const cancelEdit = () => {
+  editStatus.value = null
+}
+
+const updateStatus = async () => {
+  if (!editStatus.value) return
+  await axios.put(`${config.apiUrl}/api/tickets/updateStatus/${editStatus.value.id}`, {
+    status: selectedStatus.value,
+  }, {
+    headers: {
+      Authorization: `Bearer ${auth.accessToken}`,
+    },
+  })
+  console.log('select status: ', selectedStatus.value)
+  fetchTickets()
+}
 
 const statusName = (status: string) => {
   switch (status) {

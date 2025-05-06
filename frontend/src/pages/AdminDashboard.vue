@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="w-full grid grid-cols-2 gap-4 mb-6 ">
+    <div class="w-full grid grid-cols-2 gap-4  ">
       <div class="bg-white shadow p-4 rounded ">
         <div class="h-[300px]">
           <h3 class="text-lg font-semibold mb-2">Ticket ตามหมวดหมู่</h3>
@@ -69,7 +69,7 @@ const chartData = ref({
   labels: [],
   datasets: [{
     label: 'จำนวน Ticket',
-    backgroundColor: '#60a5fa',
+    backgroundColor: ['#60a5fa', '#34d399', '#fbbf24'],
     data: [],
   }]
 })
@@ -98,8 +98,9 @@ onMounted(async () => {
 
   summary.value = data.statusSummary
   chartData.value.labels = data.typeSummary.map((t: TypeSummary) => t.name)
+  
   chartData.value.datasets[0].data = data.typeSummary.map((t: TypeSummary) => t.count)
-  console.log('Chart Data:', chartData.value.datasets[0].data)
+  console.log('Chart Data:', chartData)
 })
 
 const chartKey = ref(0)

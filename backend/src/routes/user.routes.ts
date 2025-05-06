@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { PrismaClient, Role } from '@prisma/client'
+import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -24,8 +25,9 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-
-router.put('/update/:id', async (req: Request, res: Response) => {
+// Update user role
+// PUT /api/users/update/:id
+router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']), async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id, 10)
   const { role } = req.body
 

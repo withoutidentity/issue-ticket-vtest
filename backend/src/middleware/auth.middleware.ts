@@ -38,7 +38,7 @@ export function authenticateToken (req: Request, res: Response, next: NextFuncti
 export function authorizeRoles(roles: string[]) {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
     if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403).json({ error: 'Forbidden: Access denied' })
+      res.status(403).json({ error: 'Forbiddennnn: Access denied' })
       return
     }
     else if (req.user.role === 'BANNED') {
