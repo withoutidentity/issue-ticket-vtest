@@ -19,7 +19,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="ticket in tickets" :key="ticket.id" class="border-b align-top hover:bg-gray-50">
+              <tr v-for="ticket in tickets" :key="ticket.id" 
+                  @click="goToTicket(ticket.id)" 
+                  class="border-b align-top hover:bg-gray-50 cursor-pointer"
+                  >
                 <td class="py-3 px-4">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
                 <td class="py-3 px-4">
@@ -60,7 +63,7 @@
                     <ul>
                       <li v-for="file in ticket.files" :key="file.id">
                         <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer"
-                            class="max-w-[200px] flex text-blue-600 hover:underline text-ellipsis overflow-hidden whitespace-nowrap">
+                          class="max-w-[200px] flex text-blue-600 hover:underline text-ellipsis overflow-hidden whitespace-nowrap">
                           • {{ file.filename }}
                         </a>
                       </li>
@@ -87,6 +90,13 @@ import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { config } from "@/config";
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+function goToTicket(id: number) {
+  router.push(`/tickets/${id}`)
+}
 
 interface ticket {
   id: number;

@@ -70,8 +70,33 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
   }
 })
 
+//GET /api/tickets/:id
+router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  const ticketId = parseInt(req.params.id, 10)
+
+  try {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        user: { select: { name: true, email: true } },
+        ticket_types: { select: { name: true } },
+        files: true,
+      },
+    })
+
+    if (!ticket) {
+      res.status(404).json({ error: 'Ticket not found' })
+    }
+
+    res.json(ticket)
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Failed to fetch ticket' })
+  }
+})
+
 // PUT /api/tickets/updateStatus/:id
-router.put('/updateStatus/:id', async (req: Request, res: Response) => {
+router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const ticketId = parseInt(req.params.id, 10)
   const { status } = req.body
 
