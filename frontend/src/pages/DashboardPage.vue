@@ -60,7 +60,7 @@
                     <ul>
                       <li v-for="file in ticket.files" :key="file.id">
                         <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer"
-                          class="truncate max-w-xs flex text-blue-600 hover:underline">
+                            class="max-w-[200px] flex text-blue-600 hover:underline text-ellipsis overflow-hidden whitespace-nowrap">
                           • {{ file.filename }}
                         </a>
                       </li>
