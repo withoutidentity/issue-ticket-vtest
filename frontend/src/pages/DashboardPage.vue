@@ -1,9 +1,10 @@
 <template>
   <AppLayout>
-    <cardtitle>รายงาน Ticket</cardtitle>
+    <cardtitle>รายการแจ้งปัญหา</cardtitle>
     <card>
       <cardcontent>
         <div class="space-y-6 overflow-y-auto overflow-x-auto">
+          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" />
           <table class="w-full">
             <thead>
               <tr class="bg-gray-200">
@@ -65,6 +66,7 @@ import AppLayout from "@/layouts/AppLayout.vue";
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
+import AdminDashboard from "./AdminDashboard.vue";
 
 import { ref, onMounted } from "vue";
 import axios from "axios";

@@ -5,6 +5,7 @@ import { authenticateToken } from '@/middleware/auth.middleware'
 import userRoutes from '@/routes/user.routes'
 import typeRoutes from '@/routes/tickettype.routes'
 import ticketRoutes from '@/routes/tickets.routes'
+import dashboardRoutes from '@/routes/dashboard.routes'
 import path from 'path'
 
 dotenv.config()
@@ -44,6 +45,9 @@ app.use('/api/tickets', ticketRoutes)
 
 // server uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+
+//dashvoard
+app.use('/api/dashboard', dashboardRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
