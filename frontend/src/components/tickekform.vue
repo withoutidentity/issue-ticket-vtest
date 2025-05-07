@@ -12,7 +12,7 @@
             <select v-model="type_id" class="input">
                 <option disabled value="">-- เลือกประเภท --</option>
                 <option v-for="type in types" :key="type.id" :value="type.id">
-                    {{ `${type.name}: `}} <span>{{ type.description }}</span>
+                    {{ `${type.name}: `}} {{ type.description }}
                 </option>
             </select>
 

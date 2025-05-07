@@ -10,8 +10,6 @@ export const getAllTicketTypes = async (): Promise<ApiResponse<any>> => {
         id: true,
         name: true,
         description: true,
-        created_at: true,
-        updated_at: true
       },
       orderBy: {
         created_at: 'desc'
