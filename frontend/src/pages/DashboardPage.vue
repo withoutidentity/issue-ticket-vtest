@@ -58,7 +58,7 @@
                 </td>
                 <td class="py-3 px-4">
                   <!-- <Filelink :filePath="ticket.filepath" /> -->
-                  <div v-if="ticket.files.length === 0" class="text-gray-400 italic">ไม่มีไฟล์แนบ</div>
+                  <div v-if="ticket.files.length === 0" class="text-gray-400 italic">ไม่มีไฟล์แนบบบ</div>
                   <div v-else>
                     <ul>
                       <li v-for="file in ticket.files" :key="file.id">
