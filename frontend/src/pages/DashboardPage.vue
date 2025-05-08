@@ -8,6 +8,7 @@
           <table class="w-full">
             <thead>
               <tr class="bg-gray-200">
+                <th class="text-left py-3 px-4 font-medium">ลำดับ</th>
                 <th class="text-left py-3 px-4 font-medium">หัวข้อ</th>
                 <th class="text-left py-3 px-4 font-medium">คำอธิบาย</th>
                 <th class="text-left py-3 px-4 font-medium">ประเภท</th>
@@ -19,10 +20,11 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="ticket in tickets" :key="ticket.id" 
+              <tr v-for="(ticket, index) in tickets" :key="ticket.id" 
                   @click="goToTicket(ticket.id)" 
                   class="border-b align-top hover:bg-gray-50 cursor-pointer"
                   >
+                <td class="py-3 px-4">{{ index+1 }}</td>
                 <td class="py-3 px-4">{{ ticket.title }}</td>
                 <td class="py-3 px-4">{{ ticket.description }}</td>
                 <td class="py-3 px-4">
@@ -91,6 +93,7 @@ import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { config } from "@/config";
 import { useRouter } from 'vue-router'
+import api from '@/api/axios-instance'
 
 const router = useRouter()
 
@@ -126,7 +129,7 @@ const selectedStatus = ref('open')
 
 const fetchTickets = async () => {
   try {
-    const res = await axios.get(`${config.apiUrl}/api/tickets`, {
+    const res = await api.get('/tickets', {
       headers: {
         Authorization: `Bearer ${auth.accessToken}`,
       },

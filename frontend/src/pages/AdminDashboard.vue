@@ -39,6 +39,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { config } from '@/config';
+import api from '@/api/axios-instance'
+
+
 import { Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -80,7 +83,7 @@ const chartOptions = {
 }
 
 onMounted(async () => {
-  const res = await fetch(`${config.apiUrl}/api/dashboard/admin`, {
+  const res = await api.get(`/dashboard/admin`, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
     }
@@ -94,7 +97,7 @@ onMounted(async () => {
       closed: number
     },
     typeSummary: TypeSummary[]
-  } = await res.json()
+  } = await res.data
 
   summary.value = data.statusSummary
   chartData.value.labels = data.typeSummary.map((t: TypeSummary) => t.name)
@@ -106,12 +109,12 @@ onMounted(async () => {
 const chartKey = ref(0)
 
 onMounted(async () => {
-  const res = await fetch(`${config.apiUrl}/api/dashboard/admin`, {
+  const res = await api.get(`/dashboard/admin`, {
     headers: {
       Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
     }
   })
-  const data = await res.json()
+  const data = await res.data
 
   summary.value = data.statusSummary
   chartData.value.labels = data.typeSummary.map((t: any) => t.name)

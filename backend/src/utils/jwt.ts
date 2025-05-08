@@ -26,7 +26,7 @@ export function generateAccessToken(user: UserPayload): string {
     role: user.role,
   }
 
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '15m' })
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '3m' })
 }
 
 export function generateRefreshToken(user: { id: number }): string {
