@@ -21,13 +21,12 @@
             </thead>
             <tbody>
               <tr v-for="(ticket, index) in tickets" :key="ticket.id" 
-                  @click="goToTicket(ticket.id)" 
                   class="border-b align-top hover:bg-gray-50 cursor-pointer"
                   >
-                <td class="py-3 px-4">{{ index+1 }}</td>
-                <td class="py-3 px-4">{{ ticket.title }}</td>
-                <td class="py-3 px-4">{{ ticket.description }}</td>
-                <td class="py-3 px-4">
+                <td class="py-3 px-4" @click="goToTicket(ticket.id)">{{ index+1 }}</td>
+                <td class="py-3 px-4" @click="goToTicket(ticket.id)">{{ ticket.title }}</td>
+                <td class="py-3 px-4" @click="goToTicket(ticket.id)">{{ ticket.description }}</td>
+                <td class="py-3 px-4" @click="goToTicket(ticket.id)">
                   {{ ticket.ticket_types?.name || "-" }}
                 </td>
                 <td class="py-3 px-4 text-center">
@@ -53,8 +52,9 @@
                     </span>
                   </div>
                 </td>
-                <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4">{{
-                  ticket.user?.name || "-" }}</td>
+                <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4" 
+                @click="goToTicket(ticket.id)">
+                {{ ticket.user?.name || "-" }}</td>
                 <td class="py-3 px-4">
                   {{ formatDateDDMMYYYY(ticket.created_at) }}
                 </td>

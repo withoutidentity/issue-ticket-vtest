@@ -34,7 +34,7 @@ export const login = async (req: Request, res: Response) => {
   const match = await bcrypt.compare(password, user.password)
   if (!match) return res.status(401).json({ error: 'Invalid credentials' })
 
-  const accessToken = jwt.sign({ id: user.id, role: user.role, name: user.name }, accessSecret, { expiresIn: '30s' })
+  const accessToken = jwt.sign({ id: user.id, role: user.role, name: user.name }, accessSecret, { expiresIn: '15m' })
   const refreshToken = jwt.sign({ id: user.id }, refreshSecret, { expiresIn: '7d' })
 
   // console.log('access token: ', accessToken)
@@ -52,7 +52,7 @@ export const refresh = async (req: Request, res: Response) => {
   
   try {
     const payload = jwt.verify(token, refreshSecret)
-    console.log('🔁 Received refresh token:', token)
+    // console.log('🔁 Received refresh token:', token)
 
     if (typeof payload !== 'object' || !('id' in payload)) {
       return res.status(403).json({ error: 'Invalid token payload' })
@@ -61,7 +61,7 @@ export const refresh = async (req: Request, res: Response) => {
     const user = await prisma.user.findUnique({ where: { id: (payload as any).id } })
     if (!user || user.refreshToken !== token) return res.status(403).json({ error: 'Invalid token' })
 
-    const newAccessToken = jwt.sign({ id: user.id, role: user.role }, accessSecret, { expiresIn: '30s' })
+    const newAccessToken = jwt.sign({ id: user.id, role: user.role }, accessSecret, { expiresIn: '15m' })
 
     // OPTIONAL: rotate refresh token
     // const newRefreshToken = jwt.sign({ id: user.id }, refreshSecret, { expiresIn: '7d' })
