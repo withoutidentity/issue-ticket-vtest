@@ -70,6 +70,7 @@ import cardcontent from '@/ui/cardcontent.vue';
 import { config } from '@/config';
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 interface User {
   id: number
@@ -91,18 +92,42 @@ const fetchUsers = async () => {
 onMounted(fetchUsers)
 
 const bandUser = async (id: number) => {
-  try {
-    const payload = {
-      role: 'BANNED',
+  const result = await Swal.fire({
+    title: 'คุณแน่ใจหรือไม่?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'ตกลง',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true,
+    backdrop: `
+      rgba(0,0,0,0.4)
+      url("/images/nyan-cat.gif")
+      left top
+      no-repeat
+    `
+  })
+
+  if (result.isConfirmed) {
+    try {
+      const payload = {
+        role: 'BANNED',
+      }
+      axios.put(`${config.apiUrl}/api/users/update/${id}`, payload)
+      console.log('id: ', id)
+      fetchUsers()
+    } catch (error) {
+      console.error('Error banning user:', error)
+      await Swal.fire(
+        'ผิดพลาด!',
+        'ไม่สามารถแบนบัญชีได้: ' + error.message,
+        'error'
+      )
     }
-    axios.put(`${config.apiUrl}/api/users/update/${id}`, payload)
-    console.log('id: ', id)
-    fetchUsers()  
-  } catch (error) {
-    console.error('Error banning user:', error)
-  }
-  {/*await axios.put(`${config.apiUrl}/api/users/${id}`, { role: 'BANNED' })
+    {/*await axios.put(`${config.apiUrl}/api/users/${id}`, { role: 'BANNED' })
   fetchUsers() */}
+  }
 }
 
 const openEdit = (user: User) => {
@@ -119,7 +144,7 @@ const updateRole = async () => {
   await axios.put(`${config.apiUrl}/api/users/update/${editingUser.value.id}`, {
     role: selectedRole.value,
   })
-  console.log('select Role: ',selectedRole.value)
+  console.log('select Role: ', selectedRole.value)
   editingUser.value = null
   fetchUsers()
 }

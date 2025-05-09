@@ -6,8 +6,9 @@ import {
   deleteTicketType
 } from '../services/tickettype.service';
 import { authenticateToken } from '../middleware/auth.middleware'
+import { PrismaClient } from '@prisma/client'
 
-
+const prisma = new PrismaClient()
 const router = Router();
 
 // GET /api/types - ดึงประเภท Ticket ทั้งหมด
@@ -17,7 +18,7 @@ router.get('/', async (req: Request, res: Response) => {
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'Internal server error',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -39,7 +40,7 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
       name: req.body.name,
       description: req.body.description
     });
-    
+
     res.status(result.success ? 201 : 500).json(result);
   } catch (error) {
     console.error(error);
@@ -55,6 +56,7 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
 router.delete('/delete/:id', async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
+
     if (isNaN(id)) {
       res.status(400).json({
         success: false,
@@ -71,6 +73,22 @@ router.delete('/delete/:id', async (req: Request, res: Response) => {
       message: 'Internal server error',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
+  }
+});
+
+// สร้าง API ตรวจสอบการใช้งาน type
+// GET /api/types/check/:id
+router.get('/check/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    
+    const isUsed = await prisma.ticket.findFirst({ 
+      where: { type_id: id } 
+    });
+
+    res.json({ isUsed: !!isUsed }); // ส่งกลับเป็น true/false
+  } catch (error) {
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

@@ -7,7 +7,8 @@
           <div className="flex justify-between items-center mt-2">
             <button @click="openAddModal" class="border px-3 py-1 rounded bg-black/80 text-white">เพิ่มหมวดหมู่</button>
 
-            <div v-if="isAddModalOpen" class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
+            <div v-if="isAddModalOpen"
+              class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
               <div class="bg-white p-6 rounded-lg shadow-xl w-96 border border-gray-200">
                 <h3 class="text-lg font-medium mb-4">เพิ่มหมวดหมู่</h3>
                 <div class="space-y-4">
@@ -53,8 +54,12 @@
                 <tr v-for="data in types" :key="data.id" class="border-b hover:bg-gray-50">
                   <td class="py-3 px-4">{{ data.name }}</td>
                   <td class="py-3 px-4">{{ data.description }}</td>
-                  <td class="py-3 px-4 space-x-2">
+                  <!-- <td class="py-3 px-4 space-x-2">
                     <button @click="deletetype(data.id)"
+                      class="border px-3 py-1 rounded text-red-600">ลบหมวดหมู่</button>
+                  </td> -->
+                  <td class="py-3 px-4 space-x-2">
+                    <button @click="confirmDelete(data.id)"
                       class="border px-3 py-1 rounded text-red-600">ลบหมวดหมู่</button>
                   </td>
                 </tr>
@@ -76,6 +81,7 @@ import cardcontent from '@/ui/cardcontent.vue';
 import { config } from '@/config';
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 interface ticket_types {
   id: number
@@ -94,13 +100,70 @@ const fetchTypes = async () => {
 
 onMounted(fetchTypes)
 
-const deletetype = async (id: number) => {
-  try {
-    axios.delete(`${config.apiUrl}/api/types/delete/${id}`)
-    console.log('id: ', id)
-    fetchTypes()
-  } catch (error) {
-    console.error('Error deleting type:', error) // ลบหมวดหมู่ไม่่สำเร็จ
+// const deletetype = async (id: number) => {
+//   try {
+//     axios.delete(`${config.apiUrl}/api/types/delete/${id}`)
+//     console.log('id: ', id)
+//     fetchTypes()
+//   } catch (error) {
+//     console.error('Error deleting type:', error) // ลบหมวดหมู่ไม่่สำเร็จ
+//   }
+// }
+
+const confirmDelete = async (id: number) => {
+  const result = await Swal.fire({
+    title: 'คุณแน่ใจหรือไม่?',
+    text: "คุณจะไม่สามารถกู้คืนข้อมูลนี้ได้!",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'ตกลง',
+    cancelButtonText: 'ยกเลิก',
+    reverseButtons: true,
+    backdrop: `
+      rgba(0,0,0,0.4)
+      url("/images/nyan-cat.gif")
+      left top
+      no-repeat
+    `
+  })
+
+  if (result.isConfirmed) {
+    try {
+      // เรียก API เพื่อลบข้อมูล
+      try {
+        const { data } = await axios.get(`${config.apiUrl}/api/types/check/${id}`);
+        if (data.isUsed) {
+          await Swal.fire(
+            'ผิดพลาด!',
+            'ข้อมูลนี้ถูกใช้งานอยู่ในระบบ ไม่สามารถลบได้',
+            'error'
+          )
+        } else {
+          axios.delete(`${config.apiUrl}/api/types/delete/${id}`)
+          console.log('delete type id: ', id)
+          await Swal.fire(
+            'ลบแล้ว!',
+            'รายการของคุณถูกลบเรียบร้อยแล้ว',
+            'success'
+          )
+        }
+
+        fetchTypes()
+      } catch (error) {
+        console.error('Error deleting type:', error) // ลบหมวดหมู่ไม่่สำเร็จ
+      }
+
+      // fetchItems()
+    } catch (error) {
+      // กรณีเกิดข้อผิดพลาด
+      await Swal.fire(
+        'ผิดพลาด!',
+        'ไม่สามารถลบรายการได้: ' + error.message,
+        'error'
+      )
+    }
   }
 }
 
