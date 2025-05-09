@@ -27,6 +27,8 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import Swal from 'sweetalert2'
+
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -35,9 +37,42 @@ const isAdmin = auth.isAdmin
 const isUser = auth.isUser
 
 const logout = () => {
-    auth.logout()
-    router.push('/')
+  Swal.fire({
+    title: 'ออกจากระบบ?',
+    text: 'เราจะคิดถึงคุณนะ!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'ออกจากระบบ',
+    cancelButtonText: 'อยู่ต่อ',
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown'
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp'
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // เรียก API logout
+       auth.logout()
+        Swal.fire({
+          title: 'ลาก่อน!',
+          text: 'ออกจากระบบสำเร็จแล้ว',
+          icon: 'success',
+          showClass: {
+            popup: 'animate__animated animate__heartBeat'
+          },
+          timer: 2000
+        }).then(() => {
+          router.push('/')
+      })
+    }
+  })
 }
+
+// const logout = () => {
+//     auth.logout()
+//     router.push('/')
+// }
 //user
 const dashboard = () => {
     router.push('/dashboard')
