@@ -5,6 +5,8 @@ import {
   createTicketType,
   deleteTicketType
 } from '../services/tickettype.service';
+import { authenticateToken } from '../middleware/auth.middleware'
+
 
 const router = Router();
 
@@ -24,7 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /api/types/create - สร้างประเภท Ticket ใหม่
-router.post('/create', async (req: Request, res: Response) => {
+router.post('/create', authenticateToken, async (req: Request, res: Response) => {
   try {
     if (!req.body.name) {
       res.status(400).json({
