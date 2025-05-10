@@ -14,7 +14,7 @@ router.post(
   upload.array('files', 5), // รับไฟล์แนบสูงสุด 5 ไฟล์
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { title, description, type_id, priority, contact, department } =
+      const { title, description, type_id, priority, contact, department_id } =
         req.body
 
       const files = req.files as Express.Multer.File[]
@@ -23,11 +23,17 @@ router.post(
         data: {
           title,
           description,
-          type_id: parseInt(type_id),
+          ticket_types: {
+            connect: { id: parseInt(type_id) } // เชื่อมกับ ticket_types ที่มี id = 1
+          },
           priority,
           contact,
-          department,
-          user_id: req.user!.id,
+          department: {
+            connect: { id: parseInt(department_id) }
+          },
+          user: {
+            connect: { id: req.user!.id }
+          },
           files: {
             create: files.map((file) => ({
               filename: file.filename ,
@@ -38,6 +44,7 @@ router.post(
         include: {
           ticket_types: true,
           files: true,
+          department: true
         },
       })
 
@@ -58,7 +65,8 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
       include: {
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
-        files: true
+        files: true,
+        department: { select: { name: true}},
       },
       orderBy: { created_at: 'asc' },
     })
@@ -104,7 +112,7 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
   console.log('Status: ',status)
 
   if (!['open', 'in_progress', 'pending', 'closed'].includes(status)) {
-    res.status(400).json({ error: 'Invalid role specified' })
+    res.status(400).json({ error: 'Invalid status specified' })
   }
   
   try {

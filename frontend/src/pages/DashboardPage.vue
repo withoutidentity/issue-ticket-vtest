@@ -108,6 +108,9 @@ interface ticket {
   status: 'open' | 'in_progress' | 'pending' | 'closed'
   created_at: string;
   updated_at: string;
+  department?: {
+    name: string;
+  }
   user?: {
     name: string;
     email: string;

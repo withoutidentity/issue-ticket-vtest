@@ -17,6 +17,7 @@ model User {
   updatedAt    DateTime @updatedAt
   refreshToken String? // สำหรับ Refresh Token
   tickets      Ticket[]
+  tickets_assigned Ticket[] @relation("TicketAssignee")
 
   @@map("users")
 }
@@ -24,17 +25,22 @@ model User {
 model Ticket {
   id           Int           @id @default(autoincrement())
   user_id      Int?
+  assignee_id    Int?            // ผู้รับผิดชอบ
   title        String        @db.VarChar(255)
   description  String?
   type_id      Int?
   priority     TicketPriority?
   contact      String?       @db.VarChar(255)
-  department   String?       @db.VarChar(255)
+  department_id  Int?            // FK -> Department
   status       TicketStatus  @default(open)
   created_at   DateTime      @default(now())
   updated_at   DateTime      @default(now())
+
+  // Relations
   ticket_types ticket_types? @relation(fields: [type_id], references: [id])
   user         User?         @relation(fields: [user_id], references: [id])
+  assignee       User?           @relation("TicketAssignee", fields: [assignee_id], references: [id])
+  department Department?     @relation(fields: [department_id], references: [id])
   files        TicketFile[]  // แนบหลายไฟล์ต่อ Ticket
 
   @@index([type_id], map: "idx_tickets_type_id")
@@ -60,6 +66,14 @@ model TicketFile {
 
   @@index([ticket_id])
   @@map("ticket_files")
+}
+
+model Department {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique @db.VarChar(255)
+  tickets Ticket[] // ความสัมพันธ์กับ Ticket
+
+  @@map("departments")
 }
 
 enum Role {

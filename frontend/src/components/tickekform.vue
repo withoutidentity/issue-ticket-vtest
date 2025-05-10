@@ -7,7 +7,12 @@
                 <textarea v-model="description" placeholder="รายละเอียด" class="input" rows="5" />
 
                 <input v-model="contact" type="text" placeholder="ข้อมูลติดต่อ" class="input" />
-                <input v-model="department" type="text" placeholder="แผนก" class="input" />
+                <select v-model="department_id" class="input">
+                    <option disabled value="">-- เลือกแผนก --</option>
+                    <option v-for="department in departments" :key="department.id" :value="department.id">
+                        {{ department.name  }} 
+                    </option>
+                </select>
 
                 <select v-model="type_id" class="input">
                     <option disabled value="">-- เลือกประเภท --</option>
@@ -70,11 +75,12 @@ import cardcontent from '@/ui/cardcontent.vue';
 const title = ref('')
 const description = ref('')
 const type_id = ref('')
+const department_id = ref('')
 const priority = ref('')
 // const status = ref('')
 const contact = ref('')
-const department = ref('')
 const files = ref<File[]>([])
+const departments = ref([])
 const types = ref([])
 
 function handleFileChange(event: Event) {
@@ -109,6 +115,11 @@ onMounted(async () => {
     // console.log('type: ', types.value)
 })
 
+onMounted(async () => {
+    const res = await api.get(`/departments`)
+    departments.value = res.data
+})
+
 const submitTicket = async () => {
     const token = localStorage.getItem('accessToken')
     if (!token) return alert('กรุณาเข้าสู่ระบบ')
@@ -116,7 +127,7 @@ const submitTicket = async () => {
     const decoded: any = jwtDecode(token)
     const userId = decoded.userId || decoded.id
 
-    if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department.value) {
+    if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department_id.value) {
         alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
         return;
     }
@@ -142,7 +153,7 @@ const submitTicket = async () => {
             formData.append('priority', priority.value)
             // formData.append('status', status.value)
             formData.append('contact', contact.value)
-            formData.append('department', department.value)
+            formData.append('department_id', department_id.value)
             formData.append('user_id', userId)
 
             files.value.forEach(file => {
