@@ -1,4 +1,5 @@
 import axios from 'axios'
+import Swal from 'sweetalert2'
 
 const api = axios.create({
   baseURL: 'http://localhost:3000/api', // เปลี่ยนตาม backend ของคุณ
@@ -61,6 +62,11 @@ api.interceptors.response.use(
         // redirect ไป login ถ้าจำเป็น
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
+        await Swal.fire({
+          icon: 'error',
+          title: 'Session expired',
+          text: 'Please log in again.',
+        })
         window.location.href = '/login'
         return Promise.reject(refreshErr)
       }
