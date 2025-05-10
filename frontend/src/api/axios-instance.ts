@@ -1,5 +1,4 @@
 import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
 
 const api = axios.create({
   baseURL: 'http://localhost:3000/api', // เปลี่ยนตาม backend ของคุณ
@@ -22,7 +21,7 @@ api.interceptors.response.use(
   response => response,
   async error => {
     const originalConfig = error.config
-    console.log('refreshSubscribers: ', refreshSubscribers)
+    // console.log('refreshSubscribers: ', refreshSubscribers)
 
     if (error.response?.status === 401 && !originalConfig._retry) {
       originalConfig._retry = true
