@@ -89,6 +89,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
         files: { select: { id: true, ticket_id: true, filename: true}},
+        department: { select: {name: true}}
       },
     })
 
