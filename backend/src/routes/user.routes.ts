@@ -25,6 +25,23 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
+ // GET /api/users/officer
+router.get("/officer",  async (req: Request, res: Response) => {
+  try {
+    const officer = await prisma.user.findMany({
+      where: { role: "OFFICER" },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    res.json(officer);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch employees" });
+  }
+});
+
 // Update user role
 // PUT /api/users/update/:id
 router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']), async (req: Request, res: Response) => {

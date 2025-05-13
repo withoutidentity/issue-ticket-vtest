@@ -10,12 +10,15 @@ if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true })
 }
 
+const now = new Date();
+const timePart = `${now.getHours()}-${now.getMinutes()}-${now.getSeconds()}-${now.getMilliseconds()}`;
+
 const storage = multer.diskStorage({
   destination: function (_, __, cb) {
     cb(null, uploadPath)
   },
   filename: function (_, file, cb) {
-    const uniqueName = `${Date.now()}-${file.originalname}`
+    const uniqueName = `${timePart}-${file.originalname}`
     cb(null, uniqueName)
   },
 })

@@ -86,7 +86,8 @@
                                 ไม่มีไฟล์แนบ
                             </div>
 
-                            <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                            <div v-else
+                                class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                                 <div v-for="file in form.files" :key="file.id"
                                     class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
                                     <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank"
@@ -103,7 +104,7 @@
                                             </div>
                                             <div class="min-w-0">
                                                 <p class="text-sm font-medium text-gray-700 truncate">{{ file.filename
-                                                    }}</p>
+                                                }}</p>
                                             </div>
                                         </div>
                                     </a>
@@ -145,71 +146,86 @@
         <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
             <cardtitle class="mt-6">ผู้รับผิดชอบ</cardtitle>
             <card>
-            <cardcontent>
-                <form @submit.prevent="handleSubmit" class="overflow-hidden p-6">
-                    <div class="space-y-6">
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้รับผิดชอบ</label>
-                            <input v-model="form.title" :readonly="!isEditing"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                :class="{ 'bg-gray-50': !isEditing }" />
+                <cardcontent>
+                    <form @submit.prevent="handleSubmit" class="overflow-hidden p-6">
+                        <div class="space-y-6">
+
+                            <div v-if="isAdmin">
+                                <label>เปลี่ยนผู้รับผิดชอบ:</label>
+                                <select v-model="selectedUserId" @change="assignUser">
+                                    <option v-for="user in officerList" :key="user.id" :value="user.id">
+                                        {{ user.name }}
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div v-else-if="canSelfAssign">
+                                <button @click="assignToMe" class="cursor-pointer">รับเรื่องเอง</button>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-4">ชื่อผู้รับผิดชอบ</label>
+                                <strong
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                    {{ form.assignee ? form.assignee.name : 'ยังไม่มีผู้รับผิดชอบ' }}
+                                </strong>
+                            </div>
+
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
+                                <textarea v-model="form.description" :readonly="!isEditing"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                    :class="{ 'bg-gray-50': !isEditing }" rows="5"></textarea>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                                <select v-model="form.status" :disabled="!isEditing"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                    :class="{ 'bg-gray-50': !isEditing }">
+                                    <option value="open">เปิด</option>
+                                    <option value="in_progress">กำลังดำเนินการ</option>
+                                    <option value="pending">รอดำเนินการ</option>
+                                    <option value="closed">ปิดแล้ว</option>
+                                </select>
+                            </div>
+
+                            <div class="flex justify-end space-x-3 pt-4 mt-8 border-t">
+                                <button v-if="!isEditing" type="button" @click="isEditing = true"
+                                    class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    แก้ไข
+                                </button>
+
+                                <button v-if="isEditing" type="submit"
+                                    class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    บันทึก
+                                </button>
+
+                                <button v-if="isEditing" type="button" @click="cancelEdit"
+                                    class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-colors duration-200">
+                                    ยกเลิก
+                                </button>
+                            </div>
                         </div>
-                    
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
-                            <textarea v-model="form.description" :readonly="!isEditing"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                :class="{ 'bg-gray-50': !isEditing }" rows="5"></textarea>
-                        </div>
-                    
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                            <select v-model="form.status" :disabled="!isEditing"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                :class="{ 'bg-gray-50': !isEditing }">
-                                <option value="open">เปิด</option>
-                                <option value="in_progress">กำลังดำเนินการ</option>
-                                <option value="pending">รอดำเนินการ</option>
-                                <option value="closed">ปิดแล้ว</option>
-                            </select>
-                        </div>
-                    
-                        <div class="flex justify-end space-x-3 pt-4 mt-8 border-t">
-                            <button v-if="!isEditing" type="button" @click="isEditing = true"
-                                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                แก้ไข
-                            </button>
-                        
-                            <button v-if="isEditing" type="submit"
-                                class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M5 13l4 4L19 7" />
-                                </svg>
-                                บันทึก
-                            </button>
-                        
-                            <button v-if="isEditing" type="button" @click="cancelEdit"
-                                class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-colors duration-200">
-                                ยกเลิก
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </cardcontent>
+                    </form>
+                </cardcontent>
             </card>
         </div>
     </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { config } from '@/config'
 import api from '@/api/axios-instance'
@@ -227,6 +243,8 @@ import Swal from 'sweetalert2';
 const route = useRoute()
 const router = useRouter()
 const isEditing = ref(false)
+
+const ticketId = route.params.id
 
 interface TicketType {
     id: number;
@@ -247,6 +265,7 @@ interface TicketForm {
     priority: 'low' | 'medium' | 'high' | '';
     contact: string;
     department_id: number | '';
+    assignee: any;
     status: 'open' | 'in_progress' | 'pending' | 'closed' | ''; // สถานะที่เป็นไปได้ หรือ empty string
     files: Array<{
         id: number;
@@ -263,13 +282,23 @@ const form = ref<TicketForm>({
     priority: '',
     contact: '',
     department_id: '',
+    assignee: {
+        assignee_id: 0,
+        name: ''
+    },
     status: '',
     files: [],
 })
 
 const types = ref<TicketType[]>([]);
-
 const departments = ref<Department[]>([]);
+const officerList = ref([]);
+const selectedUserId = ref("");
+
+const isAdmin = computed(() => auth.user.role === "ADMIN")
+const canSelfAssign = computed(() =>
+    auth.user.role === "OFFICER" && !form.value.assignee.assignee_id
+)
 
 async function fetchTicket() {
     const res = await api.get(`/tickets/${route.params.id}`, {
@@ -277,8 +306,10 @@ async function fetchTicket() {
             Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
         },
     })
+    selectedUserId.value = res.data.assignee_id || ""
     const data = await res.data
     form.value = data as TicketForm;
+    console.log('ticket f: ', form.value)
 }
 
 async function fetchTypes() {
@@ -339,9 +370,32 @@ async function handleSubmit() {
     }
 }
 
+const loadEmployees = async () => {
+    if (isAdmin.value) {
+        const res = await api.get("/users/officer")
+        officerList.value = res.data
+    }
+}
+
+const assignUser = async () => {
+    await api.put(`/tickets/assign/${ticketId}`, {
+        userId: selectedUserId.value,
+    })
+    await fetchTicket()
+}
+
+const assignToMe = async () => {
+    await api.put(`/tickets/assign/${ticketId}`, {
+        userId: auth.user.id,
+    })
+    await fetchTicket()
+    console.log("Assigned to me")
+}
+
 onMounted(() => {
     fetchTicket()
     fetchTypes()
     fetchDepartments()
+    loadEmployees()
 })
 </script>

@@ -71,6 +71,7 @@ import api from '@/api/axios-instance'
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
+import router from '@/router';
 
 const title = ref('')
 const description = ref('')
@@ -176,6 +177,7 @@ const submitTicket = async () => {
                     },
                     timer: 2000
                 });
+                router.push('/dashboard')
             } catch (err) {
                 await Swal.fire(
                     'ผิดพลาด!',

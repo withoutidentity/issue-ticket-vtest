@@ -79,7 +79,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 })
 
 //GET /api/tickets/:id
-router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
   const ticketId = parseInt(req.params.id, 10)
 
   try {
@@ -89,7 +89,13 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
         files: { select: { id: true, ticket_id: true, filename: true}},
-        department: { select: {name: true}}
+        department: { select: {name: true}},
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     })
 
@@ -135,6 +141,58 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
   }
 })
 
+// PUT /api/tickets/assign/:id
+router.put('/assign/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  const ticketId = parseInt(req.params.id);
+  const { userId } = req.body;
+  const role = req.body.role;
+
+  try {
+    // เฉพาะ Admin หรือเจ้าของ token ที่เป็น userId นั้นเอง ถึงจะเปลี่ยนได้
+    if (role !== "ADMIN" && req.body.id !== userId) {
+      res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const updatedTicket = await prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        assignee_id: userId,
+      },
+      include: {
+        assignee: true,
+      },
+    });
+
+    res.json(updatedTicket);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to assign ticket" });
+  }
+});
+
+// GET /api/tickets/:id
+// router.get("/tickets/:id", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+//   const id = parseInt(req.params.id);
+
+//   try {
+//     const ticket = await prisma.ticket.findUnique({
+//       where: { id },
+//       include: {
+//         assignee: {
+//           select: {
+//             id: true,
+//             name: true,
+//           },
+//         },
+//       },
+//     })
+
+//     if (!ticket) res.status(404).json({ error: "Ticket not found" })
+
+//     res.json(ticket)
+//   } catch (error) {
+//     res.status(500).json({ error: "Failed to get ticket" })
+//   }
+// })
 
 
 export default router
