@@ -113,7 +113,46 @@
                         </div>
 
                         <!-- ปุ่มดำเนินการ -->
-                        <div class="flex justify-end space-x-3 pt-4 border-t">
+                        <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
+                            class="flex justify-end space-x-3 pt-4 border-t">
+                            <button v-if="!isEditing" type="button" @click="isEditing = true"
+                                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                แก้ไข
+                            </button>
+
+                            <button v-if="isEditing" type="submit"
+                                class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                บันทึก
+                            </button>
+
+                            <button v-if="isEditing" type="button" @click="cancelEdit"
+                                class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-colors duration-200">
+                                ยกเลิก
+                            </button>
+                        </div>
+                        <!-- ปุ่มดำเนินการ สำหรับ User-->
+                        <div v-if="auth.user.role === 'USER'"
+                            class="flex justify-between items-center space-x-3 pt-4 mt-8 border-t">
+                            <button @click="goBack" type="button"
+                                class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                                <span>ย้อนกลับ</span>
+                            </button>
+
                             <button v-if="!isEditing" type="button" @click="isEditing = true"
                                 class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
@@ -149,26 +188,50 @@
                 <cardcontent>
                     <form @submit.prevent="handleSubmit" class="overflow-hidden p-6">
                         <div class="space-y-6">
-
-                            <div v-if="isAdmin">
-                                <label>เปลี่ยนผู้รับผิดชอบ:</label>
-                                <select v-model="selectedUserId" @change="assignUser">
-                                    <option v-for="user in officerList" :key="user.id" :value="user.id">
-                                        {{ user.name }}
-                                    </option>
-                                </select>
-                            </div>
-
-                            <div v-else-if="canSelfAssign">
-                                <button @click="assignToMe" class="cursor-pointer">รับเรื่องเอง</button>
-                            </div>
-
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-4">ชื่อผู้รับผิดชอบ</label>
                                 <strong
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                                    {{ form.assignee ? form.assignee.name : 'ยังไม่มีผู้รับผิดชอบ' }}
-                                </strong>
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                {{ form.assignee ? form.assignee.name : 'ยังไม่มีผู้รับผิดชอบ' }}
+                            </strong>
+                        </div>
+
+                        <div v-if="auth.user?.role === 'OFFICER' && !form.assignee?.name" class="mb-6">
+                            <button @click="assignToMe"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                รับเรื่องเอง
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                                    <select v-model="form.status" :disabled="!isEditing"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                        :class="{ 'bg-gray-50': !isEditing }">
+                                        <option value="open">เปิด</option>
+                                        <option value="in_progress">กำลังดำเนินการ</option>
+                                        <option value="pending">รอดำเนินการ</option>
+                                        <option value="closed">ปิดแล้ว</option>
+                                    </select>
+                                </div>
+
+                                <div v-if="auth.user.role === 'ADMIN'">
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">เปลี่ยนผู้รับผิดชอบ</label>
+                                    <select v-model="selectedUserId" @change="assignUser"
+                                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                        <option value="" disabled>เลือกผู้รับผิดชอบ</option>
+                                        <option v-for="user in officerList" :key="user.id" :value="user.id"
+                                            class="py-2">
+                                            {{ user.name }}
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div class="mb-6">
@@ -178,19 +241,17 @@
                                     :class="{ 'bg-gray-50': !isEditing }" rows="5"></textarea>
                             </div>
 
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                                <select v-model="form.status" :disabled="!isEditing"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                    :class="{ 'bg-gray-50': !isEditing }">
-                                    <option value="open">เปิด</option>
-                                    <option value="in_progress">กำลังดำเนินการ</option>
-                                    <option value="pending">รอดำเนินการ</option>
-                                    <option value="closed">ปิดแล้ว</option>
-                                </select>
-                            </div>
+                            <div class="flex justify-between items-center space-x-3 pt-4 mt-8 border-t">
+                                <button @click="goBack" type="button"
+                                    class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 cursor-pointer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                        viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                    </svg>
+                                    <span>ย้อนกลับ</span>
+                                </button>
 
-                            <div class="flex justify-end space-x-3 pt-4 mt-8 border-t">
                                 <button v-if="!isEditing" type="button" @click="isEditing = true"
                                     class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
@@ -243,6 +304,7 @@ import Swal from 'sweetalert2';
 const route = useRoute()
 const router = useRouter()
 const isEditing = ref(false)
+const isEditingAssignee = ref(false)
 
 const ticketId = route.params.id
 
@@ -300,6 +362,10 @@ const canSelfAssign = computed(() =>
     auth.user.role === "OFFICER" && !form.value.assignee.assignee_id
 )
 
+const goBack = () => {
+    router.go(-1) // ย้อนกลับ 1 หน้าในประวัติ
+}
+
 async function fetchTicket() {
     const res = await api.get(`/tickets/${route.params.id}`, {
         headers: {
@@ -341,8 +407,7 @@ function cancelEdit() {
 
 async function handleSubmit() {
     try {
-        await fetch(`${config.apiUrl}/api/tickets/${route.params.id}`, {
-            method: 'PUT',
+        await api.put(`/tickets/${route.params.id}`, {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
@@ -364,13 +429,13 @@ async function handleSubmit() {
     } catch (err) {
         await Swal.fire({
             title: 'ผิดพลาด',
-            text: 'ไม่ามารถอัพเดท Ticket ได้: ' + err.message,
+            text: 'ไม่สามารถอัพเดท Ticket ได้: ' + err.message,
             icon: 'error'
         })
     }
 }
 
-const loadEmployees = async () => {
+const loadOfficer = async () => {
     if (isAdmin.value) {
         const res = await api.get("/users/officer")
         officerList.value = res.data
@@ -396,6 +461,6 @@ onMounted(() => {
     fetchTicket()
     fetchTypes()
     fetchDepartments()
-    loadEmployees()
+    loadOfficer()
 })
 </script>

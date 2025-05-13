@@ -1,12 +1,12 @@
 <template>
     <aside class="w-64 bg-black text-white h-screen flex flex-col position: sticky">
-        <router-link :to="isAdmin ? '/dashboard' : '/home'" class="border-b-2 border-[#333333] w-full">
+        <router-link :to="isAdmin || isOfficer ? '/dashboard' : '/home'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>
                 <h2 class="text-[#6C6B6B]">ระบบแจ้งปัญหา</h2>
             </div>
         </router-link>
-        <nav class="space-y-4 p-4" v-if="isAdmin">
+        <nav class="space-y-4 p-4" v-if="isAdmin || isOfficer">
             <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
             <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
@@ -34,12 +34,12 @@ const auth = useAuthStore()
 const router = useRouter()
 
 const isAdmin = auth.isAdmin
+const isOfficer = auth.isOfficer
 const isUser = auth.isUser
 
 const logout = () => {
   Swal.fire({
     title: 'ออกจากระบบ?',
-    text: 'เราจะคิดถึงคุณนะ!',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonText: 'ออกจากระบบ',

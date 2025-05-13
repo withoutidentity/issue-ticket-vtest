@@ -79,7 +79,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 })
 
 //GET /api/tickets/:id
-router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const ticketId = parseInt(req.params.id, 10)
 
   try {

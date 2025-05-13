@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 import { Request, Response } from 'express'
 
 // GET /api/users
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -26,7 +26,7 @@ router.get('/', async (req: Request, res: Response) => {
 })
 
  // GET /api/users/officer
-router.get("/officer",  async (req: Request, res: Response) => {
+router.get("/officer", authenticateToken, async (req: Request, res: Response) => {
   try {
     const officer = await prisma.user.findMany({
       where: { role: "OFFICER" },
