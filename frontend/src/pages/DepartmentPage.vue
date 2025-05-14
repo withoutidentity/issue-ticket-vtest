@@ -200,7 +200,7 @@ const addDepartment = async () => {
 
     const response = await api.post(`/departments/create`, newDepartment.value);
 
-    if (response.data.success) {
+    if (response.data) {
       fetchDepartments(); // ดึงข้อมูลใหม่
       closeAddModal(); // ปิด Modal
     } else {
