@@ -10,6 +10,7 @@
             <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
             <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
+            <button @click="departments" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
@@ -93,6 +94,10 @@ const admindashboard = () => {
 
 const types = () => {
     router.push('/types')
+}
+
+const departments = () => {
+    router.push('/departments')
 }
 
 const users = () => {

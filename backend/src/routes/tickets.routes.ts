@@ -68,6 +68,12 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         ticket_types: { select: { name: true } },
         files: true,
         department: { select: { name: true}},
+        assignee: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       orderBy: { created_at: 'asc' },
     })
@@ -135,7 +141,7 @@ router.put('/update/:id',  async (req: Request, res: Response) => {
       status: req.body.status,
     });
     
-    res.status(result.success ? 200 : 500).json(result);
+    res.status(result.success ? 200 : 500).json({data: result});
   } catch (error) {
     res.json({
       success: false,

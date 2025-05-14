@@ -82,7 +82,7 @@
                             </h2>
 
                             <div v-if="form.files.length === 0"
-                                class="text-gray-500 italic bg-gray-50 p-4 rounded-lg border border-dashed border-gray-300">
+                                class="text-gray-500 italic bg-gray-50 p-4 rounded-lg mb-4 border border-dashed border-gray-300">
                                 ไม่มีไฟล์แนบ
                             </div>
 
@@ -105,7 +105,7 @@
                                             <div class="min-w-0">
                                                 <p class="text-sm font-medium text-gray-700 truncate">{{ file.filename }}</p>
                                                 <button v-if="isEditing === true" type="button" @click="removeExistingFile(index)"
-                                                    class="cursor-pointer px-2 py-1 hover:bg-red-300">ลบ</button>
+                                                    class="cursor-pointer px-2 py-1 bg-red-400 rounded-xl hover:bg-red-600">ลบ</button>
                                             </div>
                                         </div>
                                     </a>
@@ -155,18 +155,7 @@
                         </div>
                         <!-- ปุ่มดำเนินการ สำหรับ User-->
                         <div v-if="auth.user.role === 'USER'"
-                            class="flex justify-between items-center space-x-3 pt-4 mt-8 border-t">
-                            <!-- ปุ่มย้อนกลับ -->
-                            <button @click="goBack" type="button"
-                                class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                </svg>
-                                <span>ย้อนกลับ</span>
-                            </button>
-
+                            class="flex justify-end items-center space-x-3 pt-4 mt-8 border-t">
                             <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
                             <div class="flex space-x-3">
                                 <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
@@ -202,7 +191,7 @@
                 </form>
             </cardcontent>
         </card>
-        <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
+        <div>
             <cardtitle class="mt-6">ผู้รับผิดชอบ</cardtitle>
             <card>
                 <cardcontent>
@@ -229,7 +218,7 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div>
+                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" >
                                     <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                                     <select v-model="form.status" :disabled="!isEditingAssignee"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -276,7 +265,7 @@
                                 </button>
 
                                 <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
-                                <div class="flex space-x-3">
+                                <div class="flex space-x-3" v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
                                     <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
                                     <button v-if="!isEditingAssignee" type="button" @click="isEditingAssignee = true"
                                         class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
@@ -474,12 +463,19 @@ function removeNewFile(index: number) {
 
 async function handleSubmit() {
     try {
-        await api.put(`/update/tickets/${route.params.id}`, {
+        await api.put(`/tickets/update/${route.params.id}`, {
+            title: form.value.title,
+            description: form.value.description,
+            contact: form.value.contact,
+            type_id: form.value.type_id,
+            department_id: form.value.department_id,
+            priority: form.value.priority, 
+            files: form.value.files
+        }, {
             headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            },
-            body: JSON.stringify(form.value),
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+            }
         })
 
         await Swal.fire({
@@ -504,12 +500,16 @@ async function handleSubmit() {
 
 async function handleSubmitAssignee() {
     try {
-        await api.put(`/tickets/${route.params.id}`, {
+        await api.put(`/tickets/update/${route.params.id}`, {
+            status: form.value.status,
+            assignee_id: selectedUserId.value,
+            comment: form.value.comment,
+        },
+        {
             headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
             },
-            body: JSON.stringify(form.value),
         })
 
         await Swal.fire({

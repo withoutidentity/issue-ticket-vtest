@@ -1,11 +1,9 @@
-import { TicketFile } from './../../node_modules/.prisma/client/index.d';
 // controllers/ticketController.ts
-import { PrismaClient, TicketStatus, TicketPriority } from '@prisma/client';
+import { PrismaClient, TicketStatus, TicketPriority, TicketFile } from '@prisma/client';
 import { Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import { ApiResponse } from '../types/index';
-import { strict } from 'assert';
 
 const prisma = new PrismaClient()
 

@@ -16,22 +16,22 @@
                 <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
                   class="text-left py-3 px-4 font-medium">ผู้แจ้ง</th>
                 <th class="text-left py-3 px-4 font-medium">วันที่สร้าง</th>
-                <th class="text-left py-3 px-4 font-medium">ไฟล์</th>
+                <th class="text-left py-3 px-4 font-medium">ชื่อผู้รับผิดชอบ</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(ticket, index) in tickets" :key="ticket.id" 
                   class="border-b align-top hover:bg-gray-50 cursor-pointer"
-                  >
-                <td class="py-3 px-4" @click="goToTicket(ticket.id)">{{ index+1 }}</td>
-                <td class="py-3 px-4" @click="goToTicket(ticket.id)">{{ ticket.title }}</td>
-                <td class="py-3 px-4" @click="goToTicket(ticket.id)">{{ ticket.description }}</td>
-                <td class="py-3 px-4" @click="goToTicket(ticket.id)">
+                  @click="goToTicket(ticket.id)">
+                <td class="py-3 px-4" >{{ index+1 }}</td>
+                <td class="py-3 px-4" >{{ ticket.title }}</td>
+                <td class="py-3 px-4" >{{ ticket.description }}</td>
+                <td class="py-3 px-4" >
                   {{ ticket.ticket_types?.name || "-" }}
                 </td>
                 <td class="py-3 px-4 text-center">
                   <!-- update status-->
-                  <div v-if="editStatus?.id === ticket.id" class="flex items-center space-x-2">
+                  <!-- <div v-if="editStatus?.id === ticket.id" class="flex items-center space-x-2">
                     <select v-model="selectedStatus" class="border rounded px-2 py-1 focus:outline-none">
                       <option value="open">เปิด</option>
                       <option value="in_progress">กำลังดำเนินการ</option>
@@ -40,8 +40,8 @@
                     </select>
                     <button @click="updateStatus" class="text-green-600 hover:underline">บันทึก</button>
                     <button @click="cancelEdit" class="text-red-600 hover:underline">ยกเลิก</button>
-                  </div>
-                  <div v-else @click="openEdit(ticket)" class="cursor-pointer">
+                  </div> -->
+                  <div>
                     <span :class="{
                       'bg-blue-100 text-blue-700': ticket.status === 'open',
                       'bg-green-100 text-green-700': ticket.status === 'in_progress',
@@ -53,14 +53,14 @@
                   </div>
                 </td>
                 <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4" 
-                @click="goToTicket(ticket.id)">
+                >
                 {{ ticket.user?.name || "-" }}</td>
                 <td class="py-3 px-4">
                   {{ formatDateDDMMYYYY(ticket.created_at) }}
                 </td>
-                <td class="py-3 px-4">
+                <td class="py-3 px-4"> {{ ticket.assignee?.name || "-" }}
                   <!-- <Filelink :filePath="ticket.filepath" /> -->
-                  <div v-if="ticket.files.length === 0" class="text-gray-400 italic">ไม่มีไฟล์แนบบบ</div>
+                  <!-- <div v-if="ticket.files.length === 0" class="text-gray-400 italic">ไม่มีไฟล์แนบบบ</div>
                   <div v-else>
                     <ul>
                       <li v-for="file in ticket.files" :key="file.id">
@@ -70,7 +70,8 @@
                         </a>
                       </li>
                     </ul>
-                  </div>
+                  </div> -->
+
                 </td>
               </tr>
             </tbody>
@@ -109,6 +110,9 @@ interface ticket {
   created_at: string;
   updated_at: string;
   department?: {
+    name: string;
+  }
+  assignee: {
     name: string;
   }
   user?: {
