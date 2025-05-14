@@ -3,6 +3,7 @@ import { Router, Request, Response } from 'express'
 import { PrismaClient, TicketStatus } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
 import { upload } from '../middleware/upload'
+import { updateTicket } from '@/controllers/ticketController';
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -109,6 +110,40 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
     res.status(500).json({ error: 'Failed to fetch ticket' })
   }
 })
+
+// PUT /api/tickets/update/:id  ก่อน async upload.array('files', 5),
+
+router.put('/update/:id',  async (req: Request, res: Response) => {
+  try{
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid ticket ID'
+      });
+    }
+
+    const result = await updateTicket(id, {
+      title: req.body.title,
+      description: req.body.description,
+      type_id: req.body.type_id,
+      priority: req.body.priority,
+      contact: req.body.contact,
+      department_id: req.body.department_id,
+      assignee_id: req.body.assignee_id,
+      comment: req.body.comment,
+      status: req.body.status,
+    });
+    
+    res.status(result.success ? 200 : 500).json(result);
+  } catch (error) {
+    res.json({
+      success: false,
+      message: 'Failed to update Ticket',
+      error,
+    });
+  }
+});
 
 // PUT /api/tickets/updateStatus/:id
 router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {

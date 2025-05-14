@@ -7,7 +7,7 @@ const prisma = new PrismaClient()
 import { Request, Response } from 'express'
 
 // GET /api/users
-router.get('/', authenticateToken, async (req: Request, res: Response) => {
+router.get('/',authenticateToken, async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {

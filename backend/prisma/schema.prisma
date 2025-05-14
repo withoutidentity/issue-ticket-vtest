@@ -8,40 +8,41 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  password     String // Hashed password
-  name         String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  refreshToken String? // สำหรับ Refresh Token
-  tickets      Ticket[]
+  id               Int      @id @default(autoincrement())
+  email            String   @unique
+  password         String // Hashed password
+  name             String
+  role             Role     @default(USER)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  refreshToken     String? // สำหรับ Refresh Token
+  tickets          Ticket[]
   tickets_assigned Ticket[] @relation("TicketAssignee")
 
   @@map("users")
 }
 
 model Ticket {
-  id           Int           @id @default(autoincrement())
-  user_id      Int?
-  assignee_id    Int?            // ผู้รับผิดชอบ
-  title        String        @db.VarChar(255)
-  description  String?
-  type_id      Int?
-  priority     TicketPriority?
-  contact      String?       @db.VarChar(255)
-  department_id  Int?            // FK -> Department
-  status       TicketStatus  @default(open)
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @default(now())
+  id            Int             @id @default(autoincrement())
+  user_id       Int?
+  assignee_id   Int? // ผู้รับผิดชอบ
+  title         String          @db.VarChar(255)
+  description   String?
+  type_id       Int?
+  priority      TicketPriority?
+  contact       String?         @db.VarChar(255)
+  department_id Int? // FK -> Department
+  comment       String?
+  status        TicketStatus    @default(open)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @default(now())
 
   // Relations
   ticket_types ticket_types? @relation(fields: [type_id], references: [id])
   user         User?         @relation(fields: [user_id], references: [id])
-  assignee       User?           @relation("TicketAssignee", fields: [assignee_id], references: [id])
-  department Department?     @relation(fields: [department_id], references: [id])
-  files        TicketFile[]  // แนบหลายไฟล์ต่อ Ticket
+  assignee     User?         @relation("TicketAssignee", fields: [assignee_id], references: [id])
+  department   Department?   @relation(fields: [department_id], references: [id])
+  files        TicketFile[] // แนบหลายไฟล์ต่อ Ticket
 
   @@index([type_id], map: "idx_tickets_type_id")
   @@map("tickets")
