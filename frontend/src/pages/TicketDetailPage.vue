@@ -31,7 +31,7 @@
                         </div>
 
                         <!-- ข้อมูลแบบ Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
                             <!-- หมวดหมู่ -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
@@ -66,6 +66,19 @@
                                     <option value="low">ต่ำ</option>
                                     <option value="medium">กลาง</option>
                                     <option value="high">สูง</option>
+                                </select>
+                            </div>
+
+                            <!-- สถานะ -->
+                            <div v-if="auth.user.role === 'USER'">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                                <select v-model="form.status" :disabled="!isEditing"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                    :class="{ 'bg-gray-50': !isEditing }">
+                                    <option value="open">เปิด</option>
+                                    <option value="in_progress">กำลังดำเนินการ</option>
+                                    <option value="pending">รอดำเนินการ</option>
+                                    <option value="closed">ปิดแล้ว</option>
                                 </select>
                             </div>
                         </div>
@@ -103,8 +116,10 @@
                                                 </svg>
                                             </div>
                                             <div class="min-w-0">
-                                                <p class="text-sm font-medium text-gray-700 truncate">{{ file.filename }}</p>
-                                                <button v-if="isEditing === true" type="button" @click="removeExistingFile(index)"
+                                                <p class="text-sm font-medium text-gray-700 truncate">{{ file.filename
+                                                    }}</p>
+                                                <button v-if="isEditing === true" type="button"
+                                                    @click="removeExistingFile(index)"
                                                     class="cursor-pointer px-2 py-1 bg-red-400 rounded-xl hover:bg-red-600">ลบ</button>
                                             </div>
                                         </div>
@@ -218,7 +233,7 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" >
+                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                                     <select v-model="form.status" :disabled="!isEditingAssignee"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -265,7 +280,8 @@
                                 </button>
 
                                 <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
-                                <div class="flex space-x-3" v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
+                                <div class="flex space-x-3"
+                                    v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
                                     <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
                                     <button v-if="!isEditingAssignee" type="button" @click="isEditingAssignee = true"
                                         class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
@@ -437,28 +453,28 @@ function cancelEditAssignee() {
 }
 
 function handleFileChange(event: Event) {
-  const target = event.target as HTMLInputElement
-  const selectedFiles = Array.from(target.files || [])
+    const target = event.target as HTMLInputElement
+    const selectedFiles = Array.from(target.files || [])
 
-  const validFiles = selectedFiles.filter(file =>
-    ALLOWED_TYPES.includes(file.type)
-  )
+    const validFiles = selectedFiles.filter(file =>
+        ALLOWED_TYPES.includes(file.type)
+    )
 
-  const totalFiles = existingFiles.value.length + newFiles.value.length + validFiles.length
-  if (totalFiles > MAX_FILES) {
-    alert(`แนบไฟล์ได้สูงสุด ${MAX_FILES} ไฟล์`)
-    return
-  }
+    const totalFiles = existingFiles.value.length + newFiles.value.length + validFiles.length
+    if (totalFiles > MAX_FILES) {
+        alert(`แนบไฟล์ได้สูงสุด ${MAX_FILES} ไฟล์`)
+        return
+    }
 
-  newFiles.value.push(...validFiles)
+    newFiles.value.push(...validFiles)
 }
 
 function removeExistingFile(index: number) {
-  existingFiles.value.splice(index, 1)
+    existingFiles.value.splice(index, 1)
 }
 
 function removeNewFile(index: number) {
-  newFiles.value.splice(index, 1)
+    newFiles.value.splice(index, 1)
 }
 
 async function handleSubmit() {
@@ -469,12 +485,13 @@ async function handleSubmit() {
             contact: form.value.contact,
             type_id: form.value.type_id,
             department_id: form.value.department_id,
-            priority: form.value.priority, 
+            priority: form.value.priority,
+            status: form.value.status,
             files: form.value.files
         }, {
             headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${localStorage.getItem('accessToken')}`
             }
         })
 
@@ -505,12 +522,12 @@ async function handleSubmitAssignee() {
             assignee_id: selectedUserId.value,
             comment: form.value.comment,
         },
-        {
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-            },
-        })
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                },
+            })
 
         await Swal.fire({
             title: 'อัพเดด Ticket สำเร็จ',

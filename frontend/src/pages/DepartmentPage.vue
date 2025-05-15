@@ -125,8 +125,8 @@ const confirmDelete = async (id: number) => {
     showCancelButton: true,
     confirmButtonColor: '#3085d6',
     cancelButtonColor: '#d33',
-    confirmButtonText: 'ตกลง',
     cancelButtonText: 'ยกเลิก',
+    confirmButtonText: 'ตกลง',
     reverseButtons: true,
     backdrop: `
       rgba(0,0,0,0.4)

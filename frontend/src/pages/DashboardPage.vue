@@ -4,7 +4,7 @@
     <card>
       <cardcontent>
         <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
-          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" />
+          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" @filter-status-changed="handleStatusFilterChange" @filter-type-changed="handleTypeFilterChange" />
           <table class="w-full">
             <thead>
               <tr class="bg-gray-200">
@@ -20,7 +20,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(ticket, index) in tickets" :key="ticket.id" 
+              <tr v-for="(ticket, index) in filteredTableTickets" :key="ticket.id"
                   class="border-b align-top hover:bg-gray-50 cursor-pointer"
                   @click="goToTicket(ticket.id)">
                 <td class="py-3 px-4" >{{ index+1 }}</td>
@@ -89,7 +89,7 @@ import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 import AdminDashboard from "./AdminDashboard.vue";
 
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { config } from "@/config";
@@ -133,6 +133,31 @@ const tickets = ref<ticket[]>([])
 const auth = useAuthStore();
 const editStatus = ref<ticket | null>(null)
 const selectedStatus = ref('open')
+
+const statusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null);
+const typeFilterForTable = ref<string | null>(null);
+
+const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
+  statusFilterForTable.value = newStatus;
+};
+
+const handleTypeFilterChange = (newType: string | null) => {
+  typeFilterForTable.value = newType;
+};
+
+const filteredTableTickets = computed(() => {
+  let tempTickets = tickets.value;
+
+  // Filter by status
+  if (statusFilterForTable.value) {
+    tempTickets = tempTickets.filter(ticket => ticket.status && ticket.status === statusFilterForTable.value);
+  }
+  // Filter by type
+  if (typeFilterForTable.value) {
+    tempTickets = tempTickets.filter(ticket => ticket.ticket_types?.name === typeFilterForTable.value);
+  }
+  return tempTickets;
+});
 
 const fetchTickets = async () => {
   try {
@@ -180,7 +205,7 @@ const statusName = (status: string) => {
     case "pending":
       return "รอดำเนินการ";
     case "closed":
-      return "ปิดแล้ว";
+      return "เสร็จสิ้น";
     default:
       return status;
   }
