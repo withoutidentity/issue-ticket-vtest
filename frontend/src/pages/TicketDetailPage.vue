@@ -102,13 +102,13 @@
                             <div v-else
                                 class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
                                 <div v-for="(file, index) in form.files" :key="file.id"
-                                    class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
-                                    <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank"
-                                        rel="noopener noreferrer"
-                                        class="block p-4 hover:bg-gray-50 transition-colors duration-200">
-                                        <div class="flex items-start">
-                                            <div class="mr-3 text-blue-500 flex-shrink-0">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+                                    class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 bg-white flex flex-col">
+                                    <div class="p-3 hover:bg-gray-50 transition-colors duration-200 flex-grow">
+                                        <!-- ส่วนแสดงไฟล์ -->
+                                        <a :href="`${config.apiUrl}/uploads/user/${file.filename}`" target="_blank"
+                                            rel="noopener noreferrer" class="flex items-start group">
+                                            <div class="mr-2 text-blue-500 flex-shrink-0">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round"
                                                         stroke-width="2"
@@ -116,14 +116,26 @@
                                                 </svg>
                                             </div>
                                             <div class="min-w-0">
-                                                <p class="text-sm font-medium text-gray-700 truncate">{{ file.filename
-                                                    }}</p>
-                                                <button v-if="isEditing === true" type="button"
-                                                    @click="removeExistingFile(index)"
-                                                    class="cursor-pointer px-2 py-1 bg-red-400 rounded-xl hover:bg-red-600">ลบ</button>
+                                                <p
+                                                    class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all">
+                                                    {{ file.filename }}
+                                                </p>
                                             </div>
-                                        </div>
-                                    </a>
+                                        </a>
+                                    </div>
+
+                                    <!-- ปุ่มลบ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
+                                    <div v-if="isEditing" class="border-t border-gray-100 p-2 bg-gray-50">
+                                        <button @click.stop="removeExistingFile(index)" type="button"
+                                            class="w-full py-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 transition-colors duration-200 flex items-center justify-center text-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            ลบ
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             <!-- แนบไฟล์ใหม่ -->
@@ -469,8 +481,42 @@ function handleFileChange(event: Event) {
     newFiles.value.push(...validFiles)
 }
 
-function removeExistingFile(index: number) {
-    existingFiles.value.splice(index, 1)
+async function removeExistingFile(index: number) {
+    const fileToRemove = form.value.files[index];
+    if (!fileToRemove) {
+        console.error('File not found at index:', index);
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'ยืนยันการลบไฟล์?',
+        text: `คุณต้องการลบไฟล์ "${fileToRemove.filename}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (result.isConfirmed) {
+        try {
+            // สมมติว่า API endpoint สำหรับลบไฟล์คือ /uploads/user/:filename
+            // หรือถ้าใช้ ID: /files/${fileToRemove.id}
+            await api.delete(`/uploads/user/${fileToRemove.filename}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+                },
+            });
+
+            form.value.files.splice(index, 1); // ลบไฟล์ออกจากอาร์เรย์ใน UI
+
+            Swal.fire('ลบแล้ว!', `ไฟล์ "${fileToRemove.filename}" ถูกลบเรียบร้อยแล้ว`, 'success');
+        } catch (err) {
+            console.error('Error deleting file:', err);
+            Swal.fire('เกิดข้อผิดพลาด!', `ไม่สามารถลบไฟล์ได้: ${err.response?.data?.message || err.message}`, 'error');
+        }
+    }
 }
 
 function removeNewFile(index: number) {
@@ -530,20 +576,20 @@ async function handleSubmitAssignee() {
             })
 
         await Swal.fire({
-            title: 'อัพเดด Ticket สำเร็จ',
-            text: 'Ticket ของคุณถูกอัพเดทเรียบร้อยแล้ว',
+            title: 'อัพเดทส่วนผู้รับผิดชอบสำเร็จ',
+            text: 'ส่วนผู้รับผิดชอบของคุณถูกอัพเดทเรียบร้อยแล้ว',
             icon: 'success',
             showClass: {
                 popup: 'animate__animated animate__heartBeat'
             },
             timer: 2000
         })
-        isEditing.value = false
+        isEditingAssignee.value = false
         fetchTicket()
     } catch (err) {
         await Swal.fire({
             title: 'ผิดพลาด',
-            text: 'ไม่สามารถอัพเดท Ticket ได้: ' + err.message,
+            text: 'ไม่สามารถอัพเดทส่วนผู้รับผิดชอบได้: ' + err.message,
             icon: 'error'
         })
     }

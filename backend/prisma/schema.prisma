@@ -13,11 +13,15 @@ model User {
   password         String // Hashed password
   name             String
   role             Role     @default(USER)
+  department_id Int?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   refreshToken     String? // สำหรับ Refresh Token
+
+  department    Department? @relation(fields: [department_id], references: [id])
   tickets          Ticket[]
   tickets_assigned Ticket[] @relation("TicketAssignee")
+   uploadedFiles   AssigneeFile[]    @relation("UserUploadedFiles")
 
   @@map("users")
 }
@@ -43,6 +47,7 @@ model Ticket {
   assignee     User?         @relation("TicketAssignee", fields: [assignee_id], references: [id])
   department   Department?   @relation(fields: [department_id], references: [id])
   files        TicketFile[] // แนบหลายไฟล์ต่อ Ticket
+  assigneeFiles  AssigneeFile[]
 
   @@index([type_id], map: "idx_tickets_type_id")
   @@map("tickets")
@@ -69,10 +74,27 @@ model TicketFile {
   @@map("ticket_files")
 }
 
+model AssigneeFile {
+  id         String   @id @default(uuid())
+  ticket_id   Int
+  uploadedBy_id Int
+  filename   String
+  filepath   String
+  uploadedAt DateTime @default(now())
+
+  ticket     Ticket   @relation(fields: [ticket_id], references: [id])
+  uploadedBy User     @relation("UserUploadedFiles", fields: [uploadedBy_id], references: [id])
+
+  @@index([ticket_id])
+  @@index([uploadedBy_id])
+  @@map("assignee_ticket_files")
+}
+
 model Department {
   id      Int      @id @default(autoincrement())
   name    String   @unique @db.VarChar(255)
   tickets Ticket[] // ความสัมพันธ์กับ Ticket
+  users   User[]   // เพิ่ม relation กับ User
 
   @@map("departments")
 }

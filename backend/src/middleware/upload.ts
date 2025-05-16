@@ -5,7 +5,7 @@ import fs from 'fs'
 import { error } from 'console'
 
 // Ensure upload directory exists
-const uploadPath = path.join(__dirname, '../../uploads')
+const uploadPath = path.join(__dirname, '../../uploads/user')
 if (!fs.existsSync(uploadPath)) {
   fs.mkdirSync(uploadPath, { recursive: true })
 }
