@@ -138,17 +138,25 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- แนบไฟล์ใหม่ -->
-                            <input type="file" multiple @change="handleFileChange" class="input"
-                                accept=".pdf,.jpg,.jpeg,.png" />
-                            <div v-if="newFiles.length > 0">
-                                <h4>ไฟล์ใหม่:</h4>
-                                <ul>
-                                    <li v-for="(file, index) in newFiles" :key="index">
-                                        {{ file.name }}
-                                        <button type="button" @click="removeNewFile(index)">ลบ</button>
-                                    </li>
-                                </ul>
+                            <!-- ส่วนสำหรับเพิ่มไฟล์ใหม่ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
+                            <div v-if="isEditing" class="mt-6 pt-6 border-t border-gray-200">
+                                <h3 class="text-md font-semibold text-gray-700 mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    </svg>
+                                    เพิ่มไฟล์ใหม่ (สูงสุด {{ MAX_FILES }} ไฟล์รวมทั้งหมด)
+                                </h3>
+                                <input type="file" multiple @change="handleFileChange" class="input mb-3"
+                                    accept=".pdf,.jpg,.jpeg,.png" />
+                                <div v-if="newFiles.length > 0" class="mt-2">
+                                    <h4 class="text-sm font-medium text-gray-600 mb-1">ไฟล์ใหม่ที่เลือก:</h4>
+                                    <ul class="list-disc list-inside pl-4 space-y-1">
+                                        <li v-for="(file, index) in newFiles" :key="index" class="text-sm text-gray-700 flex justify-between items-center py-1">
+                                            <span>{{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)</span>
+                                            <button type="button" @click="removeNewFile(index)" class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded">ลบ</button>
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
 
@@ -407,8 +415,7 @@ const types = ref<TicketType[]>([]);
 const departments = ref<Department[]>([]);
 const officerList = ref([]);
 const selectedUserId = ref("");
-// แยกไฟล์เดิม vs ใหม่
-const existingFiles = ref<string[]>([]) // ชื่อไฟล์เก่า เช่น 'file1.pdf'
+// ไฟล์ใหม่ที่เลือกใน session การแก้ไขปัจจุบัน
 const newFiles = ref<File[]>([])        // ไฟล์ใหม่ (ยังไม่ได้อัปโหลด)
 
 const isAdmin = computed(() => auth.user.role === "ADMIN")
@@ -456,6 +463,7 @@ async function fetchDepartments() {
 
 function cancelEdit() {
     isEditing.value = false
+    newFiles.value = [] // เคลียร์ไฟล์ใหม่ที่เลือกไว้เมื่อยกเลิกการแก้ไข
     fetchTicket() // รีโหลดข้อมูลเดิม
 }
 
@@ -466,19 +474,44 @@ function cancelEditAssignee() {
 
 function handleFileChange(event: Event) {
     const target = event.target as HTMLInputElement
-    const selectedFiles = Array.from(target.files || [])
+    if (!target.files) return;
 
-    const validFiles = selectedFiles.filter(file =>
-        ALLOWED_TYPES.includes(file.type)
-    )
+    const selectedFilesFromInput = Array.from(target.files);
+    const inputElement = target; // To reset its value if needed
 
-    const totalFiles = existingFiles.value.length + newFiles.value.length + validFiles.length
-    if (totalFiles > MAX_FILES) {
-        alert(`แนบไฟล์ได้สูงสุด ${MAX_FILES} ไฟล์`)
-        return
+    const validNewSelections: File[] = [];
+    const invalidFileTypeNames: string[] = [];
+
+    for (const file of selectedFilesFromInput) {
+        if (ALLOWED_TYPES.includes(file.type)) {
+            validNewSelections.push(file);
+        } else {
+            invalidFileTypeNames.push(file.name);
+        }
     }
 
-    newFiles.value.push(...validFiles)
+    if (invalidFileTypeNames.length > 0) {
+        Swal.fire('ไฟล์ไม่ถูกต้อง', `ไม่อนุญาตให้แนบไฟล์ประเภทต่อไปนี้: ${invalidFileTypeNames.join(', ')}`, 'warning');
+    }
+
+    // If no valid files were selected from the input (e.g., all were wrong type, but some files were selected)
+    if (validNewSelections.length === 0 && selectedFilesFromInput.length > 0) {
+        inputElement.value = ''; // Clear the file input
+        return;
+    }
+
+    const currentExistingFileCount = form.value.files.length; // Files already saved with the ticket
+    const currentStagedNewFileCount = newFiles.value.length;  // New files already picked in this edit session
+    const attemptingToAddCount = validNewSelections.length;   // New files just picked in this event
+
+    if (currentExistingFileCount + currentStagedNewFileCount + attemptingToAddCount > MAX_FILES) {
+        Swal.fire('เกินจำนวนไฟล์สูงสุด', `คุณสามารถแนบไฟล์ได้ทั้งหมดไม่เกิน ${MAX_FILES} ไฟล์ (ปัจจุบันมีไฟล์เดิม ${currentExistingFileCount} ไฟล์, ไฟล์ใหม่ที่เลือกไว้ ${currentStagedNewFileCount} ไฟล์, และคุณพยายามเพิ่มอีก ${attemptingToAddCount} ไฟล์).`, 'warning');
+        inputElement.value = ''; // Clear the file input
+        return;
+    }
+
+    newFiles.value.push(...validNewSelections);
+    inputElement.value = ''; // Clear the file input so user can select same file again if they removed it
 }
 
 async function removeExistingFile(index: number) {
@@ -524,26 +557,61 @@ function removeNewFile(index: number) {
 }
 
 async function handleSubmit() {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลการยืนยันตัวตน กรุณาเข้าสู่ระบบใหม่', 'error');
+        return;
+    }
+
+    if (!form.value.title || !form.value.description || !form.value.type_id || !form.value.priority || !form.value.contact || !form.value.department_id) {
+        Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกข้อมูลที่จำเป็นให้ครบทุกช่อง', 'warning');
+        return;
+    }
+
+    const confirmResult = await Swal.fire({
+        title: 'ยืนยันการแก้ไข Ticket?',
+        text: "คุณต้องการบันทึกการเปลี่ยนแปลงใช่หรือไม่?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, บันทึกเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!confirmResult.isConfirmed) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', form.value.title);
+    formData.append('description', form.value.description);
+    formData.append('contact', form.value.contact);
+    if (form.value.type_id) formData.append('type_id', form.value.type_id.toString());
+    if (form.value.department_id) formData.append('department_id', form.value.department_id.toString());
+    if (form.value.priority) formData.append('priority', form.value.priority);
+    if (form.value.status) formData.append('status', form.value.status);
+
+    // Append new files
+    newFiles.value.forEach(file => {
+        formData.append('new_ticket_files', file); // ตั้งชื่อ field ให้ backend รับไฟล์ใหม่
+    });
+
+    // ไฟล์เดิมที่ยังคงอยู่ (form.value.files) จะถูกจัดการโดย backend
+    // การลบไฟล์เดิมทำผ่าน removeExistingFile() ซึ่งเรียก API ลบโดยตรงแล้ว
+    // ไม่จำเป็นต้องส่ง form.value.files ไปอีกครั้ง
+
     try {
-        await api.put(`/tickets/update/${route.params.id}`, {
-            title: form.value.title,
-            description: form.value.description,
-            contact: form.value.contact,
-            type_id: form.value.type_id,
-            department_id: form.value.department_id,
-            priority: form.value.priority,
-            status: form.value.status,
-            files: form.value.files
-        }, {
+        await api.put(`/tickets/update/${route.params.id}`, formData, {
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'multipart/form-data', // สำคัญมากสำหรับการอัปโหลดไฟล์
                 Authorization: `Bearer ${localStorage.getItem('accessToken')}`
             }
         })
 
         await Swal.fire({
-            title: 'อัพเดด Ticket สำเร็จ',
-            text: 'Ticket ของคุณถูกอัพเดทเรียบร้อยแล้ว',
+            title: 'อัปเดต Ticket สำเร็จ',
+            text: 'Ticket ของคุณถูกอัปเดตเรียบร้อยแล้ว',
             icon: 'success',
             showClass: {
                 popup: 'animate__animated animate__heartBeat'
@@ -551,11 +619,13 @@ async function handleSubmit() {
             timer: 2000
         })
         isEditing.value = false
+        newFiles.value = []; // เคลียร์รายการไฟล์ใหม่หลังอัปเดตสำเร็จ
         fetchTicket()
-    } catch (err) {
+    } catch (err: any) {
+        console.error("Error updating ticket:", err);
         await Swal.fire({
             title: 'ผิดพลาด',
-            text: 'ไม่สามารถอัพเดท Ticket ได้: ' + err.message,
+            text: `ไม่สามารถอัปเดต Ticket ได้: ${err.response?.data?.message || err.message}`,
             icon: 'error'
         })
     }

@@ -18,12 +18,15 @@ const storage = multer.diskStorage({
     cb(null, uploadPath)
   },
   filename: function (_, file, cb) {
-    const uniqueName = `${timePart}-${file.originalname}`
+    // Decode a URI component that was previously created by encodeURIComponent or by a similar routine.
+    // This helps ensure that original filenames with non-ASCII characters (like Thai) are preserved correctly.
+    const originalnameDecoded = decodeURIComponent(Buffer.from(file.originalname, 'latin1').toString('utf8'));
+    const uniqueName = `${timePart}-${originalnameDecoded}`;
     cb(null, uniqueName)
   },
 })
 
-// ✅ รวมทั้ง limits และ fileFilter ไว้ใน export นี้เลย
+//รวมทั้ง limits และ fileFilter ไว้ใน export นี้เลย
 export const upload = multer({
   storage,
   limits: {

@@ -117,39 +117,80 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
   }
 })
 
-// PUT /api/tickets/update/:id  ก่อน async upload.array('files', 5),
-
-router.put('/update/:id',  async (req: Request, res: Response) => {
-  try{
+// PUT /api/tickets/update/:id
+router.put(
+  '/update/:id',
+  authenticateToken, // 1. เพิ่ม authenticateToken middleware
+  upload.array('new_ticket_files', 5), // 2. เพิ่ม middleware สำหรับรับไฟล์ใหม่ (ชื่อ field 'new_ticket_files')
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => { // 3. แก้ไข Request type และเพิ่ม Promise<void>
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       res.status(400).json({
         success: false,
         message: 'Invalid ticket ID'
       });
+      return; // 4. เพิ่ม return หลังส่ง response
     }
 
-    const result = await updateTicket(id, {
-      title: req.body.title,
-      description: req.body.description,
-      type_id: req.body.type_id,
-      priority: req.body.priority,
-      contact: req.body.contact,
-      department_id: req.body.department_id,
-      assignee_id: req.body.assignee_id,
-      comment: req.body.comment,
-      status: req.body.status,
-    });
-    
-    res.status(result.success ? 200 : 500).json({data: result});
-  } catch (error) {
-    res.json({
-      success: false,
-      message: 'Failed to update Ticket',
-      error,
-    });
-  }
-});
+    // 5. Parse IDs และจัดการค่าที่อาจเป็น null/undefined
+    const { title, description, priority, contact, comment, status } = req.body;
+    const files = req.files as Express.Multer.File[] | undefined; // ไฟล์ใหม่ที่อัปโหลด
+
+    let type_id_parsed: number | undefined = undefined;
+    if (req.body.type_id) {
+      type_id_parsed = parseInt(req.body.type_id, 10);
+      if (isNaN(type_id_parsed)) {
+        res.status(400).json({ success: false, message: 'Invalid type ID format' });
+        return;
+      }
+    }
+
+    let department_id_parsed: number | undefined = undefined;
+    if (req.body.department_id) {
+      department_id_parsed = parseInt(req.body.department_id, 10);
+      if (isNaN(department_id_parsed)) {
+        res.status(400).json({ success: false, message: 'Invalid department ID format' });
+        return;
+      }
+    }
+
+    let assignee_id_parsed: number | null | undefined = undefined; // undefined: ไม่เปลี่ยนแปลง, null: ตั้งค่าเป็น null
+    if (req.body.assignee_id === null || req.body.assignee_id === "") {
+      assignee_id_parsed = null;
+    } else if (req.body.assignee_id) {
+      const parsed = parseInt(req.body.assignee_id, 10);
+      if (isNaN(parsed)) {
+        res.status(400).json({ success: false, message: 'Invalid assignee ID format' });
+        return;
+      }
+      assignee_id_parsed = parsed;
+    }
+
+    try {
+      const result = await updateTicket(id, {
+        title,
+        description,
+        type_id: type_id_parsed,
+        priority,
+        contact,
+        department_id: department_id_parsed,
+        assignee_id: assignee_id_parsed,
+        comment,
+        status,
+      }, files); // ส่ง files ไปให้ updateTicket controller
+
+      res.status(result.success ? 200 : 500).json({ data: result });
+      return;
+    } catch (error) {
+      console.error('Error updating ticket:', error); // Log error เพื่อ debug
+      res.status(500).json({ // 7. กำหนด status code สำหรับ error
+        success: false,
+        message: 'Failed to update Ticket',
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return;
+    }
+  });
 
 // PUT /api/tickets/updateStatus/:id
 router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
