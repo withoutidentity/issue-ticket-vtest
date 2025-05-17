@@ -2,8 +2,8 @@ import { Ticket } from './../types/index';
 import { Router, Request, Response } from 'express'
 import { PrismaClient, TicketStatus } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
-import { upload } from '../middleware/upload'
-import { updateTicket } from '@/controllers/ticketController';
+import { uploadUser, uploadAssignee } from '../middleware/upload' // เปลี่ยน import
+import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController'; 
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -12,7 +12,7 @@ const prisma = new PrismaClient()
 router.post(
   '/create',
   authenticateToken,
-  upload.array('files', 5), // รับไฟล์แนบสูงสุด 5 ไฟล์
+  uploadUser.array('files', 5), // เปลี่ยนไปใช้ uploadUser
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { title, description, type_id, priority, contact, department_id } =
@@ -96,6 +96,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
         files: { select: { id: true, ticket_id: true, filename: true}},
+        assigneeFiles: { select: { id: true, ticket_id: true, filename: true}},
         department: { select: {name: true}},
         assignee: {
           select: {
@@ -121,7 +122,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
 router.put(
   '/update/:id',
   authenticateToken, // 1. เพิ่ม authenticateToken middleware
-  upload.array('new_ticket_files', 5), // 2. เพิ่ม middleware สำหรับรับไฟล์ใหม่ (ชื่อ field 'new_ticket_files')
+  uploadUser.array('new_ticket_files', 5), // เปลี่ยนไปใช้ uploadUser (ถ้าไฟล์เหล่านี้มาจาก user หรือเป็นการอัปเดตทั่วไป)
   async (req: AuthenticatedRequest, res: Response): Promise<void> => { // 3. แก้ไข Request type และเพิ่ม Promise<void>
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
@@ -189,6 +190,76 @@ router.put(
         error: error instanceof Error ? error.message : String(error),
       });
       return;
+    }
+  });
+
+// POST /api/tickets/:id/assignee-files - ให้ Assignee แนบไฟล์ (เก็บใน AssigneeFile)
+router.post(
+  '/:id/assignee-files',
+  authenticateToken,
+  uploadAssignee.array('assignee_attachments', 5), // เปลี่ยนไปใช้ uploadAssignee
+  async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+    const ticketId = parseInt(req.params.id, 10);
+    const files = req.files as Express.Multer.File[] | undefined;
+    const uploaderUserId = req.user?.id; // ID ของผู้ใช้ที่ล็อกอิน (assignee)
+
+    if (isNaN(ticketId)) {
+      res.status(400).json({ success: false, message: 'Invalid ticket ID.' });
+      return 
+    }
+
+    if (!files || files.length === 0) {
+      res.status(400).json({ success: false, message: 'No files uploaded.' });
+      return 
+    }
+
+    if (!uploaderUserId) {
+      // ควรไม่เกิดขึ้นถ้า authenticateToken ทำงานถูกต้อง
+      res.status(401).json({ success: false, message: 'User not authenticated.' });
+      return 
+    }
+
+    try {
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        select: { assignee_id: true }
+      });
+
+      if (!ticket) {
+        res.status(404).json({ success: false, message: `Ticket with ID ${ticketId} not found.` });
+        return 
+      }
+
+      // Authorization: ตรวจสอบว่าผู้ใช้ที่ล็อกอินเป็น assignee ของ ticket นี้ หรือเป็น ADMIN/OFFICER
+      const isAssignee = ticket.assignee_id === uploaderUserId;
+      const userRole = req.user?.role; // สมมติว่า role อยู่ใน req.user
+      const isAdminOrOfficer = userRole === 'ADMIN' || userRole === 'OFFICER';
+
+      if (!(isAssignee || isAdminOrOfficer)) {
+        res.status(403).json({ success: false, message: 'Forbidden. You do not have permission to attach files to this ticket as an assignee.' });
+        return 
+      }
+
+      const result = await addAssigneeFilesToTicket(ticketId, files, uploaderUserId);
+
+      if (result.success) {
+        // ดึงข้อมูล Ticket ล่าสุดพร้อมไฟล์ทั้งหมด (ทั้ง TicketFile และ AssigneeFile)
+        const updatedTicketWithAllFiles = await prisma.ticket.findUnique({
+            where: { id: ticketId },
+            include: { files: true, assigneeFiles: true } // files คือ TicketFile, assigneeFiles คือ AssigneeFile
+        });
+        res.status(201).json({ success: true, message: result.message, data: updatedTicketWithAllFiles });
+      } else {
+        const statusCode = result.message.includes('not found') ? 404 : (result.message.includes('No files') ? 400 : (result.message.includes('Forbidden') ? 403 : 500));
+        res.status(statusCode).json(result);
+      }
+    } catch (error) {
+      console.error(`Route error attaching assignee files to ticket ${ticketId}:`, error);
+      res.status(500).json({
+        success: false,
+        message: 'An unexpected error occurred while attaching assignee files.',
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   });
 

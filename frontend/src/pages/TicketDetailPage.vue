@@ -141,8 +141,11 @@
                             <!-- ส่วนสำหรับเพิ่มไฟล์ใหม่ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
                             <div v-if="isEditing" class="mt-6 pt-6 border-t border-gray-200">
                                 <h3 class="text-md font-semibold text-gray-700 mb-3">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 inline-block text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                    <svg xmlns="http://www.w3.org/2000/svg"
+                                        class="h-5 w-5 mr-2 inline-block text-gray-500" fill="none" viewBox="0 0 24 24"
+                                        stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                     </svg>
                                     เพิ่มไฟล์ใหม่ (สูงสุด {{ MAX_FILES }} ไฟล์รวมทั้งหมด)
                                 </h3>
@@ -151,9 +154,11 @@
                                 <div v-if="newFiles.length > 0" class="mt-2">
                                     <h4 class="text-sm font-medium text-gray-600 mb-1">ไฟล์ใหม่ที่เลือก:</h4>
                                     <ul class="list-disc list-inside pl-4 space-y-1">
-                                        <li v-for="(file, index) in newFiles" :key="index" class="text-sm text-gray-700 flex justify-between items-center py-1">
+                                        <li v-for="(file, index) in newFiles" :key="index"
+                                            class="text-sm text-gray-700 flex justify-between items-center py-1">
                                             <span>{{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)</span>
-                                            <button type="button" @click="removeNewFile(index)" class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded">ลบ</button>
+                                            <button type="button" @click="removeNewFile(index)"
+                                                class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded">ลบ</button>
                                         </li>
                                     </ul>
                                 </div>
@@ -286,6 +291,13 @@
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                     :class="{ 'bg-gray-50': !isEditingAssignee }" rows="5"></textarea>
                             </div>
+                            <!-- ไฟล์แนบสำหรับผู้รับผิดชอบ -->
+                            <div>
+                                <AssigneeFileUpload :disabled="!isEditingAssignee"
+                                    :ticket-id="form.id" ref="assigneeFileUploadRef"
+                                    :initial-assignee-files="form.assigneeFiles"
+                                    @files-uploaded="handleAssigneeFilesUploaded" />
+                            </div>
 
                             <div class="flex justify-between items-center space-x-3 pt-4 mt-8 border-t">
                                 <!-- ปุ่มย้อนกลับ -->
@@ -353,12 +365,16 @@ import AppLayout from "@/layouts/AppLayout.vue";
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
+import AssigneeFileUpload from '@/components/AssigneeFileUpload.vue';
 import Swal from 'sweetalert2';
 
 const route = useRoute()
 const router = useRouter()
 const isEditing = ref(false)
 const isEditingAssignee = ref(false)
+
+// Ref for AssigneeFileUpload component
+const assigneeFileUploadRef = ref<InstanceType<typeof AssigneeFileUpload> | null>(null);
 
 const MAX_FILES = 5
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
@@ -374,6 +390,17 @@ interface TicketType {
 interface Department {
     id: number;
     name: string;
+}
+
+interface User { id: number; name: string; email: string; role: string; }
+
+interface AssigneeApiFile {
+    id: number;
+    filename: string;
+    filepath: string;
+    ticket_id: number;
+    uploadedBy_id: number;
+    created_at: string;
 }
 
 interface TicketForm {
@@ -392,6 +419,7 @@ interface TicketForm {
         filename: string;
         filepath: string;
     }>;
+    assigneeFiles?: AssigneeApiFile[]; // ไฟล์จาก Assignee
 }
 
 const form = ref<TicketForm>({
@@ -409,6 +437,7 @@ const form = ref<TicketForm>({
     comment: '',
     status: '',
     files: [],
+    assigneeFiles: [],
 })
 
 const types = ref<TicketType[]>([]);
@@ -426,6 +455,7 @@ const canSelfAssign = computed(() =>
 const goBack = () => {
     router.go(-1) // ย้อนกลับ 1 หน้าในประวัติ
 }
+
 
 async function fetchTicket() {
     const res = await api.get(`/tickets/${route.params.id}`, {
@@ -469,6 +499,10 @@ function cancelEdit() {
 
 function cancelEditAssignee() {
     isEditingAssignee.value = false
+    // Reset selected files in AssigneeFileUpload component
+    if (assigneeFileUploadRef.value) {
+        assigneeFileUploadRef.value.resetSelectedFiles();
+    }
     fetchTicket() // รีโหลดข้อมูลเดิม
 }
 
@@ -556,6 +590,21 @@ function removeNewFile(index: number) {
     newFiles.value.splice(index, 1)
 }
 
+const handleAssigneeFilesUploaded = (updatedTicketDataFromApi?: TicketForm) => {
+    // เมื่อ AssigneeFileUpload component emit 'files-uploaded'
+    // updatedTicketDataFromApi คือข้อมูล ticket ทั้งหมดที่ได้จาก API หลังอัปโหลดไฟล์
+    console.log('Assignee files uploaded, new ticket data:', updatedTicketDataFromApi);
+    if (updatedTicketDataFromApi && form.value) {
+        // อัปเดตข้อมูล ticket ในหน้านี้ โดยเฉพาะส่วน assigneeFiles
+        form.value.assigneeFiles = updatedTicketDataFromApi.assigneeFiles || [];
+        // หรือจะอัปเดต ticket ทั้ง object เลยก็ได้ถ้ามั่นใจว่าโครงสร้างตรงกัน
+        // ticket.value = { ...ticket.value, ...updatedTicketDataFromApi };
+    }
+    // หรืออาจจะ re-fetch ข้อมูล ticket ใหม่ทั้งหมดก็ได้
+    fetchTicket();
+};
+
+
 async function handleSubmit() {
     const token = localStorage.getItem('accessToken');
     if (!token) {
@@ -632,10 +681,48 @@ async function handleSubmit() {
 }
 
 async function handleSubmitAssignee() {
+    const confirmResult = await Swal.fire({
+        title: 'ยืนยันการบันทึกข้อมูลผู้รับผิดชอบ?',
+        text: "การดำเนินการนี้จะบันทึกการเปลี่ยนแปลงสถานะ, ผู้รับผิดชอบ, หมายเหตุ และไฟล์ที่แนบใหม่ (ถ้ามี)",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, บันทึกเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!confirmResult.isConfirmed) {
+        return;
+    }
+
+    let filesProcessedSuccessfully = true;
+
+    // Check if AssigneeFileUpload component has files selected and trigger its upload
+    if (assigneeFileUploadRef.value && assigneeFileUploadRef.value.selectedFiles.length > 0) {
+        Swal.fire({
+            title: 'กำลังอัปโหลดไฟล์ผู้รับผิดชอบ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        filesProcessedSuccessfully = await assigneeFileUploadRef.value.uploadFiles();
+        Swal.close(); // Close the "loading" Swal for files
+
+        if (!filesProcessedSuccessfully) {
+            // Error message is already shown by AssigneeFileUpload component.
+            // You might want a more prominent error here or rely on the child's message.
+            Swal.fire('อัปโหลดไฟล์ไม่สำเร็จ', 'พบปัญหาในการอัปโหลดไฟล์ของผู้รับผิดชอบ กรุณาตรวจสอบข้อความแจ้งเตือนและลองอีกครั้ง', 'error');
+            return; // Stop if file upload failed
+        }
+    }
+
     try {
         await api.put(`/tickets/update/${route.params.id}`, {
             status: form.value.status,
-            assignee_id: selectedUserId.value,
+            assignee_id: selectedUserId.value || null, // Send null if no assignee selected
             comment: form.value.comment,
         },
             {
@@ -653,15 +740,15 @@ async function handleSubmitAssignee() {
                 popup: 'animate__animated animate__heartBeat'
             },
             timer: 2000
-        })
+        });
         isEditingAssignee.value = false
-        fetchTicket()
+        fetchTicket();
     } catch (err) {
         await Swal.fire({
             title: 'ผิดพลาด',
-            text: 'ไม่สามารถอัพเดทส่วนผู้รับผิดชอบได้: ' + err.message,
+            text: `ไม่สามารถอัปเดตข้อมูลผู้รับผิดชอบได้: ${err.response?.data?.message || err.message}`,
             icon: 'error'
-        })
+        });
     }
 }
 
