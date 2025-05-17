@@ -19,18 +19,32 @@
       </div>
     </div>
 
-    <div class="w-full grid grid-cols-2 gap-4  ">
-      <div class="bg-white shadow p-4 rounded ">
-        <div class="h-[300px]">
-          <h3 class="text-lg font-semibold mb-2">Ticket ตามหมวดหมู่</h3>
+    <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4  ">
+      <div class="bg-white shadow p-6 rounded ">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามหมวดหมู่</h3>
+        <div class="h-[350px] mb-6">
           <!-- กราฟกลุ่มตามเดือน -->
           <Bar :data="chartData" :options="chartOptions" :key="chartKey" />
         </div>
-        <!-- วงกลม -->
-        <!-- <Pie :data="pieData" :options="{
-          responsive: true,
-          plugins: { legend: { position: 'right' } }}" /> -->
+        <!-- แสดงจำนวน Ticket ตามหมวดหมู่พร้อมสี -->
+        <div v-if="chartData.labels.length > 0" class="mt-4 pt-4 border-t border-gray-200">
+          <h4 class="text-md font-medium text-gray-600 mb-2">จำนวน Ticket ในแต่ละหมวดหมู่:</h4>
+          <ul class="space-y-1">
+            <li v-for="(label, index) in chartData.labels" :key="label" class="flex items-center text-sm">
+              <span 
+                class="inline-block w-3 h-3 rounded-full mr-2" 
+                :style="{ backgroundColor: chartData.datasets[0].backgroundColor[index] || '#cccccc' }">
+              </span>
+              <span class="text-gray-700">{{ label }}:</span>
+              <span class="ml-1 font-semibold text-gray-800">{{ chartData.datasets[0].data[index] }}</span>
+            </li>
+          </ul>
+        </div>
 
+      </div>
+      <!-- New Ticket Creation Trend Chart -->
+      <div class="bg-white shadow p-6 rounded">
+        <TicketCreationTrendChart />
       </div>
     </div>
   </div>
@@ -43,6 +57,7 @@ import api from '@/api/axios-instance'
 
 import { useTicketStore } from '@/stores/ticketStore'
 import { useAuthStore } from "@/stores/auth";
+import TicketCreationTrendChart from '@/components/TicketCreationTrendChart.vue'
 
 const auth = useAuthStore();
 
@@ -147,11 +162,34 @@ const summary = ref({
   closed: 0,
 })
 
+// Function to generate a somewhat consistent color from a string
+const generateColorFromString = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  let color = '#';
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xFF;
+    color += ('00' + value.toString(16)).slice(-2);
+  }
+  return color;
+  // // Alternative: Simpler random but less consistent on minor name changes
+  // const letters = '0123456789ABCDEF';
+  // let color = '#';
+  // for (let i = 0; i < 6; i++) {
+  //   color += letters[Math.floor(Math.random() * 16)];
+  // }
+  // return color;
+};
+
 const chartData = ref({
   labels: [],
   datasets: [{
     label: 'จำนวน Ticket',
-    backgroundColor: ['#60a5fa', '#34d399', '#fbbf24'],
+    backgroundColor: [], // Will be populated dynamically
+    borderColor: [], // Optional: if you want borders for bars
     data: [],
   }]
 })
@@ -199,8 +237,11 @@ onMounted(async () => {
   } = await res.data
 
   summary.value = data.statusSummary
-  chartData.value.labels = data.typeSummary.map((t: TypeSummary) => t.name) // ใช้ TypeSummary เพื่อความถูกต้องของ type
-  chartData.value.datasets[0].data = data.typeSummary.map((t: TypeSummary) => t.count) // ใช้ TypeSummary
+  const typeLabels = data.typeSummary.map((t: TypeSummary) => t.name);
+  const typeCounts = data.typeSummary.map((t: TypeSummary) => t.count);
+  chartData.value.labels = typeLabels;
+  chartData.value.datasets[0].data = typeCounts;
+  chartData.value.datasets[0].backgroundColor = typeLabels.map(label => generateColorFromString(label));
   // console.log('Chart Data value:', chartData.value); // หากต้องการดูค่าใน ref
 
   chartKey.value++ // force re-render chart
