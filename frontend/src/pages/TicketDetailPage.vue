@@ -296,6 +296,7 @@
                                 <AssigneeFileUpload :disabled="!isEditingAssignee"
                                     :ticket-id="form.id" ref="assigneeFileUploadRef"
                                     :initial-assignee-files="form.assigneeFiles"
+                                    :class="{ 'bg-gray-50': !isEditingAssignee }"
                                     @files-uploaded="handleAssigneeFilesUploaded" />
                             </div>
 
@@ -594,11 +595,15 @@ const handleAssigneeFilesUploaded = (updatedTicketDataFromApi?: TicketForm) => {
     // เมื่อ AssigneeFileUpload component emit 'files-uploaded'
     // updatedTicketDataFromApi คือข้อมูล ticket ทั้งหมดที่ได้จาก API หลังอัปโหลดไฟล์
     console.log('Assignee files uploaded, new ticket data:', updatedTicketDataFromApi);
-    if (updatedTicketDataFromApi && form.value) {
+    if (form.value) { // Ensure form.value exists
         // อัปเดตข้อมูล ticket ในหน้านี้ โดยเฉพาะส่วน assigneeFiles
-        form.value.assigneeFiles = updatedTicketDataFromApi.assigneeFiles || [];
-        // หรือจะอัปเดต ticket ทั้ง object เลยก็ได้ถ้ามั่นใจว่าโครงสร้างตรงกัน
-        // ticket.value = { ...ticket.value, ...updatedTicketDataFromApi };
+        if (updatedTicketDataFromApi && updatedTicketDataFromApi.assigneeFiles) {
+            form.value.assigneeFiles = updatedTicketDataFromApi.assigneeFiles;
+        } else if (updatedTicketDataFromApi === undefined || (updatedTicketDataFromApi && !updatedTicketDataFromApi.assigneeFiles)) {
+            // This case might happen if the emit was just to signal a change, and we need to rely on fetchTicket
+            // Or if the deletion happened and the emit payload was structured differently.
+            // For simplicity and robustness after a deletion, re-fetching might be safer.
+        }
     }
     // หรืออาจจะ re-fetch ข้อมูล ticket ใหม่ทั้งหมดก็ได้
     fetchTicket();

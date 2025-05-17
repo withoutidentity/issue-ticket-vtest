@@ -1,6 +1,7 @@
 <template>
     <div class="assignee-file-upload mt-6 p-4 border border-gray-200 rounded-lg shadow-sm">
         <h3 class="text-xl font-semibold mb-4 text-gray-700">แนบไฟล์โดยผู้รับผิดชอบ</h3>
+        <div v-if="isLoading" class="text-sm text-gray-500">กำลังโหลดข้อมูลไฟล์...</div>
 
         <!-- Display existing assignee files -->
         <div v-if="currentAssigneeFiles && currentAssigneeFiles.length > 0" class="mb-4">
@@ -8,17 +9,20 @@
             <ul class="list-disc list-inside space-y-1">
                 <li v-for="file in currentAssigneeFiles" :key="file.id" class="text-sm">
                     <a :href="getAssigneeFileUrl(file.filename)" target="_blank"
-                        class="text-blue-600 hover:text-blue-800 hover:underline">
+                        class="text-blue-600 hover:text-blue-800 hover:underline inline-block">
                         {{ file.filename }}
                     </a>
-                    <!-- Optional: Add a delete button here if needed -->
+                    <button v-if="!props.disabled" @click="confirmDeleteExistingAssigneeFile(file.id, file.filename)"
+                        type="button"
+                        class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+                        ลบไฟล์นี้
+                    </button>
                 </li>
             </ul>
         </div>
         <div v-else-if="!isLoading" class="mb-4 text-sm text-gray-500">
             ยังไม่มีไฟล์ที่แนบโดยผู้รับผิดชอบ
         </div>
-
 
         <div class="mb-3">
             <label for="assignee-file-input" class="block text-sm font-medium text-gray-700 mb-1">
@@ -58,6 +62,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import api from '@/api/axios-instance'
+import Swal from 'sweetalert2'; // Import SweetAlert2
 import { config } from '@/config'
 
 // Interface สำหรับไฟล์ที่มาจาก Backend (AssigneeFile)
@@ -154,6 +159,46 @@ const handleFileSelection = (event: Event) => {
 const resetSelectedFiles = () => {
     selectedFiles.value = [];
     if (fileInputRef.value) fileInputRef.value.value = '';
+};
+
+const confirmDeleteExistingAssigneeFile = async (fileId: number, filename: string) => {
+    if (props.disabled) return;
+
+    const result = await Swal.fire({
+        title: 'ยืนยันการลบไฟล์?',
+        text: `คุณต้องการลบไฟล์ "${filename}" ที่ผู้รับผิดชอบเคยแนบไว้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'ใช่, ลบเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (result.isConfirmed) {
+        isLoading.value = true; // Show loading indicator
+        try {
+            const token = localStorage.getItem('accessToken');
+            // API endpoint สำหรับลบ AssigneeFile, e.g., /api/tickets/assignee-files/:fileId
+            await api.delete(`/tickets/assignee-files/${fileId}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            // Remove the file from the local list
+            currentAssigneeFiles.value = currentAssigneeFiles.value.filter(f => f.id !== fileId);
+            Swal.fire('ลบแล้ว!', `ไฟล์ "${filename}" ถูกลบเรียบร้อยแล้ว.`, 'success');
+            emit('files-uploaded', { assigneeFiles: currentAssigneeFiles.value }); // Emit to update parent
+        } catch (error: any) {
+            console.error('Error deleting assignee file:', error);
+            Swal.fire(
+                'เกิดข้อผิดพลาด!',
+                `ไม่สามารถลบไฟล์ได้: ${error.response?.data?.message || error.message}`,
+                'error'
+            );
+        } finally {
+            isLoading.value = false;
+        }
+    }
 };
 
 const uploadFiles = async (): Promise<boolean> => { // Return true on success, false on failure

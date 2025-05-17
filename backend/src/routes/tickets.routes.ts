@@ -2,7 +2,9 @@ import { Ticket } from './../types/index';
 import { Router, Request, Response } from 'express'
 import { PrismaClient, TicketStatus } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
-import { uploadUser, uploadAssignee } from '../middleware/upload' // เปลี่ยน import
+import { uploadUser, uploadAssignee } from '../middleware/upload'
+import path from 'path'; // เพิ่ม import path
+import fs from 'fs';
 import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController'; 
 
 const router = Router()
@@ -262,6 +264,78 @@ router.post(
       });
     }
   });
+
+// DELETE /api/tickets/assignee-files/:fileId - Delete an assignee file
+router.delete(
+  '/assignee-files/:fileId',
+  authenticateToken, // Ensure user is authenticated
+  async (req: AuthenticatedRequest, res: Response) => {
+    const fileId = parseInt(req.params.fileId, 10);
+    const userId = req.user?.id; // User performing the action
+    const userRole = req.user?.role;
+
+    if (isNaN(fileId)) {
+      res.status(400).json({ success: false, message: 'Invalid file ID.' });
+      return 
+    }
+
+    try {
+      const assigneeFile = await prisma.assigneeFile.findUnique({
+        where: { id: fileId },
+        include: { ticket: { select: { assignee_id: true, user_id: true } } } // Include ticket to check permissions
+      });
+
+      if (!assigneeFile) {
+        res.status(404).json({ success: false, message: 'Assignee file not found.' });
+        return 
+      }
+
+      // Authorization:
+      // Allow if user is ADMIN, OFFICER, or the assignee of the ticket,
+      // or the user who originally uploaded this specific assignee file.
+      const isTicketAssignee = assigneeFile.ticket?.assignee_id === userId;
+      const isUploader = assigneeFile.uploadedBy_id === userId;
+      const isAdminOrOfficer = userRole === 'ADMIN' || userRole === 'OFFICER';
+
+      if (!(isAdminOrOfficer || isTicketAssignee || isUploader)) {
+        res.status(403).json({ success: false, message: 'Forbidden. You do not have permission to delete this file.' });
+        return 
+      }
+
+      // Delete file from filesystem
+      const filePath = assigneeFile.filepath; // Path stored in DB, e.g., 'uploads/assignee/filename.pdf'
+      // Ensure the path is absolute or correctly relative to your project root for fs.unlinkSync
+      // This example assumes filepath is relative from the project root.
+      // Adjust if your `filepath` is stored differently.
+      const absoluteFilePath = path.join(filePath); // Adjust path as needed
+
+      if (fs.existsSync(absoluteFilePath)) {
+        fs.unlinkSync(absoluteFilePath);
+      } else {
+        console.warn(`File not found on disk, but proceeding to delete DB record: ${absoluteFilePath}`);
+      }
+
+      // Delete record from database
+      await prisma.assigneeFile.delete({
+        where: { id: fileId },
+      });
+
+      // Optionally, update the ticket's updated_at timestamp
+      await prisma.ticket.update({
+        where: { id: assigneeFile.ticket_id },
+        data: { updated_at: new Date() }
+      });
+
+      res.status(200).json({ success: true, message: 'Assignee file deleted successfully.' });
+
+    } catch (error) {
+      console.error(`Error deleting assignee file ${fileId}:`, error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during file deletion';
+      res.status(500).json({ success: false, message: 'Failed to delete assignee file.', error: errorMessage });
+    }
+  }
+);
+
 
 // PUT /api/tickets/updateStatus/:id
 router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
