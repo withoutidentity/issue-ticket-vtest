@@ -31,18 +31,40 @@
       <div class="bg-white shadow p-6 rounded">
         <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged" />
       </div>
+
+      <!-- New Line Chart for Ticket Trends by Category -->
+      <div class="bg-white shadow p-6 rounded md:col-span-2">
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามหมวดหมู่ (รายวัน)</h3>
+        <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+          <div>
+            <label for="lineChartStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
+            <input type="date" id="lineChartStartDate" v-model="lineChartStartDate" @change="updateLineChartData" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+          <div>
+            <label for="lineChartEndDate" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
+            <input type="date" id="lineChartEndDate" v-model="lineChartEndDate" @change="updateLineChartData" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+          </div>
+        </div>
+        <div class="h-[400px]">
+          <Line v-if="lineChartData.labels && lineChartData.labels.length > 0" :data="lineChartData" :options="lineChartOptions" :key="lineChartKey" />
+          <div v-else class="flex items-center justify-center h-full text-gray-500">
+            {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' : 'กรุณาเลือกช่วงวันที่ หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, defineEmits  } from 'vue'
+import { ref, onMounted, computed, defineEmits, watch } from 'vue'
 import { config } from '@/config';
 import api from '@/api/axios-instance'
 
 import { useTicketStore } from '@/stores/ticketStore'
 import { useAuthStore } from "@/stores/auth";
 import TicketCreationTrendChart from '@/components/TicketCreationTrendChart.vue'
+
 
 const auth = useAuthStore();
 
@@ -69,16 +91,25 @@ const creationDateFilter = ref<CreationDateFilter | null>(null);
 const ticketStore = useTicketStore()
 
 
-import { Bar } from 'vue-chartjs'
+import { Bar, Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
   Title,
   Tooltip,
   Legend,
   BarElement,
+  LineElement,
+  PointElement,
   CategoryScale,
   LinearScale,
+  TimeScale,
+  TimeSeriesScale,
 } from 'chart.js'
+import 'chartjs-adapter-date-fns';
+import { th } from 'date-fns/locale'; // For Thai date formatting if needed by adapter
+
+ChartJS.register(Title, Tooltip, Legend, BarElement, LineElement, PointElement, CategoryScale, LinearScale, TimeScale, TimeSeriesScale)
+
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
@@ -178,7 +209,100 @@ const filteredTickets = computed(() => {
     return ticketsToFilter;
 })
 
+// --- Line Chart for Ticket Trends by Category ---
+const lineChartStartDate = ref<string>('');
+const lineChartEndDate = ref<string>('');
+const lineChartKey = ref(0);
 
+const initializeDefaultDates = () => {
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - 29); // Default to last 30 days
+
+  lineChartStartDate.value = startDate.toISOString().split('T')[0];
+  lineChartEndDate.value = endDate.toISOString().split('T')[0];
+};
+
+const processedLineChartData = computed(() => {
+  if (!lineChartStartDate.value || !lineChartEndDate.value || !ticketStore.tickets.length || types.value.length === 0) {
+    return { labels: [], datasets: [] };
+  }
+
+  const start = new Date(lineChartStartDate.value);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(lineChartEndDate.value);
+  end.setHours(23, 59, 59, 999);
+
+  if (start > end) return { labels: [], datasets: [] };
+
+  const filteredTicketsForRange = ticketStore.tickets.filter(ticket => {
+    const createdAt = new Date(ticket.created_at);
+    return createdAt >= start && createdAt <= end;
+  });
+
+  if (filteredTicketsForRange.length === 0) {
+    return { labels: [], datasets: [] };
+  }
+
+  // Generate all dates in the range for the X-axis
+  const dateLabels: string[] = [];
+  let currentDate = new Date(start);
+  while (currentDate <= end) {
+    dateLabels.push(currentDate.toISOString().split('T')[0]);
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  const datasets = types.value.map((type, index) => {
+    const countsByDate: { [date: string]: number } = {};
+    dateLabels.forEach(label => countsByDate[label] = 0); // Initialize all dates with 0 count
+
+    filteredTicketsForRange.forEach(ticket => {
+      if (ticket.type_id === type.id) {
+        const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
+        if (countsByDate.hasOwnProperty(ticketDate)) {
+          countsByDate[ticketDate]++;
+        }
+      }
+    });
+
+    const data = dateLabels.map(label => countsByDate[label]);
+    const color = primaryColorsPalette[index % primaryColorsPalette.length];
+
+    return {
+      label: type.name,
+      data: data,
+      borderColor: color,
+      backgroundColor: color + '33', // Lighter fill color with opacity
+      tension: 0.1,
+      fill: false, // Set to true if you want area chart style
+    };
+  });
+
+  const displayDateLabels = dateLabels.map(dateStr => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+  });
+
+  return {
+    labels: displayDateLabels,
+    datasets: datasets,
+  };
+});
+
+const lineChartData = ref(processedLineChartData.value); // Initialize with computed
+
+const lineChartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: { beginAtZero: true, ticks: { precision: 0 } },
+    x: { title: { display: true, text: 'วันที่' } }
+  },
+  plugins: {
+    legend: { position: 'top' as const },
+    tooltip: { mode: 'index' as const, intersect: false },
+  },
+}));
 
 const summary = ref({
   total: 0,
@@ -242,13 +366,21 @@ const chartOptions = {
 
 const chartKey = ref(0)
 
+const updateLineChartData = () => {
+  lineChartData.value = processedLineChartData.value; // Re-assign to trigger reactivity if needed
+  lineChartKey.value++; // Force re-render
+};
+
+watch([lineChartStartDate, lineChartEndDate, () => ticketStore.tickets, types], () => {
+  updateLineChartData();
+}, { deep: true });
+
 onMounted(async () => {
-  // 1. ดึงข้อมูล Ticket ผ่าน ticketStore
-  //    ตรวจสอบว่า ticketStore มี action เช่น fetchTickets() หรือไม่
-  //    และ action นั้นมีการอัปเดต state tickets และ loading ใน store
   if (!ticketStore.tickets || ticketStore.tickets.length === 0) { // โหลดถ้ายังไม่มีข้อมูล หรือโหลดใหม่เสมอตามต้องการ
     await ticketStore.fetchTickets(); // สมมติว่า store มี action นี้
   }
+  await fetchTypes(); // Ensure types are fetched for the line chart
+  initializeDefaultDates(); // Set default date range for line chart
 
   // 2. ดึงข้อมูลสรุปสำหรับ Dashboard และ Chart (รวมการเรียก API ที่ซ้ำซ้อน)
   const res = await api.get(`/dashboard/admin`, {
@@ -281,5 +413,6 @@ onMounted(async () => {
   // console.log('Chart Data value:', chartData.value); // หากต้องการดูค่าใน ref
 
   chartKey.value++ // force re-render chart
+  updateLineChartData(); // Initial population of line chart data
 })
 </script>

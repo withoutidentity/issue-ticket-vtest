@@ -2,8 +2,8 @@
 import { defineStore } from 'pinia';
 import api from '@/api/axios-instance'; // สมมติว่าคุณมี instance ของ axios ที่ตั้งค่าไว้แล้ว
 import { useAuthStore } from './auth'; // หากต้องการใช้ token จาก authStore
-import type { Ticket } from '@/types/ticket'
-
+import { Ticket } from '@/types/ticket'
+import { FileInfo } from '@/types/ticket'
 export const useTicketStore = defineStore('ticket', {
   state: () => ({
     tickets: [] as Ticket[],

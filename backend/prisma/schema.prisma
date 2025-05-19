@@ -14,6 +14,7 @@ model User {
   name          String
   role          Role     @default(USER)
   department_id Int?
+  is_officer_confirmed Boolean  @default(false) // สถานะการยืนยันสำหรับ Office
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   refreshToken  String? // สำหรับ Refresh Token
