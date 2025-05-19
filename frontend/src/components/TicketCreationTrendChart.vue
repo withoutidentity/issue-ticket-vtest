@@ -51,6 +51,8 @@ import 'chartjs-adapter-date-fns'; // Import date adapter
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, TimeScale, TimeSeriesScale)
 
+const emit = defineEmits(['filter-by-creation-date']);
+
 const auth = useAuthStore();
 
 interface Ticket {
@@ -64,17 +66,17 @@ type Period = 'day' | 'month' | 'year';
 const tickets = ref<Ticket[]>([]);
 const selectedPeriod = ref<Period>('day'); // Default period
 const isLoading = ref(true);
+const selectedBarOriginalKey = ref<string | null>(null); // To track the clicked bar's original key
 const chartKey = ref(0); // To force re-render chart
 
-// Helper function to generate a random hex color
-const getRandomHexColor = (): string => {
-  const letters = '0123456789ABCDEF';
-  let color = '#';
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-};
+const primaryColorsPalette = [
+  '#3B82F6', // blue-500
+  '#EF4444', // red-500
+  '#F59E0B', // amber-500
+  '#10B981', // green-500
+  '#8B5CF6', // violet-500
+  '#EC4899', // pink-500
+];
 
 // Helper function to darken a hex color for the border
 const darkenColor = (hexColor: string, percent: number): string => {
@@ -86,17 +88,12 @@ const darkenColor = (hexColor: string, percent: number): string => {
   g = Math.floor(g * (1 - percent / 100));
   b = Math.floor(b * (1 - percent / 100));
 
-  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-};
+  // Ensure values are within 0-255 range
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
 
-const getOrGeneratePersistentColor = (labelKey: string): string => {
-  const storageKey = `chartColor_${labelKey}`;
-  let color = localStorage.getItem(storageKey);
-  if (!color) {
-    color = getRandomHexColor();
-    localStorage.setItem(storageKey, color);
-  }
-  return color;
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
 const fetchTicketsForTrend = async () => {
@@ -154,7 +151,8 @@ const processedChartData = computed(() => {
   const borderColors: string[] = [];
   const darkenPercent = 20; // Darken by 20% for border
 
-  sortedLabels.forEach(label => {
+
+  sortedLabels.forEach((label, index) => {
     dataValues.push(counts[label]);
 
     // Format display label
@@ -170,10 +168,21 @@ const processedChartData = computed(() => {
         displayLabels.push(label);
     }
 
-    // Get or generate persistent color
-    const baseColor = getOrGeneratePersistentColor(label); // Use the original, unformatted label as the key
-    backgroundColors.push(baseColor);
-    borderColors.push(darkenColor(baseColor, darkenPercent));
+    const baseColorHex = primaryColorsPalette[index % primaryColorsPalette.length];
+    const isSelected = selectedBarOriginalKey.value === label;
+
+    if (selectedBarOriginalKey.value) { // If any bar is selected
+      if (isSelected) {
+        backgroundColors.push(baseColorHex); // Selected bar keeps its color
+        borderColors.push(darkenColor(baseColorHex, darkenPercent));
+      } else {
+        backgroundColors.push(baseColorHex + '66'); // Dim non-selected bars (e.g., ~40% opacity)
+        borderColors.push(darkenColor(baseColorHex, darkenPercent) + '66');
+      }
+    } else { // No bar is selected, all bars normal
+      backgroundColors.push(baseColorHex);
+      borderColors.push(darkenColor(baseColorHex, darkenPercent));
+    }
   });
 
   return {
@@ -187,14 +196,41 @@ const processedChartData = computed(() => {
         data: dataValues,
       },
     ],
+    originalKeys: sortedLabels, // Expose original keys for click handler
   };
 });
 
 const chartData = computed(() => processedChartData.value);
 
+const handleBarClick = (originalKey: string | null) => {
+  if (!originalKey) return;
+
+  if (selectedBarOriginalKey.value === originalKey) {
+    selectedBarOriginalKey.value = null; // Toggle off
+    emit('filter-by-creation-date', null);
+  } else {
+    selectedBarOriginalKey.value = originalKey;
+    emit('filter-by-creation-date', {
+      period: selectedPeriod.value,
+      value: originalKey,
+    });
+  }
+  chartKey.value++; // Force re-render to update colors
+};
+
 const chartOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  onClick: (event: unknown, elements: { index: number }[], chart: any) => {
+    if (elements.length > 0) {
+      const elementIndex = elements[0].index;
+      // Use originalKeys from processedChartData which are not formatted for display
+      const originalKey = processedChartData.value.originalKeys[elementIndex];
+      if (originalKey) {
+        handleBarClick(originalKey);
+      }
+    }
+  },
   scales: {
     y: {
       beginAtZero: true,
@@ -233,15 +269,24 @@ const chartOptions = computed(() => ({
 
 const setPeriod = (period: Period) => {
   selectedPeriod.value = period;
+  selectedBarOriginalKey.value = null; // Clear selection when period changes
+  emit('filter-by-creation-date', null); // Inform parent that filter is cleared
   // The chart will update automatically due to computed properties
   // Force re-render chart if needed for options changes like axis titles
   chartKey.value++;
 };
 
+
 onMounted(() => {
   fetchTicketsForTrend();
 });
 
+watch(() => selectedPeriod.value, () => {
+    // If external logic could clear selectedBarOriginalKey based on other filters,
+    // this watch isn't strictly needed for just period changes as setPeriod handles it.
+    // However, if selectedBarOriginalKey could be cleared externally, this ensures chart updates.
+    chartKey.value++;
+});
 // Watch for changes in tickets or selectedPeriod to update chartKey if necessary,
 // though computed properties should handle most updates.
 watch([tickets, selectedPeriod], () => {

@@ -4,7 +4,11 @@
     <card>
       <cardcontent>
         <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
-          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" @filter-status-changed="handleStatusFilterChange" @filter-type-changed="handleTypeFilterChange" />
+          <AdminDashboard 
+            v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" 
+            @filter-status-changed="handleStatusFilterChange" 
+            @filter-type-changed="handleTypeFilterChange"
+            @filter-creation-date-changed="handleCreationDateFilterChange" />
           <table class="w-full">
             <thead>
               <tr class="bg-gray-200">
@@ -129,6 +133,13 @@ interface ticket {
   }>;
 }
 
+// Define Period and CreationDateFilter types, similar to AdminDashboard
+type Period = 'day' | 'month' | 'year';
+interface CreationDateFilter {
+  period: Period;
+  value: string; // This is the YYYY-MM-DD, YYYY-MM, or YYYY string
+}
+
 const tickets = ref<ticket[]>([])
 const auth = useAuthStore();
 const editStatus = ref<ticket | null>(null)
@@ -136,25 +147,49 @@ const selectedStatus = ref('open')
 
 const statusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null);
 const typeFilterForTable = ref<string | null>(null);
+const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
 
 const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
   statusFilterForTable.value = newStatus;
+  if (newStatus) { // If a status filter is applied, clear other filters
+    typeFilterForTable.value = null;
+    creationDateFilterForTable.value = null;
+  }
 };
 
 const handleTypeFilterChange = (newType: string | null) => {
   typeFilterForTable.value = newType;
+  if (newType) { // If a type filter is applied, clear other filters
+    statusFilterForTable.value = null;
+    creationDateFilterForTable.value = null;
+  }
+};
+
+const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilter | null) => {
+  creationDateFilterForTable.value = newCreationDateFilter;
+  if (newCreationDateFilter) { // If a creation date filter is applied, clear other filters
+    statusFilterForTable.value = null;
+    typeFilterForTable.value = null;
+  }
 };
 
 const filteredTableTickets = computed(() => {
   let tempTickets = tickets.value;
 
-  // Filter by status
   if (statusFilterForTable.value) {
     tempTickets = tempTickets.filter(ticket => ticket.status && ticket.status === statusFilterForTable.value);
-  }
-  // Filter by type
-  if (typeFilterForTable.value) {
+  } else if (typeFilterForTable.value) {
     tempTickets = tempTickets.filter(ticket => ticket.ticket_types?.name === typeFilterForTable.value);
+  } else if (creationDateFilterForTable.value && creationDateFilterForTable.value.value) {
+    const { period, value: filterValue } = creationDateFilterForTable.value;
+    tempTickets = tempTickets.filter(ticket => {
+      const createdAt = new Date(ticket.created_at);
+      let ticketKey = '';
+      if (period === 'day') ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-${String(createdAt.getDate()).padStart(2, '0')}`;
+      else if (period === 'month') ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+      else if (period === 'year') ticketKey = `${createdAt.getFullYear()}`;
+      return ticketKey === filterValue;
+    });
   }
   return tempTickets;
 });

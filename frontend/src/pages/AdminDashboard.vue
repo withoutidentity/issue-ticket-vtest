@@ -26,25 +26,10 @@
           <!-- กราฟกลุ่มตามเดือน -->
           <Bar :data="chartData" :options="chartOptions" :key="chartKey" />
         </div>
-        <!-- แสดงจำนวน Ticket ตามหมวดหมู่พร้อมสี -->
-        <div v-if="chartData.labels.length > 0" class="mt-4 pt-4 border-t border-gray-200">
-          <h4 class="text-md font-medium text-gray-600 mb-2">จำนวน Ticket ในแต่ละหมวดหมู่:</h4>
-          <ul class="space-y-1">
-            <li v-for="(label, index) in chartData.labels" :key="label" class="flex items-center text-sm">
-              <span 
-                class="inline-block w-3 h-3 rounded-full mr-2" 
-                :style="{ backgroundColor: chartData.datasets[0].backgroundColor[index] || '#cccccc' }">
-              </span>
-              <span class="text-gray-700">{{ label }}:</span>
-              <span class="ml-1 font-semibold text-gray-800">{{ chartData.datasets[0].data[index] }}</span>
-            </li>
-          </ul>
-        </div>
-
       </div>
       <!-- New Ticket Creation Trend Chart -->
       <div class="bg-white shadow p-6 rounded">
-        <TicketCreationTrendChart />
+        <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged" />
       </div>
     </div>
   </div>
@@ -61,7 +46,7 @@ import TicketCreationTrendChart from '@/components/TicketCreationTrendChart.vue'
 
 const auth = useAuthStore();
 
-const emit = defineEmits(['filter-status-changed', 'filter-type-changed'])
+const emit = defineEmits(['filter-status-changed', 'filter-type-changed', 'filter-creation-date-changed'])
 
 // interface ticket_types { //  This interface seems unused for status filtering logic
 //   id: number
@@ -69,10 +54,17 @@ const emit = defineEmits(['filter-status-changed', 'filter-type-changed'])
 //   description: string
 // }
 
+// Define Period type, similar to the one in TicketCreationTrendChart
+type Period = 'day' | 'month' | 'year';
+interface CreationDateFilter {
+  period: Period;
+  value: string;
+}
+
 const statusFilter = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null);
 const typeFilter = ref<string | null>(null);
-
 const types = ref<{ id: number; name: string }[]>([]);
+const creationDateFilter = ref<CreationDateFilter | null>(null);
 
 const ticketStore = useTicketStore()
 
@@ -103,6 +95,8 @@ function filterByStatus(statusToFilter: 'open' | 'in_progress' | 'pending' | 'cl
   }
   typeFilter.value = null; // Clear type filter when status filter is applied
   emit('filter-status-changed', statusFilter.value);
+  creationDateFilter.value = null; // Clear creation date filter
+  emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
   emit('filter-type-changed', null); // Notify parent to clear type filter
 }
 
@@ -129,9 +123,26 @@ function handleChartClick(typeName: string) {
     typeFilter.value = typeName;
   }
   statusFilter.value = null; // Clear status filter when type filter is applied
+  creationDateFilter.value = null; // Clear creation date filter
+  emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
   emit('filter-type-changed', typeFilter.value);
   emit('filter-status-changed', null); // Notify parent to clear status filter
 }
+
+const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
+  creationDateFilter.value = filter;
+  if (filter) {
+    statusFilter.value = null;
+    typeFilter.value = null;
+    // Notify parent if these filters are managed at a higher level
+    emit('filter-status-changed', null);
+    emit('filter-type-changed', null);
+  }
+  emit('filter-creation-date-changed', filter); // Emit the creation date filter to parent
+  // Note: The TicketCreationTrendChart itself will update its bar colors
+  // because its internal selectedBarOriginalKey changes, triggering a re-render.
+  // If other charts needed to clear their selection, they'd need similar logic or props.
+};
 
 const filteredTickets = computed(() => {
   let ticketsToFilter = ticketStore.tickets;
@@ -140,15 +151,30 @@ const filteredTickets = computed(() => {
     if (statusFilter.value) {
         ticketsToFilter = ticketsToFilter.filter(ticket => ticket.status === statusFilter.value);
     }
-
     // Filter by type
-    if (typeFilter.value) {
+    else if (typeFilter.value) {
         ticketsToFilter = ticketsToFilter.filter(ticket => {
           // Use the typeName computed property here to get the type name by ID
           return typeName.value(ticket.type_id) === typeFilter.value
         });
     }
+    // Filter by creation date
+    else if (creationDateFilter.value && creationDateFilter.value.value) {
+      const { period, value: filterValue } = creationDateFilter.value;
+      ticketsToFilter = ticketsToFilter.filter(ticket => {
+        const createdAt = new Date(ticket.created_at);
+        let ticketKey = '';
+        if (period === 'day') {
+          ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-${String(createdAt.getDate()).padStart(2, '0')}`;
+        } else if (period === 'month') {
+          ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+        } else if (period === 'year') {
+          ticketKey = `${createdAt.getFullYear()}`;
+        }
+        return ticketKey === filterValue;
+      });
 
+    }
     return ticketsToFilter;
 })
 
@@ -162,45 +188,50 @@ const summary = ref({
   closed: 0,
 })
 
-// Function to generate a somewhat consistent color from a string
-const generateColorFromString = (str: string) => {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  let color = '#';
-  for (let i = 0; i < 3; i++) {
-    const value = (hash >> (i * 8)) & 0xFF;
-    color += ('00' + value.toString(16)).slice(-2);
-  }
-  return color;
-  // // Alternative: Simpler random but less consistent on minor name changes
-  // const letters = '0123456789ABCDEF';
-  // let color = '#';
-  // for (let i = 0; i < 6; i++) {
-  //   color += letters[Math.floor(Math.random() * 16)];
-  // }
-  // return color;
+const primaryColorsPalette = [
+  '#3B82F6', // blue-500
+  '#EF4444', // red-500
+  '#F59E0B', // amber-500
+  '#10B981', // green-500
+  '#8B5CF6', // violet-500
+  '#EC4899', // pink-500
+];
+
+// Helper function to darken a hex color for the border
+const darkenColor = (hexColor: string, percent: number): string => {
+  let r = parseInt(hexColor.substring(1, 3), 16);
+  let g = parseInt(hexColor.substring(3, 5), 16);
+  let b = parseInt(hexColor.substring(5, 7), 16);
+
+  r = Math.floor(r * (1 - percent / 100));
+  g = Math.floor(g * (1 - percent / 100));
+  b = Math.floor(b * (1 - percent / 100));
+
+  // Ensure values are within 0-255 range
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
 const chartData = ref({
-  labels: [],
+  labels: [] as string[],
   datasets: [{
     label: 'จำนวน Ticket',
-    backgroundColor: [], // Will be populated dynamically
-    borderColor: [], // Optional: if you want borders for bars
-    data: [],
+    backgroundColor: [] as string[],
+    borderColor: [] as string[],
+    borderWidth: 1,
+    data: [] as number[],
   }]
 })
 
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
-  onClick: (event, elements, chart) => {
+  onClick: (event: unknown, elements: { index: number }[], chart: any) => {
     if (elements.length > 0) {
       const elementIndex = elements[0].index;
-      // Ensure labels exist and are strings before trying to access
       if (chart.data.labels && chart.data.labels[elementIndex]) {
         const clickedLabel = chart.data.labels[elementIndex] as string;
         handleChartClick(clickedLabel);
@@ -240,8 +271,13 @@ onMounted(async () => {
   const typeLabels = data.typeSummary.map((t: TypeSummary) => t.name);
   const typeCounts = data.typeSummary.map((t: TypeSummary) => t.count);
   chartData.value.labels = typeLabels;
-  chartData.value.datasets[0].data = typeCounts;
-  chartData.value.datasets[0].backgroundColor = typeLabels.map(label => generateColorFromString(label));
+  chartData.value.datasets[0].data = typeCounts;  
+  chartData.value.datasets[0].backgroundColor = typeLabels.map((label, index) => 
+    primaryColorsPalette[index % primaryColorsPalette.length]
+  );
+  chartData.value.datasets[0].borderColor = chartData.value.datasets[0].backgroundColor.map(color =>
+    darkenColor(color, 15) // Darken by 15%
+  );
   // console.log('Chart Data value:', chartData.value); // หากต้องการดูค่าใน ref
 
   chartKey.value++ // force re-render chart

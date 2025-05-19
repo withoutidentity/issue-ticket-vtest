@@ -31,12 +31,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/RegisterPage.vue'),
   },
   {
-    path: '/admin',
-    name: 'AdminDashboard',
-    component: () => import('@/pages/AdminDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
-  },
-  {
     path: '/403',
     name: 'Forbidden',
     component: () => import('@/pages/ForbiddenPage.vue'),
