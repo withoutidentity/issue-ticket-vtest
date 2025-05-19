@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { PrismaClient, Role } from '@prisma/client'
-import { authenticateToken, authorizeRoles } from '../middleware/auth.middleware'
+import { authenticateToken, authorizeRoles, AuthenticatedRequest } from '../middleware/auth.middleware'
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -15,6 +15,13 @@ router.get('/',authenticateToken, async (req: Request, res: Response) => {
         name: true,
         email: true,
         role: true,
+        department: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        is_officer_confirmed: true
         // เพิ่ม status หรือ createdAt ถ้ามี
       },
     })
@@ -97,5 +104,56 @@ router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']
   //   res.status(500).json({ error: 'Failed to update user' })
   // }
 })
+
+// PATCH /api/users/:userId/confirm-officer - Confirm an officer account
+router.patch('/:userId/confirm-officer', authenticateToken, authorizeRoles(['ADMIN']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const userIdToConfirm = parseInt(req.params.userId, 10);
+
+  if (isNaN(userIdToConfirm)) {
+    res.status(400).json({ error: 'Invalid user ID format.' });
+    return 
+  }
+
+  try {
+    const officerToConfirm = await prisma.user.findUnique({
+      where: { id: userIdToConfirm },
+    });
+
+    if (!officerToConfirm) {
+      res.status(404).json({ error: 'User not found.' });
+      return 
+    }
+
+    if (officerToConfirm.role !== Role.OFFICER) {
+      res.status(400).json({ error: 'This user is not an Officer and cannot be confirmed as such.' });
+      return 
+    }
+
+    if (officerToConfirm.is_officer_confirmed) {
+      res.status(400).json({ error: 'Officer account is already confirmed.' });
+      return 
+    }
+
+    const confirmedOfficer = await prisma.user.update({
+      where: { id: userIdToConfirm },
+      data: { is_officer_confirmed: true },
+      select: { // Select only necessary fields for the response
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        is_officer_confirmed: true,
+        department: {
+          select: { id: true, name: true }
+        }
+      }
+    });
+
+    res.status(200).json({ message: 'Officer account confirmed successfully.', user: confirmedOfficer });
+  } catch (error) {
+    console.error('Error confirming officer:', error);
+    res.status(500).json({ error: 'Failed to confirm officer account.' });
+  }
+});
 
 export default router

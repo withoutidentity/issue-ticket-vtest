@@ -113,8 +113,9 @@ interface ticket {
   status: 'open' | 'in_progress' | 'pending' | 'closed'
   created_at: string;
   updated_at: string;
-  department?: {
-    name: string;
+  department?: { // Ensure department includes id
+    id?: number;
+    name: string; 
   }
   assignee: {
     name: string;
@@ -174,15 +175,22 @@ const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilte
 };
 
 const filteredTableTickets = computed(() => {
-  let tempTickets = tickets.value;
+  let baseTickets = tickets.value;
+
+  // Apply officer department filter first if applicable
+  // This assumes auth.user.department_id exists
+  if (auth.user?.role === 'OFFICER' && auth.user?.department.id) {
+    baseTickets = baseTickets.filter(ticket => ticket.department?.id === auth.user?.department.id);
+  }
+
+  let tempTickets = baseTickets;
 
   if (statusFilterForTable.value) {
     tempTickets = tempTickets.filter(ticket => ticket.status && ticket.status === statusFilterForTable.value);
   } else if (typeFilterForTable.value) {
     tempTickets = tempTickets.filter(ticket => ticket.ticket_types?.name === typeFilterForTable.value);
   } else if (creationDateFilterForTable.value && creationDateFilterForTable.value.value) {
-    const { period, value: filterValue } = creationDateFilterForTable.value;
-    tempTickets = tempTickets.filter(ticket => {
+    const { period, value: filterValue } = creationDateFilterForTable.value;    tempTickets = tempTickets.filter(ticket => {
       const createdAt = new Date(ticket.created_at);
       let ticketKey = '';
       if (period === 'day') ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-${String(createdAt.getDate()).padStart(2, '0')}`;
