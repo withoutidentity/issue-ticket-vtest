@@ -18,14 +18,14 @@
             </button>
           </div>
 
-          <!-- Modal เพิ่มแผนก -->
+          <!-- Modal เพิ่มหมวดหมู่ -->
           <div v-if="isAddModalOpen" class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
             <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
               <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                เพิ่มแผนก
+                เพิ่มหมวดหมู่
               </h3>
               <div class="space-y-4">
                 <div>

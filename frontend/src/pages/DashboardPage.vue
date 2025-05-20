@@ -4,19 +4,27 @@
     <card>
       <cardcontent>
         <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
-          <AdminDashboard 
-            v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" 
+          <AdminDashboard
+            v-if="auth.user.role === 'ADMIN'"
             @filter-status-changed="handleStatusFilterChange" 
             @filter-type-changed="handleTypeFilterChange"
-            @filter-creation-date-changed="handleCreationDateFilterChange" />
+            @filter-creation-date-changed="handleCreationDateFilterChange"
+            @filter-department-changed="handleDepartmentFilterChange"
+          />
+          <OfficerDashboard 
+            v-else-if="auth.user.role === 'OFFICER'" 
+            @filter-officer-status-changed="handleOfficerStatusFilterChange" 
+            @filter-officer-category-changed="handleOfficerCategoryFilterChange"
+          />
           <div class="rounded-lg overflow-hidden border border-gray-200">
+            <!-- Ticket Table -->
         <table class="w-full">
           <thead>
             <tr class="bg-gray-100">
               <th class="text-left py-3 px-4 font-medium text-gray-700">ลำดับ</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-700">ประเภท</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
               <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
               <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
                 class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
@@ -32,7 +40,7 @@
               <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
               <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>
               <td class="py-3 px-4 text-gray-700">
-                {{ ticket.ticket_types?.name || "-" }}
+                {{ ticket.department?.name || "-" }}
               </td>
               <td class="py-3 px-4 text-center">
                 <div>
@@ -71,6 +79,7 @@ import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 import AdminDashboard from "./AdminDashboard.vue";
+import OfficerDashboard from "@/components/OfficerDashboard.vue"; // Import OfficerDashboard
 
 import { ref, onMounted, computed } from "vue";
 import axios from "axios";
@@ -127,13 +136,19 @@ const selectedStatus = ref('open')
 
 const statusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null);
 const typeFilterForTable = ref<string | null>(null);
+const departmentFilterForTable = ref<string | null>(null);
+const officerStatusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null); // For Officer's own status filter
+const officerCategoryFilterForTable = ref<string | null>(null); // For Officer's category filter
 const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
 
 const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
   statusFilterForTable.value = newStatus;
   if (newStatus) { // If a status filter is applied, clear other filters
     typeFilterForTable.value = null;
+    departmentFilterForTable.value = null;
     creationDateFilterForTable.value = null;
+    officerCategoryFilterForTable.value = null;
+    officerStatusFilterForTable.value = null; // Clear officer's own status filter
   }
 };
 
@@ -141,7 +156,21 @@ const handleTypeFilterChange = (newType: string | null) => {
   typeFilterForTable.value = newType;
   if (newType) { // If a type filter is applied, clear other filters
     statusFilterForTable.value = null;
+    departmentFilterForTable.value = null;
     creationDateFilterForTable.value = null;
+    officerCategoryFilterForTable.value = null;
+    officerStatusFilterForTable.value = null;
+  }
+};
+
+const handleDepartmentFilterChange = (newDepartment: string | null) => {
+  departmentFilterForTable.value = newDepartment;
+  if (newDepartment) {
+    statusFilterForTable.value = null;
+    typeFilterForTable.value = null;
+    creationDateFilterForTable.value = null;
+    officerCategoryFilterForTable.value = null;
+    officerStatusFilterForTable.value = null;
   }
 };
 
@@ -150,7 +179,32 @@ const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilte
   if (newCreationDateFilter) { // If a creation date filter is applied, clear other filters
     statusFilterForTable.value = null;
     typeFilterForTable.value = null;
+    departmentFilterForTable.value = null;
+    officerCategoryFilterForTable.value = null;
+    officerStatusFilterForTable.value = null;
   }
+};
+
+const handleOfficerStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
+  officerStatusFilterForTable.value = newStatus;
+  // When officer filters by their dashboard's status cards, clear other admin-level filters
+  statusFilterForTable.value = null;
+  typeFilterForTable.value = null;
+  departmentFilterForTable.value = null;
+  creationDateFilterForTable.value = null;
+  officerCategoryFilterForTable.value = null;
+  // The base officer department filter in filteredTableTickets will still apply
+};
+
+const handleOfficerCategoryFilterChange = (newCategory: string | null) => {
+  officerCategoryFilterForTable.value = newCategory;
+  // When officer filters by category, clear other admin-level and officer status filters
+  statusFilterForTable.value = null;
+  typeFilterForTable.value = null;
+  departmentFilterForTable.value = null;
+  creationDateFilterForTable.value = null;
+  officerStatusFilterForTable.value = null;
+  // The base officer department filter in filteredTableTickets will still apply
 };
 
 const filteredTableTickets = computed(() => {
@@ -183,10 +237,21 @@ const filteredTableTickets = computed(() => {
 
   let tempTickets = baseTickets;
 
-  if (statusFilterForTable.value) {
+  // Apply Officer's own status filter first if it's active
+  if (officerStatusFilterForTable.value && auth.user?.role === 'OFFICER') {
+    tempTickets = tempTickets.filter(ticket => ticket.status === officerStatusFilterForTable.value);
+  } 
+  // Apply Officer's category filter if active
+  else if (officerCategoryFilterForTable.value && auth.user?.role === 'OFFICER') {
+    tempTickets = tempTickets.filter(ticket => ticket.ticket_types?.name === officerCategoryFilterForTable.value);
+  }
+  // Then apply Admin's filters if active (these would have cleared officerStatusFilterForTable)
+  else if (statusFilterForTable.value) { // Admin status filter
     tempTickets = tempTickets.filter(ticket => ticket.status && ticket.status === statusFilterForTable.value);
   } else if (typeFilterForTable.value) {
     tempTickets = tempTickets.filter(ticket => ticket.ticket_types?.name === typeFilterForTable.value);
+  } else if (departmentFilterForTable.value && auth.user.role === 'ADMIN') { // Department filter from AdminDashboard
+    tempTickets = tempTickets.filter(ticket => ticket.department?.name === departmentFilterForTable.value);
   } else if (creationDateFilterForTable.value && creationDateFilterForTable.value.value) {
     const { period, value: filterValue } = creationDateFilterForTable.value;    tempTickets = tempTickets.filter(ticket => {
       const createdAt = new Date(ticket.created_at);

@@ -21,10 +21,10 @@
 
     <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4  ">
       <div class="bg-white shadow p-6 rounded ">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามหมวดหมู่</h3>
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามแผนก</h3>
         <div class="h-[350px] mb-6">
           <!-- กราฟกลุ่มตามเดือน -->
-          <Bar :data="chartData" :options="chartOptions" :key="chartKey" />
+          <Bar :data="departmentChartData" :options="departmentChartOptions" :key="departmentChartKey" />
         </div>
       </div>
       <!-- New Ticket Creation Trend Chart -->
@@ -34,19 +34,19 @@
 
       <!-- New Line Chart for Ticket Trends by Category -->
       <div class="bg-white shadow p-6 rounded md:col-span-2">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามหมวดหมู่ (รายวัน)</h3>
+        <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามแผนก (รายวัน)</h3>
         <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
           <div>
-            <label for="lineChartStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
-            <input type="date" id="lineChartStartDate" v-model="lineChartStartDate" @change="updateLineChartData" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <label for="departmentTrendStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
+            <input type="date" id="departmentTrendStartDate" v-model="departmentTrendStartDate" @change="updateDepartmentTrendChart" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
           </div>
           <div>
-            <label for="lineChartEndDate" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
-            <input type="date" id="lineChartEndDate" v-model="lineChartEndDate" @change="updateLineChartData" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            <label for="departmentTrendEndDate" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
+            <input type="date" id="departmentTrendEndDate" v-model="departmentTrendEndDate" @change="updateDepartmentTrendChart" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
           </div>
         </div>
         <div class="h-[400px]">
-          <Line v-if="lineChartData.labels && lineChartData.labels.length > 0" :data="lineChartData" :options="lineChartOptions" :key="lineChartKey" />
+          <Bar v-if="departmentTrendData.labels && departmentTrendData.labels.length > 0" :data="departmentTrendData" :options="departmentTrendOptions" :key="departmentTrendKey" />
           <div v-else class="flex items-center justify-center h-full text-gray-500">
             {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' : 'กรุณาเลือกช่วงวันที่ หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
           </div>
@@ -68,7 +68,7 @@ import TicketCreationTrendChart from '@/components/TicketCreationTrendChart.vue'
 
 const auth = useAuthStore();
 
-const emit = defineEmits(['filter-status-changed', 'filter-type-changed', 'filter-creation-date-changed'])
+const emit = defineEmits(['filter-status-changed', 'filter-type-changed', 'filter-creation-date-changed', 'filter-department-changed'])
 
 // interface ticket_types { //  This interface seems unused for status filtering logic
 //   id: number
@@ -83,8 +83,32 @@ interface CreationDateFilter {
   value: string;
 }
 
+interface Department {
+  id: number;
+  name: string;
+}
+
+interface Ticket {
+  id: number;
+  title: string;
+  description: string;
+  type_id: number | ""; // Assuming type_id refers to category
+  priority: "" | "low" | "medium" | "high";
+  contact: string;
+  department_id: number | ""; // Direct department ID
+  status: "open" | "in_progress" | "pending" | "closed" | ""; // Ensure empty string is a valid status if applicable
+  assignee?: { name: string; }; // Optional assignee
+  comment?: string; // Optional comment
+  files?: { id: number; name: string; path: string; }[]; // Optional files
+  created_at: string;
+  user?: { name: string; email: string; }; // Optional user who created
+}
+
+
 const statusFilter = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null);
 const typeFilter = ref<string | null>(null);
+const departmentFilter = ref<string | null>(null); // For bar chart department filtering
+
 const types = ref<{ id: number; name: string }[]>([]);
 const creationDateFilter = ref<CreationDateFilter | null>(null);
 
@@ -110,10 +134,13 @@ import { th } from 'date-fns/locale'; // For Thai date formatting if needed by a
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, LineElement, PointElement, CategoryScale, LinearScale, TimeScale, TimeSeriesScale)
 
-
-ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
+// ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale) // Already registered above
 
 interface TypeSummary {
+  name: string
+  count: number
+}
+interface DepartmentSummary {
   name: string
   count: number
 }
@@ -125,8 +152,10 @@ function filterByStatus(statusToFilter: 'open' | 'in_progress' | 'pending' | 'cl
     statusFilter.value = statusToFilter; // Store the selected status
   }
   typeFilter.value = null; // Clear type filter when status filter is applied
+  departmentFilter.value = null; // Clear department filter
   emit('filter-status-changed', statusFilter.value);
   creationDateFilter.value = null; // Clear creation date filter
+  emit('filter-department-changed', null);
   emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
   emit('filter-type-changed', null); // Notify parent to clear type filter
 }
@@ -147,17 +176,21 @@ const typeName = computed(() => (typeId: number | "") => {
   return foundType ? foundType.name : null;
 });
 
-function handleChartClick(typeName: string) {
-  if (typeFilter.value === typeName) {
-    typeFilter.value = null; // Toggle off if the same type is clicked again
+function handleDepartmentChartClick(departmentName: string) {
+  console.log("[AdminDashboard] handleDepartmentChartClick called with departmentName:", departmentName);
+  if (departmentFilter.value === departmentName) {
+    departmentFilter.value = null; // Toggle off if the same department is clicked again
   } else {
-    typeFilter.value = typeName;
+    departmentFilter.value = departmentName;
   }
   statusFilter.value = null; // Clear status filter when type filter is applied
   creationDateFilter.value = null; // Clear creation date filter
+  typeFilter.value = null; // Clear type filter (if it were used for main table)
+  emit('filter-department-changed', departmentFilter.value);
+  console.log("[AdminDashboard] Emitting 'filter-department-changed' with value:", departmentFilter.value);
   emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
-  emit('filter-type-changed', typeFilter.value);
   emit('filter-status-changed', null); // Notify parent to clear status filter
+  emit('filter-type-changed', null);
 }
 
 const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
@@ -165,9 +198,11 @@ const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
   if (filter) {
     statusFilter.value = null;
     typeFilter.value = null;
+    departmentFilter.value = null;
     // Notify parent if these filters are managed at a higher level
     emit('filter-status-changed', null);
     emit('filter-type-changed', null);
+    emit('filter-department-changed', null);
   }
   emit('filter-creation-date-changed', filter); // Emit the creation date filter to parent
   // Note: The TicketCreationTrendChart itself will update its bar colors
@@ -175,62 +210,28 @@ const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
   // If other charts needed to clear their selection, they'd need similar logic or props.
 };
 
-const filteredTickets = computed(() => {
-  let ticketsToFilter = ticketStore.tickets;
-
-    // Filter by status
-    if (statusFilter.value) {
-        ticketsToFilter = ticketsToFilter.filter(ticket => ticket.status === statusFilter.value);
-    }
-    // Filter by type
-    else if (typeFilter.value) {
-        ticketsToFilter = ticketsToFilter.filter(ticket => {
-          // Use the typeName computed property here to get the type name by ID
-          return typeName.value(ticket.type_id) === typeFilter.value
-        });
-    }
-    // Filter by creation date
-    else if (creationDateFilter.value && creationDateFilter.value.value) {
-      const { period, value: filterValue } = creationDateFilter.value;
-      ticketsToFilter = ticketsToFilter.filter(ticket => {
-        const createdAt = new Date(ticket.created_at);
-        let ticketKey = '';
-        if (period === 'day') {
-          ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}-${String(createdAt.getDate()).padStart(2, '0')}`;
-        } else if (period === 'month') {
-          ticketKey = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
-        } else if (period === 'year') {
-          ticketKey = `${createdAt.getFullYear()}`;
-        }
-        return ticketKey === filterValue;
-      });
-
-    }
-    return ticketsToFilter;
-})
-
-// --- Line Chart for Ticket Trends by Category ---
-const lineChartStartDate = ref<string>('');
-const lineChartEndDate = ref<string>('');
-const lineChartKey = ref(0);
+// --- Bar Chart for Ticket Trends by Department (Daily) ---
+const departmentTrendStartDate = ref<string>('');
+const departmentTrendEndDate = ref<string>('');
+const departmentTrendKey = ref(0);
 
 const initializeDefaultDates = () => {
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(endDate.getDate() - 29); // Default to last 30 days
+  startDate.setDate(endDate.getDate() - 14); // Default to last 15 days
 
-  lineChartStartDate.value = startDate.toISOString().split('T')[0];
-  lineChartEndDate.value = endDate.toISOString().split('T')[0];
+  departmentTrendStartDate.value = startDate.toISOString().split('T')[0];
+  departmentTrendEndDate.value = endDate.toISOString().split('T')[0];
 };
 
-const processedLineChartData = computed(() => {
-  if (!lineChartStartDate.value || !lineChartEndDate.value || !ticketStore.tickets.length || types.value.length === 0) {
+const processedDepartmentTrendData = computed(() => {
+  if (!departmentTrendStartDate.value || !departmentTrendEndDate.value || !ticketStore.tickets.length || !departments.value || departments.value.length === 0) {
     return { labels: [], datasets: [] };
   }
 
-  const start = new Date(lineChartStartDate.value);
+  const start = new Date(departmentTrendStartDate.value);
   start.setHours(0, 0, 0, 0);
-  const end = new Date(lineChartEndDate.value);
+  const end = new Date(departmentTrendEndDate.value);
   end.setHours(23, 59, 59, 999);
 
   if (start > end) return { labels: [], datasets: [] };
@@ -252,12 +253,12 @@ const processedLineChartData = computed(() => {
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  const datasets = types.value.map((type, index) => {
+  const datasets = departments.value.map((dept, index) => {
     const countsByDate: { [date: string]: number } = {};
     dateLabels.forEach(label => countsByDate[label] = 0); // Initialize all dates with 0 count
 
-    filteredTicketsForRange.forEach(ticket => {
-      if (ticket.type_id === type.id) {
+    filteredTicketsForRange.forEach((ticket: Ticket) => {
+      if (ticket.department_id === dept.id) { // Group by department using ticket.department_id
         const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
         if (countsByDate.hasOwnProperty(ticketDate)) {
           countsByDate[ticketDate]++;
@@ -269,10 +270,10 @@ const processedLineChartData = computed(() => {
     const color = primaryColorsPalette[index % primaryColorsPalette.length];
 
     return {
-      label: type.name,
+      label: dept.name, // Label is department name
       data: data,
       borderColor: color,
-      backgroundColor: color + '33', // Lighter fill color with opacity
+      backgroundColor: color , // 
       tension: 0.1,
       fill: false, // Set to true if you want area chart style
     };
@@ -289,9 +290,9 @@ const processedLineChartData = computed(() => {
   };
 });
 
-const lineChartData = ref(processedLineChartData.value); // Initialize with computed
+const departmentTrendData = ref(processedDepartmentTrendData.value); // Initialize with computed
 
-const lineChartOptions = computed(() => ({
+const departmentTrendOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
   scales: {
@@ -312,6 +313,17 @@ const summary = ref({
   closed: 0,
 })
 
+const departments = ref<{ id: number; name: string; }[]>([]);
+
+const fetchDepartmentsForChart = async () => {
+  try {
+    const res = await api.get(`/departments`); // Assuming this endpoint exists
+    // Adjust based on your API response structure. Common patterns: res.data or res.data.data. Added more robust check.
+    departments.value = Array.isArray(res.data.data) ? res.data.data.map((dept: any) => ({ id: dept.id, name: dept.name })) : Array.isArray(res.data) ? res.data.map((dept: any) => ({ id: dept.id, name: dept.name })) : [];
+  } catch (err) {
+    console.error("Failed to load departments for chart", err);
+  }
+};
 const primaryColorsPalette = [
   '#3B82F6', // blue-500
   '#EF4444', // red-500
@@ -339,40 +351,82 @@ const darkenColor = (hexColor: string, percent: number): string => {
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 };
 
-const chartData = ref({
+// For Department Bar Chart (Tickets by Department)
+const departmentChartData = ref({
   labels: [] as string[],
   datasets: [{
-    label: 'จำนวน Ticket',
+    label: 'จำนวน Ticket ตามแผนก',
     backgroundColor: [] as string[],
     borderColor: [] as string[],
     borderWidth: 1,
     data: [] as number[],
   }]
-})
+});
+const departmentChartKey = ref(0);
 
-const chartOptions = {
+const departmentChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
   onClick: (event: unknown, elements: { index: number }[], chart: any) => {
     if (elements.length > 0) {
       const elementIndex = elements[0].index;
+      console.log("[AdminDashboard] Department chart bar clicked. Element index:", elementIndex);
       if (chart.data.labels && chart.data.labels[elementIndex]) {
-        const clickedLabel = chart.data.labels[elementIndex] as string;
-        handleChartClick(clickedLabel);
+        const clickedDepartmentName = chart.data.labels[elementIndex] as string;
+        console.log("[AdminDashboard] Clicked department name from chart label:", clickedDepartmentName);
+        handleDepartmentChartClick(clickedDepartmentName);
       }
     }
   }
-}
-
-const chartKey = ref(0)
-
-const updateLineChartData = () => {
-  lineChartData.value = processedLineChartData.value; // Re-assign to trigger reactivity if needed
-  lineChartKey.value++; // Force re-render
 };
 
-watch([lineChartStartDate, lineChartEndDate, () => ticketStore.tickets, types], () => {
-  updateLineChartData();
+const updateDepartmentChart = () => {
+  if (!ticketStore.tickets.length || !departments.value.length) {
+    console.log("[AdminDashboard] updateDepartmentChart: Conditions not met. Tickets:", ticketStore.tickets.length, "Departments:", departments.value.length);
+    departmentChartData.value = { labels: [], datasets: [{ label: 'จำนวน Ticket ตามแผนก', backgroundColor: [], borderColor: [], borderWidth: 1, data: [] }] };
+    return;
+  }
+
+  const countsByDepartment: { [deptName: string]: number } = {};
+  departments.value.forEach(dept => countsByDepartment[dept.name] = 0);
+
+  console.log("[AdminDashboard] updateDepartmentChart: Initial countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
+  ticketStore.tickets.forEach((ticket: Ticket) => {
+    // Use ticket.department?.id to match department object in ticket
+    const dept = departments.value.find(d => d.id === ticket.department_id); // Now using department_id directly
+    if (dept && countsByDepartment.hasOwnProperty(dept.name)) {
+      countsByDepartment[dept.name]++;
+    }
+  });
+  console.log("[AdminDashboard] updateDepartmentChart: Final countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
+
+  const labels = Object.keys(countsByDepartment);
+  const data = Object.values(countsByDepartment);
+
+  departmentChartData.value.labels = labels;
+  departmentChartData.value.datasets[0].data = data;
+  departmentChartData.value.datasets[0].backgroundColor = labels.map((_, index) => primaryColorsPalette[index % primaryColorsPalette.length]);
+  departmentChartData.value.datasets[0].borderColor = departmentChartData.value.datasets[0].backgroundColor.map(color => darkenColor(color, 15));
+  departmentChartKey.value++;
+  console.log("[AdminDashboard] updateDepartmentChart: Chart data updated.", JSON.parse(JSON.stringify(departmentChartData.value)));
+};
+
+const updateDepartmentTrendChart = () => {
+  departmentTrendData.value = processedDepartmentTrendData.value; // Re-assign to trigger reactivity if needed
+  departmentTrendKey.value++; // Force re-render
+};
+
+watch([departmentTrendStartDate, departmentTrendEndDate, () => ticketStore.tickets, departments], () => {
+  updateDepartmentTrendChart();
+}, { deep: true, immediate: false }); // immediate false to wait for initial fetch
+// Watcher for the first department chart
+watch([() => ticketStore.tickets, departments], () => {
+    if (departments.value.length > 0 && ticketStore.tickets.length > 0) {
+        console.log("[AdminDashboard] Watcher triggered for department chart. Updating chart.");
+        updateDepartmentChart();
+    } else {
+        console.log("[AdminDashboard] Watcher triggered for department chart. Conditions not met.");
+    }
 }, { deep: true });
 
 onMounted(async () => {
@@ -380,8 +434,13 @@ onMounted(async () => {
     await ticketStore.fetchTickets(); // สมมติว่า store มี action นี้
   }
   await fetchTypes(); // Ensure types are fetched for the line chart
+  console.log("[AdminDashboard] Types fetched.");
+  await fetchDepartmentsForChart(); // Fetch departments for the bar chart
+  console.log("[AdminDashboard] Departments fetched.");
   initializeDefaultDates(); // Set default date range for line chart
+  console.log("[AdminDashboard] Default dates initialized.");
 
+  console.log("[AdminDashboard] Fetching summary data...");
   // 2. ดึงข้อมูลสรุปสำหรับ Dashboard และ Chart (รวมการเรียก API ที่ซ้ำซ้อน)
   const res = await api.get(`/dashboard/admin`, {
     headers: {
@@ -396,23 +455,18 @@ onMounted(async () => {
       pending: number
       closed: number
     },
-    typeSummary: TypeSummary[]
+    typeSummary: TypeSummary[] // This is for the bar chart, which is now by department
   } = await res.data
 
   summary.value = data.statusSummary
-  const typeLabels = data.typeSummary.map((t: TypeSummary) => t.name);
-  const typeCounts = data.typeSummary.map((t: TypeSummary) => t.count);
-  chartData.value.labels = typeLabels;
-  chartData.value.datasets[0].data = typeCounts;  
-  chartData.value.datasets[0].backgroundColor = typeLabels.map((label, index) => 
-    primaryColorsPalette[index % primaryColorsPalette.length]
-  );
-  chartData.value.datasets[0].borderColor = chartData.value.datasets[0].backgroundColor.map(color =>
-    darkenColor(color, 15) // Darken by 15%
-  );
-  // console.log('Chart Data value:', chartData.value); // หากต้องการดูค่าใน ref
+  console.log("[AdminDashboard] Summary data fetched.");
 
-  chartKey.value++ // force re-render chart
-  updateLineChartData(); // Initial population of line chart data
+  // Call chart updates after all data is potentially loaded
+  if (departments.value.length > 0 && ticketStore.tickets.length > 0) {
+    console.log("[AdminDashboard] onMounted: Calling updateDepartmentChart and updateDepartmentTrendChart.");
+    updateDepartmentChart();
+    updateDepartmentTrendChart();
+  }
+  updateDepartmentTrendChart(); // Initial population of department trend chart data
 })
 </script>
