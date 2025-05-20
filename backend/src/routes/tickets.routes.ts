@@ -69,7 +69,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         user: { select: { name: true, email: true } },
         ticket_types: { select: { name: true } },
         files: true,
-        department: { select: { name: true}},
+        department: { select: { id:true, name: true}},
         assignee: {
           select: {
             id: true,
@@ -99,7 +99,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
         ticket_types: { select: { name: true } },
         files: { select: { id: true, ticket_id: true, filename: true}},
         assigneeFiles: { select: { id: true, ticket_id: true, filename: true}},
-        department: { select: {name: true}},
+        department: { select: { id:true, name: true}},
         assignee: {
           select: {
             id: true,

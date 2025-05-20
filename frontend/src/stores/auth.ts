@@ -41,14 +41,41 @@ export const useAuthStore = defineStore('auth', {
         return this.user;
       } catch (error: any) {
         console.error('Login failed:', error);
-        if (error.response && error.response.status === 403) {
-          // Handle specific 403 error for unconfirmed officer
+        if (error.response) {
+          const status = error.response.status;
+          const backendErrorMessage = error.response.data?.error;
+
+          if (status === 401) {
+            // Handle 401 Unauthorized (e.g., invalid credentials)
+            Swal.fire({
+              icon: 'error',
+              title: 'เข้าสู่ระบบล้มเหลว',
+              text: backendErrorMessage || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง',
+            });
+          } else if (status === 403) {
+            // Handle 403 Forbidden (e.g., unconfirmed officer, banned, etc.)
+            Swal.fire({
+              icon: 'warning',
+              title: 'เข้าสู่ระบบล้มเหลว', // Or 'การเข้าถึงถูกปฏิเสธ'
+              text: backendErrorMessage || 'คุณไม่มีสิทธิ์เข้าถึงหรือบัญชีอาจมีปัญหา',
+            });
+          } else {
+            // Handle other HTTP errors from the backend
+            Swal.fire({
+              icon: 'error',
+              title: 'เกิดข้อผิดพลาด',
+              text: backendErrorMessage || `เกิดข้อผิดพลาดจากเซิร์ฟเวอร์ (Status: ${status})`,
+            });
+          }
+        } else {
+          // Handle network errors or other errors where error.response is not available
           Swal.fire({
-            icon: 'warning',
-            title: 'เข้าสู่ระบบล้มเหลว',
-            text: error.response.data.error || 'บัญชี Officer ยังไม่ได้รับการยืนยัน',
+            icon: 'error',
+            title: 'เกิดข้อผิดพลาดในการเชื่อมต่อ',
+            text: 'ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่อของคุณ',
           });
         }
+        // Consider re-throwing the error or returning a specific value if the calling component needs to react.
       }
     },
     async refreshAccessToken() {

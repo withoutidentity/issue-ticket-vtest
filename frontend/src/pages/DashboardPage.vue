@@ -9,77 +9,56 @@
             @filter-status-changed="handleStatusFilterChange" 
             @filter-type-changed="handleTypeFilterChange"
             @filter-creation-date-changed="handleCreationDateFilterChange" />
-          <table class="w-full">
-            <thead>
-              <tr class="bg-gray-200">
-                <th class="text-left py-3 px-4 font-medium">ลำดับ</th>
-                <th class="text-left py-3 px-4 font-medium">หัวข้อ</th>
-                <th class="text-left py-3 px-4 font-medium">คำอธิบาย</th>
-                <th class="text-left py-3 px-4 font-medium">ประเภท</th>
-                <th class="text-center py-3 px-4 font-medium">สถานะ</th>
-                <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
-                  class="text-left py-3 px-4 font-medium">ผู้แจ้ง</th>
-                <th class="text-left py-3 px-4 font-medium">วันที่สร้าง</th>
-                <th class="text-left py-3 px-4 font-medium">ชื่อผู้รับผิดชอบ</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(ticket, index) in filteredTableTickets" :key="ticket.id"
-                  class="border-b align-top hover:bg-gray-50 cursor-pointer"
-                  @click="goToTicket(ticket.id)">
-                <td class="py-3 px-4" >{{ index+1 }}</td>
-                <td class="py-3 px-4" >{{ ticket.title }}</td>
-                <td class="py-3 px-4" >{{ ticket.description }}</td>
-                <td class="py-3 px-4" >
-                  {{ ticket.ticket_types?.name || "-" }}
-                </td>
-                <td class="py-3 px-4 text-center">
-                  <!-- update status-->
-                  <!-- <div v-if="editStatus?.id === ticket.id" class="flex items-center space-x-2">
-                    <select v-model="selectedStatus" class="border rounded px-2 py-1 focus:outline-none">
-                      <option value="open">เปิด</option>
-                      <option value="in_progress">กำลังดำเนินการ</option>
-                      <option value="pending">รอดำเนินการ</option>
-                      <option value="closed">ปิดแล้ว</option>
-                    </select>
-                    <button @click="updateStatus" class="text-green-600 hover:underline">บันทึก</button>
-                    <button @click="cancelEdit" class="text-red-600 hover:underline">ยกเลิก</button>
-                  </div> -->
-                  <div>
-                    <span :class="{
-                      'bg-blue-100 text-blue-700': ticket.status === 'open',
-                      'bg-green-100 text-green-700': ticket.status === 'in_progress',
-                      'bg-purple-100 text-purple-700': ticket.status === 'pending',
-                      'bg-red-100 text-red-700': ticket.status === 'closed',
-                    }" class="px-3 py-1 rounded-full text-sm ">
-                      {{ statusName(ticket.status) }}
-                    </span>
-                  </div>
-                </td>
-                <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4" 
-                >
-                {{ ticket.user?.name || "-" }}</td>
-                <td class="py-3 px-4">
-                  {{ formatDateDDMMYYYY(ticket.created_at) }}
-                </td>
-                <td class="py-3 px-4"> {{ ticket.assignee?.name || "-" }}
-                  <!-- <Filelink :filePath="ticket.filepath" /> -->
-                  <!-- <div v-if="ticket.files.length === 0" class="text-gray-400 italic">ไม่มีไฟล์แนบบบ</div>
-                  <div v-else>
-                    <ul>
-                      <li v-for="file in ticket.files" :key="file.id">
-                        <a :href="`${config.apiUrl}/uploads/${file.filename}`" target="_blank" rel="noopener noreferrer"
-                          class="max-w-[200px] flex text-blue-600 hover:underline text-ellipsis overflow-hidden whitespace-nowrap">
-                          • {{ file.filename }}
-                        </a>
-                      </li>
-                    </ul>
-                  </div> -->
-
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="rounded-lg overflow-hidden border border-gray-200">
+        <table class="w-full">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="text-left py-3 px-4 font-medium text-gray-700">ลำดับ</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">ประเภท</th>
+              <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
+              <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
+                class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">วันที่สร้าง</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(ticket, index) in filteredTableTickets" :key="ticket.id"
+                class="border-b align-top hover:bg-gray-50 cursor-pointer"
+                @click="goToTicket(ticket.id)">
+              <td class="py-3 px-4 text-gray-700">{{ index+1 }}</td>
+              <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
+              <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>
+              <td class="py-3 px-4 text-gray-700">
+                {{ ticket.ticket_types?.name || "-" }}
+              </td>
+              <td class="py-3 px-4 text-center">
+                <div>
+                  <span :class="{
+                    'bg-blue-100 text-blue-700': ticket.status === 'open',
+                    'bg-green-100 text-green-700': ticket.status === 'in_progress',
+                    'bg-purple-100 text-purple-700': ticket.status === 'pending',
+                    'bg-red-100 text-red-700': ticket.status === 'closed',
+                  }" class="px-3 py-1 rounded-full text-sm ">
+                    {{ statusName(ticket.status) }}
+                  </span>
+                </div>
+              </td>
+              <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4 text-gray-700">
+                {{ ticket.user?.name || "-" }}
+              </td>
+              <td class="py-3 px-4 text-gray-700">
+                {{ formatDateDDMMYYYY(ticket.created_at) }}
+              </td>
+              <td class="py-3 px-4 text-gray-700">
+                {{ ticket.assignee?.name || "-" }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
         </div>
       </cardcontent>
     </card>
@@ -175,12 +154,31 @@ const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilte
 };
 
 const filteredTableTickets = computed(() => {
-  let baseTickets = tickets.value;
+  console.log("[DashboardPage] Recalculating filteredTableTickets...");
+  // Log a deep copy of auth.user to avoid issues with reactivity proxies in console
+  console.log("[DashboardPage] Current auth user:", JSON.parse(JSON.stringify(auth.user)));
+  console.log("[DashboardPage] Raw tickets count:", tickets.value.length);
+  if (tickets.value.length > 0) {
+    console.log("[DashboardPage] First raw ticket department object:", tickets.value[0].department);
+  }
+
+  let baseTickets = [...tickets.value]; // Start with a shallow copy
 
   // Apply officer department filter first if applicable
-  // This assumes auth.user.department_id exists
-  if (auth.user?.role === 'OFFICER' && auth.user?.department.id) {
-    baseTickets = baseTickets.filter(ticket => ticket.department?.id === auth.user?.department.id);
+  if (auth.user?.role === 'OFFICER') {
+    const officerDepartmentId = auth.user?.department?.id; // Safer access
+    console.log(`[DashboardPage] Officer role detected. Officer's department ID from auth store: ${officerDepartmentId}`);
+
+    if (officerDepartmentId !== undefined && officerDepartmentId !== null) {
+      baseTickets = baseTickets.filter(ticket => {
+        // console.log(`[DashboardPage] Comparing Ticket ID ${ticket.id} (Dept ID: ${ticket.department?.id}) with Officer Dept ID ${officerDepartmentId}. Match: ${ticket.department?.id === officerDepartmentId}`);
+        return ticket.department?.id === officerDepartmentId;
+      });
+      console.log(`[DashboardPage] Tickets count after officer department filter (ID: ${officerDepartmentId}): ${baseTickets.length}`);
+    } else {
+      console.warn(`[DashboardPage] Officer's department ID is undefined or null. No department-specific tickets will be shown for this officer.`);
+      baseTickets = []; // Officer with no department ID sees no tickets
+    }
   }
 
   let tempTickets = baseTickets;
@@ -199,6 +197,7 @@ const filteredTableTickets = computed(() => {
       return ticketKey === filterValue;
     });
   }
+  console.log("[DashboardPage] Final filtered tickets count:", tempTickets.length);
   return tempTickets;
 });
 
