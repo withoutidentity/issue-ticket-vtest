@@ -45,7 +45,7 @@
                   </td>
                   <td class="py-3 px-4 space-x-2 text-center">
                     <button @click="openEdit(user)" class="border px-3 py-1 rounded hover:bg-gray-100">แก้ไขบทบาท</button>
-                    <button v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && auth.isAdmin"
+                    <button v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
                             @click="confirmOfficer(user.id)"
                             class="border px-3 py-1 rounded text-green-600 hover:bg-green-50">ยืนยัน Officer</button>
                     <button @click="bandUser(user.id)" class="border px-3 py-1 rounded text-red-600 hover:bg-red-50">ระงับ</button>
@@ -227,8 +227,11 @@ const confirmOfficer = async (userId: number) => {
       }
       Swal.fire('สำเร็จ!', 'Officer ได้รับการยืนยันแล้ว', 'success');
     } catch (error) {
-      console.error('Error confirming officer:', error);
-      Swal.fire('ผิดพลาด!', 'ไม่สามารถยืนยัน Officer ได้', 'error');
+      console.error('Error confirming officer:', error.response || error);
+      const errorMessage = error.response?.data?.error || // พยายามดึงข้อความ error จาก backend response
+                           error.message || // หรือใช้ error message ทั่วไปของ JavaScript
+                           'ไม่สามารถยืนยัน Officer ได้'; // ข้อความ fallback
+      Swal.fire('ผิดพลาด!', errorMessage, 'error');
     }
   }
 };

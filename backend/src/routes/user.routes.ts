@@ -106,12 +106,27 @@ router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']
 })
 
 // PATCH /api/users/:userId/confirm-officer - Confirm an officer account
-router.patch('/:userId/confirm-officer', authenticateToken, authorizeRoles(['ADMIN']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.patch('/:userId/confirm-officer', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const userIdToConfirm = parseInt(req.params.userId, 10);
+  const performingUser = req.user; // User performing the action (from authenticateToken middleware)
+  console.log('performingUser: ',performingUser)
+
 
   if (isNaN(userIdToConfirm)) {
     res.status(400).json({ error: 'Invalid user ID format.' });
     return 
+  }
+
+  // If the performing user is an OFFICER, they must be confirmed themselves
+  if (performingUser?.role === Role.OFFICER && !performingUser.is_officer_confirmed) {
+    res.status(403).json({ error: 'Forbidden: Your officer account is not confirmed. You cannot confirm other officers.' });
+    return 
+  }
+
+  // Prevent users from confirming themselves (though an admin could still do it via this route if not checked)
+  if (performingUser?.id === userIdToConfirm && performingUser?.role === Role.OFFICER) {
+    res.status(400).json({ error: 'Officers cannot confirm their own accounts through this action.' });
+    return
   }
 
   try {

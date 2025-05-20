@@ -13,18 +13,20 @@ interface User {
     id: number;
     name: string;
   } | null; // Can be null if not an officer or not assigned
+  is_officer_confirmed: boolean;
 }
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     accessToken: '',
-    user: { id: null, email: '', role: '', name: '', department: null},
+    user: { id: null, email: '', role: '', name: '', department: null, is_officer_confirmed: false},
   }),
   // Note: department_id is removed from state as we store the full department objec
   getters: {
     isAdmin: (state) => state.user?.role === 'ADMIN',
     isOfficer: (state) => state.user?.role === 'OFFICER',
     isUser: (state) => state.user?.role === 'USER',
+    isConfirmedOfficer: (state) => state.user?.role === 'OFFICER' && state.user?.is_officer_confirmed === true, // <--- อาจจะเพิ่ม getter นี้เพื่อความสะดวก
   },
   actions: {
     async login(email: string, password: string) {
@@ -35,6 +37,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = res.data.user;
         localStorage.setItem('accessToken', this.accessToken);
         localStorage.setItem('refreshToken', res.data.refreshToken);
+        console.log('user login: ', this.user)
         return this.user;
       } catch (error: any) {
         console.error('Login failed:', error);
@@ -55,6 +58,7 @@ export const useAuthStore = defineStore('auth', {
         })
         const newToken = res.data.accessToken;
         const newUser = res.data.user;
+        console.log('new user refresh : ', newUser) //ใช้เสร็จลบด้วย
         this.accessToken = newToken;
         this.user = newUser; // Update user object from refresh response
         localStorage.setItem('accessToken', newToken); // Always update accessToken

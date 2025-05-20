@@ -3,20 +3,31 @@ import { verifyAccessToken } from '@/utils/jwt'
 import jwt from 'jsonwebtoken'
 import { error } from 'console'
 
+interface DepartmentPayload {
+  id: number;
+  name: string;
+}
+
 export interface JwtPayload {
   id: number
   email: string
+  name: string
   role: "USER" | "OFFICER" | "ADMIN" | "BANNED"
+  department: DepartmentPayload | null;
+  is_officer_confirmed?: boolean;
+}
+
+interface UserJwtPayload extends JwtPayload {
+  name: string;
 }
 
 export interface AuthenticatedRequest extends Request {
   user?: JwtPayload
-  
 }
 
 const accessSecret = process.env.ACCESS_TOKEN_SECRET!
 
-export function authenticateToken(req: Request, res: Response, next: NextFunction): void {
+export function authenticateToken(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers['authorization']
   const token = authHeader && authHeader.split(' ')[1]
 
@@ -34,8 +45,17 @@ export function authenticateToken(req: Request, res: Response, next: NextFunctio
       res.status(403).json({ error: 'Token ผิดพลาด' })
       return
     }
-    // @ts-ignore
-    req.user = user 
+    // Cast the decoded user to JwtPayload to ensure type safety
+    const decodedUser = user as JwtPayload;
+    // Assign all relevant properties from the decoded token to req.user
+    req.user = {
+      id: decodedUser.id,
+      email: decodedUser.email,
+      role: decodedUser.role,
+      name: decodedUser.name,
+      department: decodedUser.department || null,
+      is_officer_confirmed: decodedUser.is_officer_confirmed ?? false, // Default to false if undefined/null
+    };
     next()
   })
 }

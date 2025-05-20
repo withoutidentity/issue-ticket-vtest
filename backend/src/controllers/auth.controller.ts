@@ -80,7 +80,8 @@ export const login = async (req: Request, res: Response) => {
     role: user.role,
     name: user.name,
     email: user.email, // Frontend authStore might use this from token if user object isn't fully parsed yet
-    departmentId: user.department?.id, // Include departmentId if user has one
+    department: user.department, // Include the full department object or null
+    is_officer_confirmed: user.is_officer_confirmed,
   }
 
   const accessToken = jwt.sign(userPayloadForToken, accessSecret, { expiresIn: '1h' }) // Increased expiry for convenience
@@ -135,7 +136,8 @@ export const refresh = async (req: Request, res: Response) => {
       role: user.role,
       name: user.name,
       email: user.email,
-      departmentId: user.department?.id,
+      department: user.department, // Include the full department object or null
+      is_officer_confirmed: user.is_officer_confirmed, // Ensure this is included
     }
     const newAccessToken = jwt.sign(userPayloadForToken, accessSecret, { expiresIn: '1h' })
 
