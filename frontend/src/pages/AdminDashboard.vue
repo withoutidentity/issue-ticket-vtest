@@ -177,7 +177,7 @@ const typeName = computed(() => (typeId: number | "") => {
 });
 
 function handleDepartmentChartClick(departmentName: string) {
-  console.log("[AdminDashboard] handleDepartmentChartClick called with departmentName:", departmentName);
+  // console.log("[AdminDashboard] handleDepartmentChartClick called with departmentName:", departmentName);
   if (departmentFilter.value === departmentName) {
     departmentFilter.value = null; // Toggle off if the same department is clicked again
   } else {
@@ -187,7 +187,7 @@ function handleDepartmentChartClick(departmentName: string) {
   creationDateFilter.value = null; // Clear creation date filter
   typeFilter.value = null; // Clear type filter (if it were used for main table)
   emit('filter-department-changed', departmentFilter.value);
-  console.log("[AdminDashboard] Emitting 'filter-department-changed' with value:", departmentFilter.value);
+  // console.log("[AdminDashboard] Emitting 'filter-department-changed' with value:", departmentFilter.value);
   emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
   emit('filter-status-changed', null); // Notify parent to clear status filter
   emit('filter-type-changed', null);
@@ -370,10 +370,10 @@ const departmentChartOptions = {
   onClick: (event: unknown, elements: { index: number }[], chart: any) => {
     if (elements.length > 0) {
       const elementIndex = elements[0].index;
-      console.log("[AdminDashboard] Department chart bar clicked. Element index:", elementIndex);
+      // console.log("[AdminDashboard] Department chart bar clicked. Element index:", elementIndex);
       if (chart.data.labels && chart.data.labels[elementIndex]) {
         const clickedDepartmentName = chart.data.labels[elementIndex] as string;
-        console.log("[AdminDashboard] Clicked department name from chart label:", clickedDepartmentName);
+        // console.log("[AdminDashboard] Clicked department name from chart label:", clickedDepartmentName);
         handleDepartmentChartClick(clickedDepartmentName);
       }
     }
@@ -382,7 +382,7 @@ const departmentChartOptions = {
 
 const updateDepartmentChart = () => {
   if (!ticketStore.tickets.length || !departments.value.length) {
-    console.log("[AdminDashboard] updateDepartmentChart: Conditions not met. Tickets:", ticketStore.tickets.length, "Departments:", departments.value.length);
+    // console.log("[AdminDashboard] updateDepartmentChart: Conditions not met. Tickets:", ticketStore.tickets.length, "Departments:", departments.value.length);
     departmentChartData.value = { labels: [], datasets: [{ label: 'จำนวน Ticket ตามแผนก', backgroundColor: [], borderColor: [], borderWidth: 1, data: [] }] };
     return;
   }
@@ -390,7 +390,7 @@ const updateDepartmentChart = () => {
   const countsByDepartment: { [deptName: string]: number } = {};
   departments.value.forEach(dept => countsByDepartment[dept.name] = 0);
 
-  console.log("[AdminDashboard] updateDepartmentChart: Initial countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
+  // console.log("[AdminDashboard] updateDepartmentChart: Initial countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
   ticketStore.tickets.forEach((ticket: Ticket) => {
     // Use ticket.department?.id to match department object in ticket
     const dept = departments.value.find(d => d.id === ticket.department_id); // Now using department_id directly
@@ -408,7 +408,7 @@ const updateDepartmentChart = () => {
   departmentChartData.value.datasets[0].backgroundColor = labels.map((_, index) => primaryColorsPalette[index % primaryColorsPalette.length]);
   departmentChartData.value.datasets[0].borderColor = departmentChartData.value.datasets[0].backgroundColor.map(color => darkenColor(color, 15));
   departmentChartKey.value++;
-  console.log("[AdminDashboard] updateDepartmentChart: Chart data updated.", JSON.parse(JSON.stringify(departmentChartData.value)));
+  // console.log("[AdminDashboard] updateDepartmentChart: Chart data updated.", JSON.parse(JSON.stringify(departmentChartData.value)));
 };
 
 const updateDepartmentTrendChart = () => {
@@ -423,10 +423,10 @@ watch([departmentTrendStartDate, departmentTrendEndDate, () => ticketStore.ticke
 // Watcher for the first department chart
 watch([() => ticketStore.tickets, departments], () => {
     if (departments.value.length > 0 && ticketStore.tickets.length > 0) {
-        console.log("[AdminDashboard] Watcher triggered for department chart. Updating chart.");
+        // console.log("[AdminDashboard] Watcher triggered for department chart. Updating chart.");
         updateDepartmentChart();
     } else {
-        console.log("[AdminDashboard] Watcher triggered for department chart. Conditions not met.");
+        // console.log("[AdminDashboard] Watcher triggered for department chart. Conditions not met.");
     }
 }, { deep: true });
 
@@ -435,13 +435,13 @@ onMounted(async () => {
     await ticketStore.fetchTickets(); // สมมติว่า store มี action นี้
   }
   await fetchTypes(); // Ensure types are fetched for the line chart
-  console.log("[AdminDashboard] Types fetched.");
+  // console.log("[AdminDashboard] Types fetched.");
   await fetchDepartmentsForChart(); // Fetch departments for the bar chart
-  console.log("[AdminDashboard] Departments fetched.");
+  // console.log("[AdminDashboard] Departments fetched.");
   initializeDefaultDates(); // Set default date range for line chart
-  console.log("[AdminDashboard] Default dates initialized.");
+  // console.log("[AdminDashboard] Default dates initialized.");
 
-  console.log("[AdminDashboard] Fetching summary data...");
+  // console.log("[AdminDashboard] Fetching summary data...");
   // 2. ดึงข้อมูลสรุปสำหรับ Dashboard และ Chart (รวมการเรียก API ที่ซ้ำซ้อน)
   const res = await api.get(`/dashboard/admin`, {
     headers: {
@@ -460,11 +460,11 @@ onMounted(async () => {
   } = await res.data
 
   summary.value = data.statusSummary
-  console.log("[AdminDashboard] Summary data fetched.");
+  // console.log("[AdminDashboard] Summary data fetched.");
 
   // Call chart updates after all data is potentially loaded
   if (departments.value.length > 0 && ticketStore.tickets.length > 0) {
-    console.log("[AdminDashboard] onMounted: Calling updateDepartmentChart and updateDepartmentTrendChart.");
+    // console.log("[AdminDashboard] onMounted: Calling updateDepartmentChart and updateDepartmentTrendChart.");
     updateDepartmentChart();
     updateDepartmentTrendChart();
   }

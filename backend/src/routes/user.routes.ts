@@ -109,7 +109,7 @@ router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']
 router.patch('/:userId/confirm-officer', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   const userIdToConfirm = parseInt(req.params.userId, 10);
   const performingUser = req.user; // User performing the action (from authenticateToken middleware)
-  console.log('performingUser: ',performingUser)
+  // console.log('performingUser: ',performingUser)
 
 
   if (isNaN(userIdToConfirm)) {

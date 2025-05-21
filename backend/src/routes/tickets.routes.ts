@@ -243,10 +243,10 @@ router.put(
     }
 
     const performingUser = req.user; // Cast to User type for better type safety if your auth middleware provides it
-    console.log('[DEBUG] Performing User:', JSON.stringify(performingUser, null, 2)); // Log performing user
+    // console.log('[DEBUG] Performing User:', JSON.stringify(performingUser, null, 2)); // Log performing user
 
     if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
-        console.error('[DEBUG] User information is missing or invalid for logging.');
+        // console.error('[DEBUG] User information is missing or invalid for logging.');
         res.status(401).json({ error: 'User information is missing or invalid for logging.' });
         return 
     }
@@ -306,10 +306,10 @@ router.put(
         }
       });
 
-      console.log('[DEBUG] Old Ticket Data:', JSON.stringify(oldTicket, null, 2));
+      // console.log('[DEBUG] Old Ticket Data:', JSON.stringify(oldTicket, null, 2));
 
       if (!oldTicket) {
-        console.error('[DEBUG] Old ticket not found for logging.');
+        // console.error('[DEBUG] Old ticket not found for logging.');
         res.status(404).json({ success: false, message: 'Ticket not found for logging.' });
         return 
       }
@@ -326,23 +326,58 @@ router.put(
         status,
       }, files, parsedDeletedFileIds); // ส่ง files และ parsedDeletedFileIds ไปให้ updateTicket controller
 
-      console.log('[DEBUG] Result from updateTicket controller:', JSON.stringify(result, null, 2));
+      // console.log('[DEBUG] Result from updateTicket controller:', JSON.stringify(result, null, 2));
 
       // Check if the update was successful and if result.data (which is the ticket object itself) exists
       if (result.success && result.data && typeof result.data.id === 'number') {
-        console.log('[DEBUG] Update successful, proceeding to log changes.');
+        // console.log('[DEBUG] Update successful, proceeding to log changes.');
         const updatedTicketData = result.data; // Use result.data directly as the ticket object
 
         // Log changes for each field
-        if (title !== undefined) { console.log(`[DEBUG] Checking title: OLD='${oldTicket.title}', NEW='${title}'`); await logFieldChange(prisma, id, performingUser, 'title', oldTicket.title, title, LogActionType.TITLE_UPDATED, oldTicket); }
-        if (description !== undefined) { console.log(`[DEBUG] Checking description: OLD='${oldTicket.description}', NEW='${description}'`); await logFieldChange(prisma, id, performingUser, 'description', oldTicket.description, description, LogActionType.DESCRIPTION_UPDATED, oldTicket); }
-        if (type_id_parsed !== undefined) { console.log(`[DEBUG] Checking type_id: OLD='${oldTicket.type_id}', NEW='${type_id_parsed}'`); await logFieldChange(prisma, id, performingUser, 'type_id', oldTicket.type_id, type_id_parsed, LogActionType.TYPE_UPDATED, oldTicket); }
-        if (priority !== undefined && oldTicket.priority !== priority) { console.log(`[DEBUG] Checking priority: OLD='${oldTicket.priority}', NEW='${priority}'`); await logFieldChange(prisma, id, performingUser, 'priority', oldTicket.priority, priority, LogActionType.PRIORITY_UPDATED, oldTicket); }
-        if (contact !== undefined) { console.log(`[DEBUG] Checking contact: OLD='${oldTicket.contact}', NEW='${contact}'`); await logFieldChange(prisma, id, performingUser, 'contact', oldTicket.contact, contact, LogActionType.CONTACT_UPDATED, oldTicket); }
-        if (department_id_parsed !== undefined) { console.log(`[DEBUG] Checking department_id: OLD='${oldTicket.department_id}', NEW='${department_id_parsed}'`); await logFieldChange(prisma, id, performingUser, 'department_id', oldTicket.department_id, department_id_parsed, LogActionType.DEPARTMENT_UPDATED, oldTicket); }
-        if (assignee_id_parsed !== undefined) { console.log(`[DEBUG] Checking assignee_id: OLD='${oldTicket.assignee_id}', NEW='${assignee_id_parsed}'`); await logFieldChange(prisma, id, performingUser, 'assignee_id', oldTicket.assignee_id, assignee_id_parsed, LogActionType.ASSIGNEE_CHANGED, oldTicket); }
-        if (comment !== undefined && oldTicket.comment !== comment) { console.log(`[DEBUG] Checking comment: OLD='${oldTicket.comment}', NEW='${comment}'`); await logFieldChange(prisma, id, performingUser, 'comment', oldTicket.comment, comment, LogActionType.COMMENT_UPDATED, oldTicket); }
-        if (status !== undefined) { console.log(`[DEBUG] Checking status: OLD='${oldTicket.status}', NEW='${status}'`); await logFieldChange(prisma, id, performingUser, 'status', oldTicket.status, status, LogActionType.STATUS_CHANGED, oldTicket); }
+        if (title !== undefined) { 
+          // console.log(`[DEBUG] Checking title: OLD='${oldTicket.title}', NEW='${title}'`);
+          await logFieldChange(prisma, id, performingUser, 'title', oldTicket.title, title, LogActionType.TITLE_UPDATED, oldTicket); 
+        }
+
+        if (description !== undefined) { 
+          // console.log(`[DEBUG] Checking description: OLD='${oldTicket.description}', NEW='${description}'`); 
+          await logFieldChange(prisma, id, performingUser, 'description', oldTicket.description, description, LogActionType.DESCRIPTION_UPDATED, oldTicket); 
+        }
+
+        if (type_id_parsed !== undefined) { 
+          // console.log(`[DEBUG] Checking type_id: OLD='${oldTicket.type_id}', NEW='${type_id_parsed}'`); 
+          await logFieldChange(prisma, id, performingUser, 'type_id', oldTicket.type_id, type_id_parsed, LogActionType.TYPE_UPDATED, oldTicket); 
+        }
+      
+        if (priority !== undefined && oldTicket.priority !== priority) { 
+          // console.log(`[DEBUG] Checking priority: OLD='${oldTicket.priority}', NEW='${priority}'`); 
+          await logFieldChange(prisma, id, performingUser, 'priority', oldTicket.priority, priority, LogActionType.PRIORITY_UPDATED, oldTicket); 
+        }
+      
+        if (contact !== undefined) { 
+          // console.log(`[DEBUG] Checking contact: OLD='${oldTicket.contact}', NEW='${contact}'`); 
+          await logFieldChange(prisma, id, performingUser, 'contact', oldTicket.contact, contact, LogActionType.CONTACT_UPDATED, oldTicket); 
+        }
+
+        if (department_id_parsed !== undefined) { 
+          // console.log(`[DEBUG] Checking department_id: OLD='${oldTicket.department_id}', NEW='${department_id_parsed}'`); 
+          await logFieldChange(prisma, id, performingUser, 'department_id', oldTicket.department_id, department_id_parsed, LogActionType.DEPARTMENT_UPDATED, oldTicket); 
+        }
+
+        if (assignee_id_parsed !== undefined) { 
+          // console.log(`[DEBUG] Checking assignee_id: OLD='${oldTicket.assignee_id}', NEW='${assignee_id_parsed}'`); 
+          await logFieldChange(prisma, id, performingUser, 'assignee_id', oldTicket.assignee_id, assignee_id_parsed, LogActionType.ASSIGNEE_CHANGED, oldTicket); 
+        }
+
+        if (comment !== undefined && oldTicket.comment !== comment) { 
+          // console.log(`[DEBUG] Checking comment: OLD='${oldTicket.comment}', NEW='${comment}'`); 
+          await logFieldChange(prisma, id, performingUser, 'comment', oldTicket.comment, comment, LogActionType.COMMENT_UPDATED, oldTicket); 
+        }
+
+        if (status !== undefined) { 
+          // console.log(`[DEBUG] Checking status: OLD='${oldTicket.status}', NEW='${status}'`); 
+          await logFieldChange(prisma, id, performingUser, 'status', oldTicket.status, status, LogActionType.STATUS_CHANGED, oldTicket); 
+        }
 
         // --- Logging for Requester File Changes ---
         // This assumes your `updateTicket` controller returns information about file changes

@@ -30,7 +30,7 @@ const onLogin = async () => {
   try {
     await auth.login(email.value, password.value)
 
-    console.log("role:", auth.user?.role)
+    // console.log("role:", auth.user?.role)
 
     const role = auth.user?.role
 

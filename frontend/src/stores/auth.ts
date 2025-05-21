@@ -37,7 +37,7 @@ export const useAuthStore = defineStore('auth', {
         this.user = res.data.user;
         localStorage.setItem('accessToken', this.accessToken);
         localStorage.setItem('refreshToken', res.data.refreshToken);
-        console.log('user login: ', this.user)
+        // console.log('user login: ', this.user)
         return this.user;
       } catch (error: any) {
         console.error('Login failed:', error);
@@ -85,7 +85,7 @@ export const useAuthStore = defineStore('auth', {
         })
         const newToken = res.data.accessToken;
         const newUser = res.data.user;
-        console.log('new user refresh : ', newUser) //ใช้เสร็จลบด้วย
+        // console.log('new user refresh : ', newUser) //ใช้เสร็จลบด้วย
         this.accessToken = newToken;
         this.user = newUser; // Update user object from refresh response
         localStorage.setItem('accessToken', newToken); // Always update accessToken
@@ -97,8 +97,8 @@ export const useAuthStore = defineStore('auth', {
            localStorage.setItem('refreshToken', this.refreshToken);
         }
 
-        console.log('Refreshed token:', newToken)
-        console.log('local token: ',localStorage.getItem('accessToken'))
+        // console.log('Refreshed token:', newToken)
+        // console.log('local token: ',localStorage.getItem('accessToken'))
         
         return newToken
       } catch (err) {

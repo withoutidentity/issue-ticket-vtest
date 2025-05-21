@@ -208,12 +208,12 @@ const handleOfficerCategoryFilterChange = (newCategory: string | null) => {
 };
 
 const filteredTableTickets = computed(() => {
-  console.log("[DashboardPage] Recalculating filteredTableTickets...");
+  // console.log("[DashboardPage] Recalculating filteredTableTickets...");
   // Log a deep copy of auth.user to avoid issues with reactivity proxies in console
-  console.log("[DashboardPage] Current auth user:", JSON.parse(JSON.stringify(auth.user)));
-  console.log("[DashboardPage] Raw tickets count:", tickets.value.length);
+  // console.log("[DashboardPage] Current auth user:", JSON.parse(JSON.stringify(auth.user)));
+  // console.log("[DashboardPage] Raw tickets count:", tickets.value.length);
   if (tickets.value.length > 0) {
-    console.log("[DashboardPage] First raw ticket department object:", tickets.value[0].department);
+    // console.log("[DashboardPage] First raw ticket department object:", tickets.value[0].department);
   }
 
   let baseTickets = [...tickets.value]; // Start with a shallow copy
@@ -221,7 +221,7 @@ const filteredTableTickets = computed(() => {
   // Apply officer department filter first if applicable
   if (auth.user?.role === 'OFFICER') {
     const officerDepartmentId = auth.user?.department?.id; // Safer access
-    console.log(`[DashboardPage] Officer role detected. Officer's department ID from auth store: ${officerDepartmentId}`);
+    // console.log(`[DashboardPage] Officer role detected. Officer's department ID from auth store: ${officerDepartmentId}`);
 
     if (officerDepartmentId !== undefined && officerDepartmentId !== null) {
       baseTickets = baseTickets.filter(ticket => {
@@ -230,7 +230,7 @@ const filteredTableTickets = computed(() => {
       });
       console.log(`[DashboardPage] Tickets count after officer department filter (ID: ${officerDepartmentId}): ${baseTickets.length}`);
     } else {
-      console.warn(`[DashboardPage] Officer's department ID is undefined or null. No department-specific tickets will be shown for this officer.`);
+      // console.warn(`[DashboardPage] Officer's department ID is undefined or null. No department-specific tickets will be shown for this officer.`);
       baseTickets = []; // Officer with no department ID sees no tickets
     }
   }

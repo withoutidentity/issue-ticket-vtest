@@ -492,7 +492,7 @@ async function fetchTicket() {
     selectedUserId.value = res.data.assignee_id || ""
     const data = await res.data
     form.value = data as TicketForm;
-    console.log('ticket f: ', form.value)
+    // console.log('ticket f: ', form.value)
 }
 
 async function fetchTypes() {
@@ -503,7 +503,7 @@ async function fetchTypes() {
     })
     const data = await res.data
     types.value = data.data as TicketType[];
-    console.log('type: ', types.value)
+    // console.log('type: ', types.value)
 }
 
 async function fetchDepartments() {
@@ -514,7 +514,7 @@ async function fetchDepartments() {
     })
     const data = await res.data
     departments.value = data as Department[];
-    console.log('department: ', departments.value)
+    // console.log('department: ', departments.value)
 }
 
 function cancelEdit() {
@@ -619,7 +619,7 @@ function removeNewFile(index: number) {
 const handleAssigneeFilesUploaded = (updatedTicketDataFromApi?: TicketForm) => {
     // เมื่อ AssigneeFileUpload component emit 'files-uploaded'
     // updatedTicketDataFromApi คือข้อมูล ticket ทั้งหมดที่ได้จาก API หลังอัปโหลดไฟล์
-    console.log('Assignee files uploaded, new ticket data:', updatedTicketDataFromApi);
+    // console.log('Assignee files uploaded, new ticket data:', updatedTicketDataFromApi);
     if (form.value) { // Ensure form.value exists
         // อัปเดตข้อมูล ticket ในหน้านี้ โดยเฉพาะส่วน assigneeFiles
         if (updatedTicketDataFromApi && updatedTicketDataFromApi.assigneeFiles) {
@@ -801,7 +801,7 @@ const assignToMe = async () => {
         userId: auth.user.id,
     })
     await fetchTicket()
-    console.log("Assigned to me")
+    // console.log("Assigned to me")
 }
 
 async function fetchTicketLogs() {
