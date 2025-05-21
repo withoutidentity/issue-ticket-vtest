@@ -34,9 +34,9 @@
         </div>
       </div>
       <div class="h-[400px]">
-        <Bar v-if="categoryTrendData.labels && categoryTrendData.labels.length > 0 && !isLoadingChart" :data="categoryTrendData" :options="categoryTrendOptions" :key="categoryTrendKey" />
+        <Bar v-if="processedCategoryTrendData.labels && processedCategoryTrendData.labels.length > 0 && !isLoadingChart" :data="processedCategoryTrendData" :options="categoryTrendOptions" :key="categoryTrendKey" />
         <div v-else class="flex items-center justify-center h-full text-gray-500">
-          {{ isLoadingChart ? 'กำลังโหลดข้อมูลกราฟ...' : (ticketStore.loading ? 'กำลังโหลดข้อมูล Ticket...' : 'กรุณาเลือกช่วงวันที่ หรือไม่พบข้อมูลสำหรับช่วงที่เลือก') }}
+          {{ isLoadingChart ? 'กำลังประมวลผลข้อมูลกราฟ...' : (!processedCategoryTrendData.labels || processedCategoryTrendData.labels.length === 0 ? 'กรุณาเลือกช่วงวันที่ หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' : 'กำลังโหลดข้อมูล Ticket...') }}
         </div>
       </div>
     </div>
@@ -119,18 +119,18 @@ const fetchTicketTypes = async () => {
 };
 
 const processedCategoryTrendData = computed(() => {
-  isLoadingChart.value = true;
+  // isLoadingChart.value = true; // Set loading at the beginning of the watcher or on specific actions instead
   if (!categoryTrendStartDate.value || !categoryTrendEndDate.value || !ticketStore.tickets.length || types.value.length === 0 || !officerDepartmentId.value) {
     isLoadingChart.value = false;
     return { labels: [], datasets: [] };
   }
 
-  const start = new Date(categoryTrendStartDate.value);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(categoryTrendEndDate.value);
-  end.setHours(23, 59, 59, 999);
+  const startStr = categoryTrendStartDate.value; // YYYY-MM-DD
+  const endStr = categoryTrendEndDate.value;   // YYYY-MM-DD
+  const start = new Date(startStr + 'T00:00:00'); // Create Date object for iteration (local time)
+  const end = new Date(endStr + 'T00:00:00');   // Create Date object for iteration (local time)
 
-  if (start > end) {
+  if (startStr > endStr) {
     isLoadingChart.value = false;
     return { labels: [], datasets: [] };
   }
@@ -138,7 +138,9 @@ const processedCategoryTrendData = computed(() => {
   const officerTickets = ticketStore.tickets.filter(ticket => ticket.department_id === officerDepartmentId.value);
   const filteredTicketsForRange = officerTickets.filter(ticket => {
     const createdAt = new Date(ticket.created_at);
-    return createdAt >= start && createdAt <= end;
+    // Compare date strings to avoid timezone issues with time part
+    const ticketDateStr = createdAt.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    return ticketDateStr >= startStr && ticketDateStr <= endStr;
   });
 
   if (filteredTicketsForRange.length === 0) {
@@ -148,18 +150,18 @@ const processedCategoryTrendData = computed(() => {
 
   const dateLabels: string[] = [];
   let currentDate = new Date(start);
-  while (currentDate <= end) {
-    dateLabels.push(currentDate.toISOString().split('T')[0]);
+   while (currentDate <= end) { // Loop until the beginning of the day *after* the end date
+    dateLabels.push(currentDate.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })); // YYYY-MM-DD format
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
   const datasets = types.value.map((type, index) => {
     const countsByDate: { [date: string]: number } = {};
-    dateLabels.forEach(label => countsByDate[label] = 0);
+    dateLabels.forEach(label => countsByDate[label] = 0); // Initialize all dates with 0 for this type
 
     filteredTicketsForRange.forEach(ticket => {
       if (ticket.type_id === type.id) {
-        const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
+        const ticketDate = new Date(ticket.created_at).toLocaleDateString('en-CA'); // YYYY-MM-DD
         if (countsByDate.hasOwnProperty(ticketDate)) {
           countsByDate[ticketDate]++;
         }
@@ -180,7 +182,7 @@ const processedCategoryTrendData = computed(() => {
   });
   
   const displayDateLabels = dateLabels.map(dateStr => {
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + 'T00:00:00'); // Create Date object from YYYY-MM-DD string (local time)
     return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
   });
 
@@ -190,8 +192,6 @@ const processedCategoryTrendData = computed(() => {
     datasets: datasets,
   };
 });
-
-const categoryTrendData = ref(processedCategoryTrendData.value);
 
 const categoryTrendOptions = computed(() => ({
   responsive: true,
@@ -217,7 +217,7 @@ const categoryTrendOptions = computed(() => ({
 }));
 
 const updateCategoryTrendChart = () => {
-  categoryTrendData.value = processedCategoryTrendData.value;
+  // This function is primarily to increment the key if still used for forcing re-render
   categoryTrendKey.value++;
 };
 
@@ -229,15 +229,19 @@ const handleCategoryChartClick = (categoryName: string) => {
 };
 
 watch([categoryTrendStartDate, categoryTrendEndDate, () => ticketStore.tickets, types, officerDepartmentId], () => {
+  isLoadingChart.value = true; // Set loading before re-calculating
   updateCategoryTrendChart();
-}, { deep: true });
+  // isLoadingChart will be set to false at the end of processedCategoryTrendData computation
+}, { deep: true, immediate: false }); // immediate: false to avoid running on initial mount before data is ready
 
 onMounted(async () => {
+  isLoadingChart.value = true;
   if (!ticketStore.tickets.length) {
     await ticketStore.fetchTickets();
   }
   await fetchTicketTypes();
   initializeDefaultDates();
   updateCategoryTrendChart(); // Initial population
+  // isLoadingChart will be set to false by the computed property after its first run
 });
 </script>

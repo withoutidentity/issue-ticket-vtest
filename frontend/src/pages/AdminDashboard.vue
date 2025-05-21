@@ -46,7 +46,7 @@
           </div>
         </div>
         <div class="h-[400px]">
-          <Bar v-if="departmentTrendData.labels && departmentTrendData.labels.length > 0" :data="departmentTrendData" :options="departmentTrendOptions" :key="departmentTrendKey" />
+      <Bar v-if="processedDepartmentTrendData.labels && processedDepartmentTrendData.labels.length > 0" :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
           <div v-else class="flex items-center justify-center h-full text-gray-500">
             {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' : 'กรุณาเลือกช่วงวันที่ หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
           </div>
@@ -213,7 +213,7 @@ const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
 // --- Bar Chart for Ticket Trends by Department (Daily) ---
 const departmentTrendStartDate = ref<string>('');
 const departmentTrendEndDate = ref<string>('');
-const departmentTrendKey = ref(0);
+// const departmentTrendKey = ref(0); // Not needed if departmentTrendData is computed
 
 const initializeDefaultDates = () => {
   const endDate = new Date();
@@ -229,16 +229,15 @@ const processedDepartmentTrendData = computed(() => {
     return { labels: [], datasets: [] };
   }
 
-  const start = new Date(departmentTrendStartDate.value);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(departmentTrendEndDate.value);
-  end.setHours(23, 59, 59, 999);
+  const startStr = departmentTrendStartDate.value; // YYYY-MM-DD
+  const endStr = departmentTrendEndDate.value;   // YYYY-MM-DD
 
-  if (start > end) return { labels: [], datasets: [] };
+  if (startStr > endStr) return { labels: [], datasets: [] };
 
   const filteredTicketsForRange = ticketStore.tickets.filter(ticket => {
     const createdAt = new Date(ticket.created_at);
-    return createdAt >= start && createdAt <= end;
+    const ticketDateStr = createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }); // Get YYYY-MM-DD in local time
+    return ticketDateStr >= startStr && ticketDateStr <= endStr;
   });
 
   if (filteredTicketsForRange.length === 0) {
@@ -246,17 +245,20 @@ const processedDepartmentTrendData = computed(() => {
   }
 
   // Generate all dates in the range for the X-axis
+  const start = new Date(startStr + 'T00:00:00'); // Create Date object for iteration (local time)
+  const end = new Date(endStr + 'T00:00:00');   // Create Date object for iteration (local time)
   const dateLabels: string[] = [];
-  let currentDate = new Date(start);
-  while (currentDate <= end) {
-    dateLabels.push(currentDate.toISOString().split('T')[0]);
+  let currentDate = new Date(start); // Start from the beginning of the start date
+  while (currentDate <= end) { // Loop until the beginning of the day *after* the end date
+    dateLabels.push(currentDate.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })); // YYYY-MM-DD format
     currentDate.setDate(currentDate.getDate() + 1);
   }
 
-  const datasets = departments.value.map((dept, index) => {
-    const countsByDate: { [date: string]: number } = {};
-    dateLabels.forEach(label => countsByDate[label] = 0); // Initialize all dates with 0 count
+  const countsByDate: { [date: string]: number } = {}; // Initialize once before the loop
 
+  const datasets = departments.value.map((dept, index) => {
+    dateLabels.forEach(label => countsByDate[label] = 0); // Reset for each department for THIS specific date label
+    
     filteredTicketsForRange.forEach((ticket: Ticket) => {
       if (ticket.department_id === dept.id) { // Group by department using ticket.department_id
         const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
@@ -289,8 +291,6 @@ const processedDepartmentTrendData = computed(() => {
     datasets: datasets,
   };
 });
-
-const departmentTrendData = ref(processedDepartmentTrendData.value); // Initialize with computed
 
 const departmentTrendOptions = computed(() => ({
   responsive: true,
@@ -412,12 +412,13 @@ const updateDepartmentChart = () => {
 };
 
 const updateDepartmentTrendChart = () => {
-  departmentTrendData.value = processedDepartmentTrendData.value; // Re-assign to trigger reactivity if needed
-  departmentTrendKey.value++; // Force re-render
+  // This function might not be strictly necessary if departmentTrendData is computed
+  // and the template directly uses processedDepartmentTrendData.
+  // However, if you keep it for other reasons, ensure it's called appropriately.
+  // departmentTrendKey.value++; // If you still use a ref and key for forcing re-render
 };
 
 watch([departmentTrendStartDate, departmentTrendEndDate, () => ticketStore.tickets, departments], () => {
-  updateDepartmentTrendChart();
 }, { deep: true, immediate: false }); // immediate false to wait for initial fetch
 // Watcher for the first department chart
 watch([() => ticketStore.tickets, departments], () => {
