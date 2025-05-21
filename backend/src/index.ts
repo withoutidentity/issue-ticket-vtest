@@ -7,6 +7,7 @@ import typeRoutes from '@/routes/tickettype.routes'
 import ticketRoutes from '@/routes/tickets.routes'
 import dashboardRoutes from '@/routes/dashboard.routes'
 import departmentRoutes from '@/routes/department.routes'
+import logRoutes from './routes/log.routes';
 import path from 'path'
 
 dotenv.config()
@@ -52,6 +53,9 @@ app.use('/api/dashboard', dashboardRoutes)
 
 //department 
 app.use('/api/departments', departmentRoutes)
+
+//log
+app.use('/api/logs', logRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

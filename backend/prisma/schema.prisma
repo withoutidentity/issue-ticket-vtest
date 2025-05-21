@@ -23,6 +23,7 @@ model User {
   tickets          Ticket[]
   tickets_assigned Ticket[]       @relation("TicketAssignee")
   uploadedFiles    AssigneeFile[] @relation("UserUploadedFiles")
+  actionLogs       TicketLog[] // Logs of actions performed by this user
 
   @@map("users")
 }
@@ -49,9 +50,30 @@ model Ticket {
   department    Department?    @relation(fields: [department_id], references: [id])
   files         TicketFile[] // แนบหลายไฟล์ต่อ Ticket
   assigneeFiles AssigneeFile[]
+  logs          TicketLog[] // ประวัติการเปลี่ยนแปลงของ Ticket นี้
 
   @@index([type_id], map: "idx_tickets_type_id")
   @@map("tickets")
+}
+
+model TicketLog {
+  id                 Int           @id @default(autoincrement())
+  ticket_id          Int
+  user_id            Int? // ID ของผู้ใช้งานที่ทำการเปลี่ยนแปลง (nullable ถ้าเป็นการกระทำจากระบบ หรือ user ถูกลบ)
+  user_name_snapshot String? // ชื่อของผู้ใช้งาน ณ เวลาที่เกิด log (สำหรับกรณี user ถูกลบ หรือชื่อมีการเปลี่ยนแปลง)
+  action_type        LogActionType // ประเภทของการกระทำ
+  field_changed      String? // ชื่อ field ที่ถูกแก้ไข เช่น 'status', 'assignee_id', 'description', 'file_name'
+  old_value          String? // ค่าเดิม (อาจเป็น null, 'ว่างเปล่า', หรือข้อมูลเดิม)
+  new_value          String? // ค่าใหม่ (อาจเป็น 'เสร็จแล้ว', ข้อมูลใหม่, หรือชื่อไฟล์)
+  details            String // รายละเอียดของการเปลี่ยนแปลงที่มนุษย์อ่านเข้าใจ เช่น "เปลี่ยนสถานะจาก 'Open' เป็น 'In Progress'"
+  timestamp          DateTime      @default(now())
+
+  ticket Ticket @relation(fields: [ticket_id], references: [id], onDelete: Cascade) // ถ้า Ticket ถูกลบ, Log ที่เกี่ยวข้องจะถูกลบด้วย
+  user   User?  @relation(fields: [user_id], references: [id], onDelete: SetNull) // ถ้า User ถูกลบ, user_id ใน log จะเป็น null แต่ log ยังคงอยู่
+
+  @@index([ticket_id])
+  @@index([user_id])
+  @@map("ticket_logs")
 }
 
 model ticket_types {
@@ -118,4 +140,21 @@ enum TicketPriority {
   low
   medium
   high
+}
+
+enum LogActionType {
+  TICKET_CREATED // Ticket ถูกสร้างขึ้น
+  TITLE_UPDATED
+  DESCRIPTION_UPDATED
+  TYPE_UPDATED
+  PRIORITY_UPDATED
+  CONTACT_UPDATED
+  DEPARTMENT_UPDATED
+  STATUS_CHANGED
+  ASSIGNEE_CHANGED
+  COMMENT_UPDATED // สำหรับ comment หลักของ ticket
+  REQUESTER_FILE_ADDED // ไฟล์แนบโดยผู้แจ้งปัญหา
+  REQUESTER_FILE_REMOVED
+  ASSIGNEE_FILE_ADDED // ไฟล์แนบโดยผู้รับผิดชอบ
+  ASSIGNEE_FILE_REMOVED
 }

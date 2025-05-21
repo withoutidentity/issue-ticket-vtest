@@ -300,17 +300,26 @@
                                     @files-uploaded="handleAssigneeFilesUploaded" />
                             </div>
 
-                            <div class="flex justify-between items-center space-x-3 pt-4 mt-8 border-t">
+                            <div class="flex flex-wrap justify-between items-center gap-y-3 pt-4 mt-8 border-t">
                                 <!-- ปุ่มย้อนกลับ -->
-                                <button @click="goBack" type="button"
-                                    class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                    </svg>
-                                    <span>ย้อนกลับ</span>
-                                </button>
+                                <div class="flex space-x-2">
+                                    <button @click="goBack" type="button"
+                                        class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                        </svg>
+                                        <span>ย้อนกลับ</span>
+                                    </button>
+                                     <button @click="openLogsModal" type="button"
+                                        class="flex items-center space-x-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-200 transition-colors duration-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        <span>ดูประวัติ</span>
+                                    </button>
+                                </div>
 
                                 <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
                                 <div class="flex space-x-3"
@@ -350,6 +359,12 @@
             </card>
         </div>
     </AppLayout>
+    <TicketLogsModal 
+        :visible="showLogsModal"
+        :logs="ticketLogs"
+        :ticketId="ticketId"
+        @close="closeLogsModal"
+    />
 </template>
 
 <script setup lang="ts">
@@ -367,6 +382,7 @@ import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 import AssigneeFileUpload from '@/components/AssigneeFileUpload.vue';
+import TicketLogsModal from '@/components/TicketLogsModal.vue';
 import Swal from 'sweetalert2';
 
 const route = useRoute()
@@ -374,14 +390,22 @@ const router = useRouter()
 const isEditing = ref(false)
 const isEditingAssignee = ref(false)
 
+const showLogsModal = ref(false);
+
 // Ref for AssigneeFileUpload component
 const assigneeFileUploadRef = ref<InstanceType<typeof AssigneeFileUpload> | null>(null);
 
 const MAX_FILES = 5
 const ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png']
 
-const ticketId = route.params.id
-
+const ticketId = String(route.params.id)
+interface TicketLogEntry {
+    id: number;
+    timestamp: string;
+    user_name: string;
+    action_type: string;
+    details: string;
+}
 interface TicketType {
     id: number;
     name: string;
@@ -447,6 +471,7 @@ const officerList = ref([]);
 const selectedUserId = ref("");
 // ไฟล์ใหม่ที่เลือกใน session การแก้ไขปัจจุบัน
 const newFiles = ref<File[]>([])        // ไฟล์ใหม่ (ยังไม่ได้อัปโหลด)
+const ticketLogs = ref<TicketLogEntry[]>([]);
 
 const isAdmin = computed(() => auth.user.role === "ADMIN")
 const canSelfAssign = computed(() =>
@@ -571,7 +596,7 @@ async function removeExistingFile(index: number) {
         try {
             // สมมติว่า API endpoint สำหรับลบไฟล์คือ /uploads/user/:filename
             // หรือถ้าใช้ ID: /files/${fileToRemove.id}
-            await api.delete(`/uploads/user/${fileToRemove.filename}`, {
+            await api.delete(`/tickets/requester-files/${ticketId}/${fileToRemove.filename}`, {
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
                 },
@@ -779,6 +804,31 @@ const assignToMe = async () => {
     console.log("Assigned to me")
 }
 
+async function fetchTicketLogs() {
+    if (!ticketId) return;
+    try {
+        // Optionally, show a loading state for logs
+        const response = await api.get(`/logs/tickets/${ticketId}`, { // Ensure this endpoint exists
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
+            },
+        });
+        ticketLogs.value = response.data; // Assuming API returns an array of log entries
+    } catch (error) {
+        console.error('Error fetching ticket logs:', error);
+        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถโหลดประวัติการดำเนินการของ Ticket ได้', 'error');
+        ticketLogs.value = []; // Clear logs or handle error state
+    }
+}
+
+async function openLogsModal() {
+    await fetchTicketLogs();
+    showLogsModal.value = true;
+}
+
+function closeLogsModal() {
+    showLogsModal.value = false;
+}
 onMounted(() => {
     fetchTicket()
     fetchTypes()
