@@ -78,7 +78,7 @@
                                     <option value="open">เปิด</option>
                                     <option value="in_progress">กำลังดำเนินการ</option>
                                     <option value="pending">รอดำเนินการ</option>
-                                    <option value="closed">ปิดแล้ว</option>
+                                    <option value="closed">เสร็จสิ้น</option>
                                 </select>
                             </div>
                         </div>
@@ -266,7 +266,7 @@
                                         <option value="open">เปิด</option>
                                         <option value="in_progress">กำลังดำเนินการ</option>
                                         <option value="pending">รอดำเนินการ</option>
-                                        <option value="closed">ปิดแล้ว</option>
+                                        <option value="closed">เสร็จสิ้น</option>
                                     </select>
                                 </div>
 
