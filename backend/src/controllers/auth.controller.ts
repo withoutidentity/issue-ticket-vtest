@@ -1,8 +1,10 @@
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { Request, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, User } from '@prisma/client'
 import { connect } from 'http2'
+import crypto from 'crypto'; // สำหรับสร้าง token
+import { sendPasswordResetEmail } from '../services/email.service'; // import service ส่งอีเมล
 const prisma = new PrismaClient()
 
 const accessSecret = process.env.ACCESS_TOKEN_SECRET!
@@ -153,3 +155,119 @@ export const refresh = async (req: Request, res: Response) => {
     res.status(403).json({ error: 'Invalid token' })
   }
 }
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400).json({ error: 'Email is required.' });
+    return 
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { email } });
+
+    if (user) {
+      // ลบ token เก่า (ถ้ามี) ของ user คนนี้ก่อน เพื่อให้มี token ที่ใช้งานได้เพียงอันเดียว
+      await prisma.passwordResetToken.deleteMany({
+        where: { userId: user.id },
+      });
+
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      // Hash token ก่อนเก็บลง DB เพื่อความปลอดภัย
+      const hashedToken = await bcrypt.hash(resetToken, 10);
+
+      const expiryDate = new Date();
+      expiryDate.setHours(expiryDate.getHours() + 1); // Token หมดอายุใน 1 ชั่วโมง
+
+      await prisma.passwordResetToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashedToken,
+          expiresAt: expiryDate,
+        },
+      });
+
+      // ส่งอีเมลพร้อม plain token (resetToken) ไม่ใช่ hashedToken
+      await sendPasswordResetEmail(user.email, user.name, resetToken);
+    }
+
+    // ส่ง response เดียวกันเสมอเพื่อป้องกันการเดาอีเมลที่มีในระบบ
+    res.status(200).json({ message: 'If your email is registered, you will receive a password reset link.' });
+    return 
+
+  } catch (error) {
+    console.error('Error requesting password reset:', error);
+    // ไม่ควรเปิดเผย error จริงใน production
+    res.status(500).json({ message: 'An error occurred while processing your request.' });
+    return 
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  const { token, password } = req.body;
+
+  if (!token || !password) {
+    res.status(400).json({ error: 'Token and new password are required.' });
+    return 
+  }
+
+  // (Optional but Recommended) Add password strength validation here
+  // e.g., if (password.length < 8) return  res.status(400).json({ error: 'Password too short.' });
+  const minPasswordLength = 8;
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasNumber = /[0-9]/.test(password);
+
+  if (!(password.length >= minPasswordLength && hasUppercase && hasLowercase && hasNumber)) {
+    res.status(400).json({
+      error: `Password must be at least ${minPasswordLength} characters long and include uppercase, lowercase, and a number.`,
+    });
+    return 
+  }
+
+  try {
+    // ค้นหา token ที่ยังไม่หมดอายุทั้งหมดก่อน
+    // แล้วค่อยมา verify ทีละตัวด้วย bcrypt.compare
+    // เพราะเราไม่สามารถ query token ที่ hash แล้วด้วย plain token โดยตรงได้
+    const potentialTokenEntries = await prisma.passwordResetToken.findMany({
+      where: {
+        expiresAt: {
+          gt: new Date(), // Token ยังไม่หมดอายุ
+        },
+      },
+    });
+
+    let validTokenEntry = null;
+    for (const entry of potentialTokenEntries) {
+      const isTokenMatch = await bcrypt.compare(token, entry.tokenHash);
+      if (isTokenMatch) {
+        validTokenEntry = entry;
+        break;
+      }
+    }
+
+    if (!validTokenEntry) {
+      res.status(400).json({ error: 'Invalid or expired token.' });
+      return 
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await prisma.user.update({
+      where: { id: validTokenEntry.userId },
+      data: { password: hashedPassword },
+    });
+
+    // ลบ token ที่ใช้แล้ว
+    await prisma.passwordResetToken.delete({ where: { id: validTokenEntry.id } });
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+    return 
+
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'An error occurred while resetting your password.' });
+    return 
+  }
+};
