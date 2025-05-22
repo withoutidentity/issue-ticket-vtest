@@ -202,7 +202,7 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { id: true, name: true, email: true } },
         ticket_types: { select: { name: true } },
         files: { select: { id: true, ticket_id: true, filename: true}},
         assigneeFiles: { select: { id: true, ticket_id: true, filename: true}},

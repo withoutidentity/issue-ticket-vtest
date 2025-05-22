@@ -325,7 +325,7 @@
                                 <div class="flex space-x-3"
                                     v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
                                     <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
-                                    <button v-if="!isEditingAssignee" type="button" @click="isEditingAssignee = true"
+                                    <button v-if="!isEditingAssignee && form.user.id !== auth.user.id" type="button" @click="isEditingAssignee = true"
                                         class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -417,7 +417,7 @@ interface Department {
     name: string;
 }
 
-interface User { id: number; name: string; email: string; role: string; }
+interface User { id: number; name: string; email: string; role: 'USER' | 'OFFICER' | 'ADMIN' | 'BANNED' | ''; }
 
 interface AssigneeApiFile {
     id: number;
@@ -435,6 +435,7 @@ interface TicketForm {
     type_id: number | ''; // สามารถเป็น number (เมื่อเลือก) หรือ empty string (ค่าเริ่มต้น)
     priority: 'low' | 'medium' | 'high' | '';
     contact: string;
+    user: User;
     department_id: number | '';
     assignee: any;
     comment: string;
@@ -454,6 +455,7 @@ const form = ref<TicketForm>({
     type_id: '',
     priority: '',
     contact: '',
+    user: { id: 0, name: '', email:'', role: '' },
     department_id: '',
     assignee: {
         assignee_id: 0,

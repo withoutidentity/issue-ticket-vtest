@@ -3,42 +3,68 @@
     <card>
         <cardcontent>
             <form @submit.prevent="submitTicket" class="space-y-4">
-                <input v-model="title" type="text" placeholder="หัวข้อปัญหา" class="input" required />
-                <textarea v-model="description" placeholder="รายละเอียด" class="input" rows="5" />
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700">หัวข้อปัญหา <span class="text-red-500">*</span></label>
+                    <input id="title" v-model="title" type="text" placeholder="ระบุหัวข้อปัญหา" class="input mt-1" required />
+                </div>
 
-                <input v-model="contact" type="text" placeholder="ข้อมูลติดต่อ" class="input" />
-                <select v-model="department_id" class="input">
-                    <option disabled value="">-- เลือกแผนก --</option>
-                    <option v-for="department in departments" :key="department.id" :value="department.id">
-                        {{ department.name  }} 
-                    </option>
-                </select>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">รายละเอียด <span class="text-red-500">*</span></label>
+                    <textarea id="description" v-model="description" placeholder="อธิบายรายละเอียดของปัญหา" class="input mt-1" rows="5" required />
+                </div>
 
-                <select v-model="type_id" class="input">
-                    <option disabled value="">-- เลือกประเภท --</option>
-                    <option v-for="type in types" :key="type.id" :value="type.id">
-                        {{ `${type.name}: ` }} {{ type.description }}
-                    </option>
-                </select>
+                <div>
+                    <label for="contact" class="block text-sm font-medium text-gray-700">ข้อมูลติดต่อ <span class="text-red-500">*</span></label>
+                    <input id="contact" v-model="contact" type="text" placeholder="เช่น เบอร์โทรศัพท์ หรือ อีเมล" class="input mt-1" required />
+                </div>
 
-                <select v-model="priority" class="input">
-                    <option disabled value="">-- เลือกระดับความสำคัญ --</option>
-                    <option value="low">ต่ำ</option>
-                    <option value="medium">กลาง</option>
-                    <option value="high">สูง</option>
-                </select>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="department" class="block text-sm font-medium text-gray-700">แผนก <span class="text-red-500">*</span></label>
+                        <select id="department" v-model="department_id" class="input mt-1" required :disabled="loadingDepartments">
+                            <option disabled value="">{{ loadingDepartments ? 'กำลังโหลด...' : '-- เลือกแผนก --' }}</option>
+                            <option v-if="!loadingDepartments" v-for="department in departments" :key="department.id" :value="department.id">
+                                {{ department.name  }} 
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="priority" class="block text-sm font-medium text-gray-700">ระดับความสำคัญ <span class="text-red-500">*</span></label>
+                        <select id="priority" v-model="priority" class="input mt-1" required>
+                            <option disabled value="">-- เลือกระดับความสำคัญ --</option>
+                            <option value="low">ต่ำ</option>
+                            <option value="medium">กลาง</option>
+                            <option value="high">สูง</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="type" class="block text-sm font-medium text-gray-700">ประเภท <span class="text-red-500">*</span></label>
+                    <select id="type" v-model="type_id" class="input mt-1" required :disabled="loadingTypes">
+                        <option disabled value="">{{ loadingTypes ? 'กำลังโหลด...' : '-- เลือกประเภท --' }}</option>
+                        <option v-if="!loadingTypes" v-for="type in types" :key="type.id" :value="type.id">
+                            {{ `${type.name}: ` }} {{ type.description }}
+                        </option>
+                    </select>
+                </div>
 
                 <!-- <select v-model="status" class="input">
-                <option disabled value="">-- สถานะ --</option>
-                <option value="open">เปิด</option>
-                <option value="in_progress">กำลังดำเนินการ</option>
-                <option value="pending">รอดำเนินการ</option>
-                <option value="closed">ปิดแล้ว</option>
-            </select> -->
+                    <option disabled value="">-- สถานะ --</option>
+                    <option value="open">เปิด</option>
+                    <option value="in_progress">กำลังดำเนินการ</option>
+                    <option value="pending">รอดำเนินการ</option>
+                    <option value="closed">ปิดแล้ว</option>
+                </select> -->
 
-                <input type="file" multiple @change="handleFileChange" class="input" accept=".pdf, .jpg, .jpeg, .png" />
-                <!-- แสดงรายการไฟล์ที่เลือก -->
-                <ul class="mt-2 space-y-1">
+                <div>
+                    <label for="files" class="block text-sm font-medium text-gray-700">แนบไฟล์ (สูงสุด 5 ไฟล์, ประเภท: PDF, JPG, PNG)</label>
+                    <input id="files" type="file" multiple @change="handleFileChange" class="input mt-1" accept=".pdf, .jpg, .jpeg, .png" />
+                    <p v-if="fileError" class="text-red-500 text-sm mt-1">{{ fileError }}</p>
+                </div>
+                
+                <ul v-if="files.length > 0" class="mt-2 space-y-1">
                     <li v-for="(file, index) in files" :key="index"
                         class="flex justify-between items-center bg-gray-100 px-3 py-1 rounded">
                         <span class="truncate max-w-xs">{{ file.name }}</span>
@@ -48,8 +74,10 @@
                     </li>
                 </ul>
 
-                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    ส่ง Ticket
+                <p v-if="formError" class="text-red-500 text-sm">{{ formError }}</p>
+
+                <button type="submit" :disabled="isSubmitting" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
+                    {{ isSubmitting ? 'กำลังส่ง...' : 'ส่ง Ticket' }}
                 </button>
             </form>
         </cardcontent>
@@ -60,13 +88,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { defineStore } from 'pinia'
 import { jwtDecode } from 'jwt-decode'
-import { config } from '@/config';
 import Swal from 'sweetalert2'
 import api from '@/api/axios-instance'
-
-
 
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
@@ -84,41 +108,80 @@ const files = ref<File[]>([])
 const departments = ref([])
 const types = ref([])
 
+const formError = ref('')
+const fileError = ref('')
+const isSubmitting = ref(false)
+const loadingDepartments = ref(false)
+const loadingTypes = ref(false)
+
 function handleFileChange(event: Event) {
+    fileError.value = '' // Reset file error
     const input = event.target as HTMLInputElement
     if (!input.files) return
 
     const selectedFiles = Array.from(input.files)
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
+    const maxFiles = 5
 
-    if (selectedFiles.length > 5) {
-        alert('ไม่สามารถแนบไฟล์เกิน 5 ไฟล์ได้')
+    if (selectedFiles.length > maxFiles) {
+        fileError.value = `ไม่สามารถแนบไฟล์เกิน ${maxFiles} ไฟล์ได้`
         input.value = '' // รีเซ็ต input
+        files.value = [] // Clear existing selected files if any
         return
     }
 
     const validFiles: File[] = []
+    let invalidTypeFound = false
     for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i]
         if (allowedTypes.includes(file.type)) {
             validFiles.push(file)
         } else {
-            alert(`ไม่อนุญาตให้แนบไฟล์ประเภท: ${file.type}`)
+            invalidTypeFound = true
         }
     }
 
-    files.value = validFiles
+    if (invalidTypeFound) {
+        fileError.value = 'มีไฟล์บางประเภทไม่ได้รับอนุญาต (อนุญาตเฉพาะ PDF, JPG, PNG)'
+        // Keep valid files if any, or clear if all are invalid and input was reset
+        if (validFiles.length < selectedFiles.length) {
+             input.value = '' // Reset input if some files were invalid to force re-selection
+             files.value = [] // Clear selection as some were invalid
+             return;
+        }
+    }
+    
+    files.value = [...files.value, ...validFiles].slice(0, maxFiles) // Add new valid files, ensuring not to exceed maxFiles
+    if (files.value.length > maxFiles) { // Should not happen if initial check is correct, but as a safeguard
+        files.value = files.value.slice(0, maxFiles)
+        fileError.value = `ไม่สามารถแนบไฟล์เกิน ${maxFiles} ไฟล์ได้`
+    }
+    // To reflect the actual selected files in the input, this is tricky.
+    // Usually, we let the user see their selection and manage `files.value` internally.
+    // If input.value is reset, previous valid selections might be lost if not handled carefully.
+    // For simplicity, if any file is invalid, we clear the input and ask to reselect.
+    // A more advanced component would handle individual file additions/validations better.
 }
 
 onMounted(async () => {
-    const res = await api.get(`/types`)
-    types.value = res.data.data
-    // console.log('type: ', types.value)
-})
-
-onMounted(async () => {
-    const res = await api.get(`/departments`)
-    departments.value = res.data
+    loadingTypes.value = true;
+    loadingDepartments.value = true;
+    formError.value = ''; // Reset form error on mount
+    try {
+        const [typesRes, departmentsRes] = await Promise.all([
+            api.get(`/types`),
+            api.get(`/departments`)
+        ]);
+        types.value = typesRes.data.data;
+        departments.value = departmentsRes.data;
+    } catch (error) {
+        console.error("Error fetching initial data:", error);
+        formError.value = 'ไม่สามารถโหลดข้อมูลเริ่มต้นสำหรับแบบฟอร์มได้';
+        Swal.fire('ผิดพลาด!', 'ไม่สามารถโหลดข้อมูลเริ่มต้นได้', 'error');
+    } finally {
+        loadingTypes.value = false;
+        loadingDepartments.value = false;
+    }
 })
 
 const submitTicket = async () => {
@@ -128,11 +191,13 @@ const submitTicket = async () => {
     const decoded: any = jwtDecode(token)
     const userId = decoded.userId || decoded.id
 
+    formError.value = '' // Reset form error
+
     if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department_id.value) {
-        alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+        formError.value = 'กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน';
         return;
     }
-
+    isSubmitting.value = true;
     const result = await Swal.fire({
         title: 'ส่ง Ticket?',
         icon: 'question',
@@ -180,40 +245,19 @@ const submitTicket = async () => {
                 router.push('/dashboard')
             } catch (err) {
                 await Swal.fire(
-                    'ผิดพลาด!',
-                    'ไม่สามารถlส่งข้อมูลได้: ' + err.message,
+                    'ส่งไม่สำเร็จ!',
+                    'เกิดข้อผิดพลาดในการส่ง Ticket: ' + (err.response?.data?.message || err.message),
                     'error'
                 )
+                formError.value = 'เกิดข้อผิดพลาดในการส่ง Ticket โปรดลองอีกครั้ง';
+            } finally {
+                isSubmitting.value = false;
             }
+        } else {
+            isSubmitting.value = false; // User cancelled
         }
 }
-    //     const formData = new FormData()
-    //     formData.append('title', title.value)
-    //     formData.append('description', description.value)
-    //     formData.append('type_id', type_id.value)
-    //     formData.append('priority', priority.value)
-    //     // formData.append('status', status.value)
-    //     formData.append('contact', contact.value)
-    //     formData.append('department', department.value)
-    //     formData.append('user_id', userId)
 
-    //     files.value.forEach(file => {
-    //         formData.append('files', file)
-    //     })
-
-    //     try {
-    //         await axios.post(`${config.apiUrl}/api/tickets/create`, formData, {
-    //             headers: {
-    //                 'Authorization': `Bearer ${token}`,
-    //                 'Content-Type': 'multipart/form-data'
-    //             }
-    //         })
-    //         alert('ส่ง Ticket สำเร็จ')
-    //     } catch (err) {
-    //         console.error(err)
-    //         alert('เกิดข้อผิดพลาด')
-    //     }
-    // }
     const removeFile = (index: number) => {
         files.value.splice(index, 1)
     }
@@ -226,5 +270,6 @@ const submitTicket = async () => {
     border: 1px solid #ccc;
     padding: 8px;
     border-radius: 6px;
+    box-sizing: border-box; /* Added for better layout consistency */
 }
 </style>

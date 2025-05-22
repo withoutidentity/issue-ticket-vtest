@@ -19,7 +19,7 @@
           </div>
 
           <!-- Modal เพิ่มหมวดหมู่ -->
-          <div v-if="isAddModalOpen" class="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
+          <div v-if="isAddModalOpen" class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
             <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
               <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,30 +69,90 @@
             </div>
           </div>
 
+          <!-- Modal แก้ไขหมวดหมู่ -->
+          <div v-if="isEditModalOpen" class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
+            <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
+              <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                แก้ไขหมวดหมู่
+              </h3>
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อหมวดหมู่ <span class="text-red-500">*</span></label>
+                  <input 
+                    v-model="editingTypeData.name" 
+                    type="text"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="กรอกชื่อหมวดหมู่" 
+                    @keyup.enter="updateType" 
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย<span class="text-red-500">*</span></label>
+                  <textarea
+                    v-model="editingTypeData.description" 
+                    rows="3"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="กรอกคำอธิบาย"
+                  ></textarea>
+                </div>
+              </div>
+              <div class="mt-6 flex justify-end space-x-3">
+                <button 
+                  @click="closeEditModal"
+                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
+                >
+                  ยกเลิก
+                </button>
+                <button 
+                  @click="updateType"
+                  class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
+                  :disabled="!editingTypeData.name || !editingTypeData.description" 
+                  :class="{ 'opacity-50 cursor-not-allowed': !editingTypeData.name || !editingTypeData.description }"
+                >
+                  บันทึก
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- ตารางแสดงข้อมูล -->
           <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
             <table class="w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อหมวดหมู่</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">คำอธิบาาย</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">คำอธิบาย</th>
                   <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การดำเนินการ</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="data in types" :key="data.id" class="hover:bg-gray-50 transition-colors duration-150">
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ data.name }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ data.description }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button 
-                      @click="confirmDelete(data.id)"
-                      class="text-red-600 hover:text-red-900 transition-colors duration-200 flex items-center justify-end w-full"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ data.description }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex justify-end space-x-3 items-center">
+                      <button 
+                        @click="openEditModal(data)" 
+                        title="แก้ไข"
+                        class="text-blue-600 hover:text-blue-900 transition-colors duration-200 p-1 rounded hover:bg-blue-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                      </button>
+                      <button 
+                        @click="confirmDelete(data.id)" 
+                        title="ลบ"
+                        class="text-red-600 hover:text-red-900 transition-colors duration-200 p-1 rounded hover:bg-red-100"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                      ลบหมวดหมู่
                     </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -235,6 +295,57 @@ const addType = async () => {
   } catch (error) {
     console.error('Error adding type:', error);
     alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+  }
+};
+
+// สถานะและฟังก์ชันสำหรับ Modal แก้ไข
+const isEditModalOpen = ref(false);
+const editingTypeData = ref({
+  id: 0,
+  name: '',
+  description: ''
+});
+
+// ฟังก์ชันเปิด Modal แก้ไข
+const openEditModal = (type: ticket_types) => {
+  // ทำสำเนาข้อมูลเพื่อป้องกันการแก้ไขข้อมูลในตารางโดยตรง
+  editingTypeData.value = { ...type };
+  isEditModalOpen.value = true;
+};
+
+// ฟังก์ชันปิด Modal แก้ไข
+const closeEditModal = () => {
+  isEditModalOpen.value = false;
+  // อาจไม่จำเป็นต้องรีเซ็ต editingTypeData ที่นี่ เพราะจะถูกตั้งค่าใหม่เมื่อเปิด Modal ครั้งถัดไป
+};
+
+// ฟังก์ชันอัปเดตประเภท
+const updateType = async () => {
+  if (!editingTypeData.value.name) {
+    Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกชื่อหมวดหมู่', 'warning');
+    return;
+  }
+  if (!editingTypeData.value.description) {
+    Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณากรอกคำอธิบาย', 'warning');
+    return;
+  }
+
+  try {
+    const response = await axios.put(`${config.apiUrl}/api/types/update/${editingTypeData.value.id}`, {
+      name: editingTypeData.value.name,
+      description: editingTypeData.value.description,
+    });
+
+    if (response.data.success) { // สมมติว่า backend คืนค่า { success: true }
+      fetchTypes();
+      closeEditModal();
+      Swal.fire('สำเร็จ!', 'ข้อมูลหมวดหมู่ถูกแก้ไขเรียบร้อยแล้ว', 'success');
+    } else {
+      Swal.fire('ผิดพลาด!', response.data.message || 'ไม่สามารถแก้ไขหมวดหมู่ได้', 'error');
+    }
+  } catch (error) {
+    console.error('Error updating type:', error);
+    Swal.fire('ผิดพลาด!', 'เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์', 'error');
   }
 };
 </script>
