@@ -6,7 +6,16 @@
                 <h2 class="text-[#6C6B6B]">ระบบแจ้งปัญหา</h2>
             </div>
         </router-link>
-        <nav class="space-y-4 p-4" v-if="isAdmin || isOfficer">
+        <nav class="space-y-4 p-4" v-if="isAdmin">
+            <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
+            <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
+            <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
+            <button @click="departments" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
+        </nav>
+
+        <nav class="space-y-4 p-4" v-else-if="isOfficer">
+            <button @click="newticket" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
+            <button @click="myTickets" class="w-full text-center hover:bg-gray-800 p-2 rounded">My Ticket</button>
             <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
             <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
@@ -102,5 +111,9 @@ const departments = () => {
 
 const users = () => {
     router.push('/users')
+}
+
+const myTickets = () => {
+  router.push('/MyTickets')
 }
 </script>

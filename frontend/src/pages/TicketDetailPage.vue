@@ -797,12 +797,34 @@ const assignUser = async () => {
 }
 
 const assignToMe = async () => {
-    await api.put(`/tickets/assign/${ticketId}`, {
-        userId: auth.user.id,
-    })
-    await fetchTicket()
-    // console.log("Assigned to me")
-}
+    const confirmResult = await Swal.fire({
+        title: 'ยืนยันการรับเรื่อง?',
+        text: "คุณต้องการรับ Ticket นี้เป็นผู้รับผิดชอบใช่หรือไม่?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, รับเรื่องเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (confirmResult.isConfirmed) {
+        try {
+            await api.put(`/tickets/assign/${ticketId}`, {
+                userId: auth.user.id,
+            });
+            await fetchTicket(); // Refresh ticket data to show new assignee
+            Swal.fire(
+                'รับเรื่องสำเร็จ!',
+                'คุณได้รับมอบหมายให้เป็นผู้รับผิดชอบ Ticket นี้แล้ว',
+                'success'
+            );
+        } catch (err: any) {
+            console.error("Error assigning ticket to self:", err);
+            Swal.fire('เกิดข้อผิดพลาด', `ไม่สามารถรับเรื่องได้: ${err.response?.data?.message || err.message}`, 'error');
+        }
+    }
+};
 
 async function fetchTicketLogs() {
     if (!ticketId) return;
