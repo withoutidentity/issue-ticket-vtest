@@ -178,7 +178,7 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
       const hashedToken = await bcrypt.hash(resetToken, 10);
 
       const expiryDate = new Date();
-      expiryDate.setHours(expiryDate.getHours() + 1); // Token หมดอายุใน 1 ชั่วโมง
+      expiryDate.setHours(expiryDate.getMinutes() + 30); // Token หมดอายุใน 30 นาที
 
       await prisma.passwordResetToken.create({
         data: {
