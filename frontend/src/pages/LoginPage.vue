@@ -11,6 +11,9 @@
       <router-link to="/register" class="mt-4 text-lg text-gray-600 hover:text-gray-800">
         ยังไม่มีบัญชี? <span class="text-blue-600 hover:underline">ลงทะเบียน</span>
       </router-link>
+      <router-link to="/forgot-password" class="mt-2 text-sm text-gray-600 hover:text-gray-800 hover:underline">
+        ลืมรหัสผ่าน?
+      </router-link>
     </div>
   </div>
 </template>
@@ -30,12 +33,12 @@ const onLogin = async () => {
   try {
     await auth.login(email.value, password.value)
 
-    console.log("role:", auth.user?.role)
+    // console.log("role:", auth.user?.role)
 
     const role = auth.user?.role
 
     if (role === 'ADMIN' || role === 'OFFICER') {
-      router.push('/admin')
+      router.push('/dashboard')
     } else {
       router.push('/home')
     }

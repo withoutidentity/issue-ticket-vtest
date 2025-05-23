@@ -1,5 +1,5 @@
 <template>
-    <div ref="forwardedRef" :class="['mt-4 rounded-lg border bg-card text-card-foreground shadow-sm', $attrs.class]"
+    <div ref="forwardedRef" :class="['mt-4 rounded-lg border-0 bg-white text-card-foreground shadow-lg', $attrs.class]"
         v-bind="$attrs">
         <slot />
     </div>

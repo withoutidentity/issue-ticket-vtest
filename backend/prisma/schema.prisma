@@ -8,34 +8,85 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
-  password     String // Hashed password
-  name         String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  refreshToken String? // สำหรับ Refresh Token
-  tickets      Ticket[]
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password      String // Hashed password
+  name          String
+  role          Role     @default(USER)
+  department_id Int?
+  is_officer_confirmed Boolean  @default(false) // สถานะการยืนยันสำหรับ Office
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  refreshToken  String? // สำหรับ Refresh Token
+
+  //relation
+  department       Department?    @relation(fields: [department_id], references: [id])
+  tickets          Ticket[]
+  tickets_assigned Ticket[]       @relation("TicketAssignee")
+  uploadedFiles    AssigneeFile[] @relation("UserUploadedFiles")
+  actionLogs       TicketLog[] // Logs of actions performed by this user
+  passwordResetTokens PasswordResetToken[] // Add this relation
 
   @@map("users")
 }
 
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique @map("token_hash") // Store the HASHED token
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime @map("expires_at") // When the token expires
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
+}
+
 model Ticket {
-  id           Int           @id @default(autoincrement())
-  user_id      Int?
-  title        String        @db.VarChar(255)
-  description  String?
-  type_id      Int?
-  priority     String?       @db.VarChar(255)
-  status       TicketStatus  @default(open)
-  created_at   DateTime      @default(now())
-  updated_at   DateTime      @default(now())
-  ticket_types ticket_types? @relation(fields: [type_id], references: [id])
-  user         User?         @relation(fields: [user_id], references: [id])
+  id            Int             @id @default(autoincrement())
+  user_id       Int?
+  assignee_id   Int? // ผู้รับผิดชอบ
+  title         String          @db.VarChar(255)
+  description   String?
+  type_id       Int?
+  priority      TicketPriority?
+  contact       String?         @db.VarChar(255)
+  department_id Int? // FK -> Department
+  comment       String?
+  status        TicketStatus    @default(open)
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @default(now())
+
+  // Relations
+  ticket_types  ticket_types?  @relation(fields: [type_id], references: [id])
+  user          User?          @relation(fields: [user_id], references: [id])
+  assignee      User?          @relation("TicketAssignee", fields: [assignee_id], references: [id])
+  department    Department?    @relation(fields: [department_id], references: [id])
+  files         TicketFile[] // แนบหลายไฟล์ต่อ Ticket
+  assigneeFiles AssigneeFile[]
+  logs          TicketLog[] // ประวัติการเปลี่ยนแปลงของ Ticket นี้
 
   @@index([type_id], map: "idx_tickets_type_id")
   @@map("tickets")
+}
+
+model TicketLog {
+  id                 Int           @id @default(autoincrement())
+  ticket_id          Int
+  user_id            Int? // ID ของผู้ใช้งานที่ทำการเปลี่ยนแปลง (nullable ถ้าเป็นการกระทำจากระบบ หรือ user ถูกลบ)
+  user_name_snapshot String? // ชื่อของผู้ใช้งาน ณ เวลาที่เกิด log (สำหรับกรณี user ถูกลบ หรือชื่อมีการเปลี่ยนแปลง)
+  action_type        LogActionType // ประเภทของการกระทำ
+  field_changed      String? // ชื่อ field ที่ถูกแก้ไข เช่น 'status', 'assignee_id', 'description', 'file_name'
+  old_value          String? // ค่าเดิม (อาจเป็น null, 'ว่างเปล่า', หรือข้อมูลเดิม)
+  new_value          String? // ค่าใหม่ (อาจเป็น 'เสร็จแล้ว', ข้อมูลใหม่, หรือชื่อไฟล์)
+  details            String // รายละเอียดของการเปลี่ยนแปลงที่มนุษย์อ่านเข้าใจ เช่น "เปลี่ยนสถานะจาก 'Open' เป็น 'In Progress'"
+  timestamp          DateTime      @default(now())
+
+  ticket Ticket @relation(fields: [ticket_id], references: [id], onDelete: Cascade) // ถ้า Ticket ถูกลบ, Log ที่เกี่ยวข้องจะถูกลบด้วย
+  user   User?  @relation(fields: [user_id], references: [id], onDelete: SetNull) // ถ้า User ถูกลบ, user_id ใน log จะเป็น null แต่ log ยังคงอยู่
+
+  @@index([ticket_id])
+  @@index([user_id])
+  @@map("ticket_logs")
 }
 
 model ticket_types {
@@ -45,6 +96,43 @@ model ticket_types {
   created_at  DateTime @default(now())
   updated_at  DateTime @default(now())
   tickets     Ticket[]
+}
+
+model TicketFile {
+  id        Int      @id @default(autoincrement())
+  ticket_id Int
+  filename  String   @db.VarChar(255)
+  filepath  String   @db.VarChar(512)
+  uploaded  DateTime @default(now())
+  ticket    Ticket   @relation(fields: [ticket_id], references: [id])
+
+  @@index([ticket_id])
+  @@map("ticket_files")
+}
+
+model AssigneeFile {
+  id            Int      @id @default(autoincrement())
+  ticket_id     Int
+  uploadedBy_id Int
+  filename      String
+  filepath      String
+  uploadedAt    DateTime @default(now())
+
+  ticket     Ticket @relation(fields: [ticket_id], references: [id])
+  uploadedBy User   @relation("UserUploadedFiles", fields: [uploadedBy_id], references: [id])
+
+  @@index([ticket_id])
+  @@index([uploadedBy_id])
+  @@map("assignee_ticket_files")
+}
+
+model Department {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique @db.VarChar(255)
+  tickets Ticket[] // ความสัมพันธ์กับ Ticket
+  users   User[] // เพิ่ม relation กับ User
+
+  @@map("departments")
 }
 
 enum Role {
@@ -57,6 +145,29 @@ enum Role {
 enum TicketStatus {
   open
   in_progress
-  resolved
+  pending
   closed
+}
+
+enum TicketPriority {
+  low
+  medium
+  high
+}
+
+enum LogActionType {
+  TICKET_CREATED // Ticket ถูกสร้างขึ้น
+  TITLE_UPDATED
+  DESCRIPTION_UPDATED
+  TYPE_UPDATED
+  PRIORITY_UPDATED
+  CONTACT_UPDATED
+  DEPARTMENT_UPDATED
+  STATUS_CHANGED
+  ASSIGNEE_CHANGED
+  COMMENT_UPDATED // สำหรับ comment หลักของ ticket
+  REQUESTER_FILE_ADDED // ไฟล์แนบโดยผู้แจ้งปัญหา
+  REQUESTER_FILE_REMOVED
+  ASSIGNEE_FILE_ADDED // ไฟล์แนบโดยผู้รับผิดชอบ
+  ASSIGNEE_FILE_REMOVED
 }

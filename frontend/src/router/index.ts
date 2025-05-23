@@ -31,12 +31,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/RegisterPage.vue'),
   },
   {
-    path: '/admin',
-    name: 'AdminDashboard',
-    component: () => import('@/pages/AdminDashboard.vue'),
-    meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
-  },
-  {
     path: '/403',
     name: 'Forbidden',
     component: () => import('@/pages/ForbiddenPage.vue'),
@@ -45,13 +39,19 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/pages/DashboardPage.vue'),
-    meta: { requiresAuth: true, roles: ['USER'] },
+    meta: { requiresAuth: true, roles: ['USER', 'ADMIN', 'OFFICER'] },
   },
   {
     path: '/profile',
     name: 'Profile',
     component: () => import('@/pages/ProfilePage.vue'),
     meta: { requiresAuth: true, roles: ['USER'] },
+  },
+  {
+    path: '/departments',
+    name: 'Department',
+    component: () => import('@/pages/DepartmentPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
   },
   {
     path: '/types',
@@ -65,6 +65,21 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/UsersPage.vue'),
     meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
   },
+  {
+    path: '/tickets/:id',
+    name: 'TicketDetail',
+    component: () => import('@/pages/TicketDetailPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/MyTickets', // หรือ path ที่คุณต้องการเช่น /officer/my-tickets
+    name: 'OfficerMyTickets',
+    component: import('@/pages/OfficerMyTicketsPage.vue'),
+    meta: { requiresAuth: true, roles: ['OFFICER'] } // ป้องกันการเข้าถึงสำหรับ Role อื่น
+  },
+  { path: '/forgot-password', component: import('@/pages/ForgotPasswordPage.vue') }, // เพิ่ม route
+  { path: '/reset-password', component: import('@/pages/ResetPasswordPage.vue') },
+  
 ]
 
 const router = createRouter({
@@ -76,9 +91,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
 
-  console.log("Navigation to:", to.path)
-  console.log("Token:", auth.accessToken)
-  console.log("Role:", auth.user?.role)
+  // console.log("Navigation to:", to.path)
+  // console.log("Token:", auth.accessToken)
+  // console.log("Role:", auth.user?.role)
 
   const requiresAuth = to.meta.requiresAuth ?? false
   const allowedRoles = to.meta.roles
