@@ -22,7 +22,7 @@
 
     <!-- Line Chart for Ticket Trends by Category (Daily) for Officer's Department -->
     <div class="bg-white shadow p-6 rounded">
-      <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามหมวดหมู่ (รายวัน) - แผนก: {{ auth.user?.department?.name }}</h3>
+      <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามหมวดหมู่ (รายวัน) - แผนก: <span class="uppercase">{{ auth.user?.department?.name }}</span></h3>
       <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
         <div>
           <label for="categoryTrendStartDateOfficer" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>

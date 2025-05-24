@@ -1,6 +1,8 @@
 <template>
     <AppLayout>
-        <cardtitle>รายละเอียด Ticket ID: {{ route.params.id }}</cardtitle>
+        <cardtitle>
+            รายละเอียด Ticket: {{ form.reference_number }}
+        </cardtitle>
         <card>
             <cardcontent>
                 <form @submit.prevent="handleSubmit" class="w-full bg-white rounded-xl overflow-hidden p-6">
@@ -70,7 +72,7 @@
                             </div>
 
                             <!-- สถานะ -->
-                            <div v-if="auth.user.role === 'USER'">
+                            <div v-if="auth.user.role === 'USER' || auth.user.role === 'OFFICER' && form.user.id === auth.user.id">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                                 <select v-model="form.status" :disabled="!isEditing"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -245,7 +247,7 @@
                                 </strong>
                             </div>
 
-                            <div v-if="auth.user?.role === 'OFFICER' && !form.assignee?.name" class="mb-6">
+                            <div v-if="auth.user?.role === 'OFFICER' && !form.assignee?.name && form.user.id !== auth.user.id" class="mb-6">
                                 <button @click="assignToMe" type="button"
                                     class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
@@ -258,7 +260,7 @@
                             </div>
 
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
+                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER' && form.user.id !== auth.user.id">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                                     <select v-model="form.status" :disabled="!isEditingAssignee"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -362,7 +364,7 @@
     <TicketLogsModal 
         :visible="showLogsModal"
         :logs="ticketLogs"
-        :ticketId="ticketId"
+        :referenceNumber="form.reference_number"
         @close="closeLogsModal"
     />
 </template>
@@ -430,6 +432,7 @@ interface AssigneeApiFile {
 
 interface TicketForm {
     id: number;
+    reference_number: string; // เพิ่ม reference_number
     title: string;
     description: string;
     type_id: number | ''; // สามารถเป็น number (เมื่อเลือก) หรือ empty string (ค่าเริ่มต้น)
@@ -450,6 +453,7 @@ interface TicketForm {
 
 const form = ref<TicketForm>({
     id: 0,
+    reference_number: '', // เพิ่มค่าเริ่มต้น
     title: '',
     description: '',
     type_id: '',
@@ -494,7 +498,7 @@ async function fetchTicket() {
     selectedUserId.value = res.data.assignee_id || ""
     const data = await res.data
     form.value = data as TicketForm;
-    // console.log('ticket f: ', form.value)
+    // console.log('Fetched ticket data: ', form.value)
 }
 
 async function fetchTypes() {

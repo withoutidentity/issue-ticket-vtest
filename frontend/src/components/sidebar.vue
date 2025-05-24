@@ -24,7 +24,7 @@
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
             <button @click="newticket" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
-            <button @click="dashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
+            <button @click="myTickets" class="w-full text-center hover:bg-gray-800 p-2 rounded">My Ticket</button>
             <button @click="profile" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
         </nav>
 

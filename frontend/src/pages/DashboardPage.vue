@@ -21,14 +21,12 @@
         <table class="w-full">
           <thead>
             <tr class="bg-gray-100">
-              <th class="text-left py-3 px-4 font-medium text-gray-700">ลำดับ</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">เลขอ้างอิง</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
               <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
-              <th v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
-                class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">วันที่สร้าง</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
             </tr>
@@ -37,12 +35,11 @@
             <tr v-for="(ticket, index) in filteredTableTickets" :key="ticket.id"
                 class="border-b align-top hover:bg-gray-50 cursor-pointer"
                 @click="goToTicket(ticket.id)">
-              <td class="py-3 px-4 text-gray-700">{{ index+1 }}</td>
               <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
               <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
               <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>
               <td class="py-3 px-4 text-gray-700">
-                {{ ticket.department?.name || "-" }}
+                <span class="uppercase">{{ ticket.department?.name || "-" }}</span>
               </td>
               <td class="py-3 px-4 text-center">
                 <div>
@@ -56,7 +53,7 @@
                   </span>
                 </div>
               </td>
-              <td v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'" class="py-3 px-4 text-gray-700">
+              <td class="py-3 px-4 text-gray-700">
                 {{ ticket.user?.name || "-" }}
               </td>
               <td class="py-3 px-4 text-gray-700">

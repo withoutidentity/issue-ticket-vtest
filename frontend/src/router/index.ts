@@ -39,7 +39,7 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/pages/DashboardPage.vue'),
-    meta: { requiresAuth: true, roles: ['USER', 'ADMIN', 'OFFICER'] },
+    meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
   },
   {
     path: '/profile',
@@ -74,8 +74,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/MyTickets', // หรือ path ที่คุณต้องการเช่น /officer/my-tickets
     name: 'OfficerMyTickets',
-    component: () => import('@/pages/OfficerMyTicketsPage.vue'),
-    meta: { requiresAuth: true, roles: ['OFFICER'] } // ป้องกันการเข้าถึงสำหรับ Role อื่น
+    component: () => import('@/pages/MyTicketsPage.vue'),
+    meta: { requiresAuth: true, roles: ['OFFICER','USER'] } // ป้องกันการเข้าถึงสำหรับ Role อื่น
   },
   { path: '/forgot-password', component: import('@/pages/ForgotPasswordPage.vue') }, // เพิ่ม route
   { path: '/reset-password', component: import('@/pages/ResetPasswordPage.vue') },

@@ -3,9 +3,11 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import { createPinia } from 'pinia'
-import './assets/main.css'
 import axios from 'axios'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+
+import './assets/main.css'
+import './assets/base.css'
 
 axios.defaults.baseURL = 'http://localhost:3000/api'
 const app = createApp(App)

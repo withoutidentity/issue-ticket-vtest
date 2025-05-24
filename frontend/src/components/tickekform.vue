@@ -23,7 +23,7 @@
                         <label for="department" class="block text-sm font-medium text-gray-700">แผนก <span class="text-red-500">*</span></label>
                         <select id="department" v-model="department_id" class="input mt-1" required :disabled="loadingDepartments">
                             <option disabled value="">{{ loadingDepartments ? 'กำลังโหลด...' : '-- เลือกแผนก --' }}</option>
-                            <option v-if="!loadingDepartments" v-for="department in departments" :key="department.id" :value="department.id">
+                            <option v-if="!loadingDepartments" v-for="department in departments" :key="department.id" :value="department.id" class="uppercase">
                                 {{ department.name  }} 
                             </option>
                         </select>

@@ -31,7 +31,7 @@
                       {{ roleName(user.role) }}
                     </span>
                   </td>
-                  <td class="py-3 px-4">{{ user.department?.name || '-' }}</td>
+                  <td class="py-3 px-4 uppercase">{{ user.department?.name || '-' }}</td>
                   <td class="py-3 px-4">
                     <span v-if="user.role === 'OFFICER'">
                       <span :class="{
