@@ -17,7 +17,7 @@
         type="number" 
         min="1" 
         v-model.number="perPage" 
-        class="w-20 px-3 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+        class="w-12 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
       />
       <span class="text-sm text-gray-600">รายการต่อหน้า</span>
     </div>
@@ -90,9 +90,9 @@
               </thead>
               <tbody>
                 <tr v-for="ticket in paginatedTickets" :key="ticket.id"
-                  class="border-b align-top hover:bg-gray-50 cursor-pointer" @click="goToTicket(ticket.id)">
-                  <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
-                  <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
+                  class="border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer" @click="goToTicket(ticket.id)">
+                  <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.reference_number }}</td>
+                  <td class="py-3 px-4 text-gray-700">{{ ticket.title }}</td>
                   <td class="py-3 px-4 text-gray-600 max-w-xs truncate">{{ ticket.description }}</td>
                   <td class="py-3 px-4 text-gray-700"><span class="uppercase">{{ ticket.department?.name || "-" }}</span></td>
                   <td class="py-3 px-4 text-center">
