@@ -1,8 +1,8 @@
 <template>
   <AppLayout>
-    <cardtitle>รายการแจ้งปัญหา</cardtitle>
     <card>
       <cardcontent>
+        <cardtitle>รายการแจ้งปัญหา</cardtitle>
         <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
           <AdminDashboard
             v-if="auth.user.role === 'ADMIN'"
@@ -22,6 +22,7 @@
           <thead>
             <tr class="bg-gray-100">
               <th class="text-left py-3 px-4 font-medium text-gray-700">ลำดับ</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">เลขอ้างอิง</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
               <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
@@ -37,6 +38,7 @@
                 class="border-b align-top hover:bg-gray-50 cursor-pointer"
                 @click="goToTicket(ticket.id)">
               <td class="py-3 px-4 text-gray-700">{{ index+1 }}</td>
+              <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
               <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
               <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>
               <td class="py-3 px-4 text-gray-700">
@@ -84,18 +86,19 @@ import OfficerDashboard from "@/components/OfficerDashboard.vue"; // Import Offi
 import { ref, onMounted, computed } from "vue";
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
+import { useTicketStore } from "@/stores/ticketStore"; // Import ticket store
 import { config } from "@/config";
 import { useRouter } from 'vue-router'
 import api from '@/api/axios-instance'
 
 const router = useRouter()
-
 function goToTicket(id: number) {
   router.push(`/tickets/${id}`)
 }
 
 interface ticket {
   id: number;
+  reference_number: string;
   title: string;
   description: string;
   status: 'open' | 'in_progress' | 'pending' | 'closed'
@@ -109,6 +112,7 @@ interface ticket {
     name: string;
   }
   user?: {
+    id: number;
     name: string;
     email: string;
   };
@@ -129,8 +133,8 @@ interface CreationDateFilter {
   value: string; // This is the YYYY-MM-DD, YYYY-MM, or YYYY string
 }
 
-const tickets = ref<ticket[]>([])
 const auth = useAuthStore();
+const ticketStore = useTicketStore(); // Use the ticket store
 const editStatus = ref<ticket | null>(null)
 const selectedStatus = ref('open')
 
@@ -211,12 +215,12 @@ const filteredTableTickets = computed(() => {
   // console.log("[DashboardPage] Recalculating filteredTableTickets...");
   // Log a deep copy of auth.user to avoid issues with reactivity proxies in console
   // console.log("[DashboardPage] Current auth user:", JSON.parse(JSON.stringify(auth.user)));
-  // console.log("[DashboardPage] Raw tickets count:", tickets.value.length);
-  if (tickets.value.length > 0) {
-    // console.log("[DashboardPage] First raw ticket department object:", tickets.value[0].department);
-  }
+  // console.log("[DashboardPage] Raw tickets count from store:", ticketStore.tickets.length);
+  // if (ticketStore.tickets.length > 0) {
+    // console.log("[DashboardPage] First raw ticket department object from store:", ticketStore.tickets[0].department);
+  // }
 
-  let baseTickets = [...tickets.value]; // Start with a shallow copy
+  let baseTickets = [...ticketStore.tickets]; // Use tickets from the store
 
   // Apply officer department filter first if applicable
   if (auth.user?.role === 'OFFICER') {
@@ -228,7 +232,7 @@ const filteredTableTickets = computed(() => {
         // console.log(`[DashboardPage] Comparing Ticket ID ${ticket.id} (Dept ID: ${ticket.department?.id}) with Officer Dept ID ${officerDepartmentId}. Match: ${ticket.department?.id === officerDepartmentId}`);
         return ticket.department?.id === officerDepartmentId;
       });
-      console.log(`[DashboardPage] Tickets count after officer department filter (ID: ${officerDepartmentId}): ${baseTickets.length}`);
+      // console.log(`[DashboardPage] Tickets count after officer department filter (ID: ${officerDepartmentId}): ${baseTickets.length}`);
     } else {
       // console.warn(`[DashboardPage] Officer's department ID is undefined or null. No department-specific tickets will be shown for this officer.`);
       baseTickets = []; // Officer with no department ID sees no tickets
@@ -262,24 +266,22 @@ const filteredTableTickets = computed(() => {
       return ticketKey === filterValue;
     });
   }
-  console.log("[DashboardPage] Final filtered tickets count:", tempTickets.length);
+  // console.log("[DashboardPage] Final filtered tickets count:", tempTickets.length);
   return tempTickets;
 });
 
-const fetchTickets = async () => {
-  try {
-    const res = await api.get('/tickets', {
-      headers: {
-        Authorization: `Bearer ${auth.accessToken}`,
-      },
-    });
-    tickets.value = res.data;
-  } catch (err) {
-    console.error("Failed to load tickets", err);
+onMounted(async () => {
+  // console.log("DashboardPage: Component mounted.");
+  // Ensure tickets are fetched via the store if not already loaded.
+  // The store should handle the logic of not re-fetching if data is fresh.
+  if (!ticketStore.tickets || ticketStore.tickets.length === 0) {
+    // console.log("DashboardPage: Tickets not in store or empty, calling ticketStore.fetchTickets().");
+    await ticketStore.fetchTickets();
+    // console.log("DashboardPage: ticketStore.fetchTickets() completed. Tickets in store:", ticketStore.tickets.length);
+  } else {
+    // console.log("DashboardPage: Tickets already in store. Count:", ticketStore.tickets.length);
   }
-};
-
-onMounted(fetchTickets)
+});
 
 const openEdit = (ticket: ticket) => {
   editStatus.value = ticket
@@ -300,7 +302,7 @@ const updateStatus = async () => {
     },
   })
   console.log('select status: ', selectedStatus.value)
-  fetchTickets()
+  await ticketStore.fetchTickets(); // Re-fetch tickets via store after update
 }
 
 const statusName = (status: string) => {

@@ -5,7 +5,7 @@
       <h2 class="text-xl mb-10">Issue Ticket System</h2>
       <form @submit.prevent="onRegister" class="space-y-4 w-80">
         <div>
-          <input v-model="name" type="text" placeholder="ชื่อ-นามสกุล" class="w-full p-2 border rounded" required />
+          <input v-model="name" type="text" placeholder="username" class="w-full p-2 border rounded" required />
         </div>
         <div>
           <input v-model="email" @blur="validateEmailOnBlur" type="email" placeholder="Email" class="w-full p-2 border rounded" :class="{'border-red-500': emailError}" required />

@@ -1,16 +1,28 @@
 export interface Ticket {
   id: number
+  reference_number: string;
   title: string
   description: string
-  type_id: number | ""
+  ticket_types?: {
+    id: number;
+    name: string;
+  };
   priority: "" | "low" | "medium" | "high"
   contact: string
-  department_id: number | ""
+  department?: { // Ensure department includes id
+    id?: number;
+    name: string; 
+  }
   status: "" | "open" | "in_progress" | "pending" | "closed"
   assignee: {
     id: number
     name: string
   }
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+  };
   comment: string
   files: {
     id: number

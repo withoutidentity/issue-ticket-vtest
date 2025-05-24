@@ -46,7 +46,17 @@ export async function register({ name, email, password, role = 'USER' }: Registe
 }
 
 export async function login({ email, password }: LoginInput) {
-  const user = await prisma.user.findUnique({ where: { email } })
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: {
+      department: { // รวมข้อมูล department
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     throw new Error('Invalid email or password')
@@ -69,6 +79,7 @@ export async function login({ email, password }: LoginInput) {
       email: user.email,
       role: user.role,
       name: user.name,
+      department: user.department, // เพิ่ม department เข้าไปใน object user ที่ส่งกลับ
     },
   }
 }

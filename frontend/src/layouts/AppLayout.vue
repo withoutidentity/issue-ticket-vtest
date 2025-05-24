@@ -45,7 +45,7 @@ import topbar from '@/components/topbar.vue';
 
 .content-wrapper {
   background-color: #F1F1F1;
-  padding: 33px;
+  padding: 25px;
   flex: 1; /* Allows content-wrapper to fill remaining vertical space within main-content */
   /* overflow-y: auto; /* REMOVED - scrolling handled by .main-content */
   /* height: 100vh; /* REMOVED - flex:1 will fill available space in .main-content */

@@ -74,7 +74,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/MyTickets', // หรือ path ที่คุณต้องการเช่น /officer/my-tickets
     name: 'OfficerMyTickets',
-    component: import('@/pages/OfficerMyTicketsPage.vue'),
+    component: () => import('@/pages/OfficerMyTicketsPage.vue'),
     meta: { requiresAuth: true, roles: ['OFFICER'] } // ป้องกันการเข้าถึงสำหรับ Role อื่น
   },
   { path: '/forgot-password', component: import('@/pages/ForgotPasswordPage.vue') }, // เพิ่ม route

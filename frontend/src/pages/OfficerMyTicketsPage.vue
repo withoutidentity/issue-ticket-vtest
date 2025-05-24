@@ -10,7 +10,7 @@
             <table class="w-full">
               <thead>
                 <tr class="bg-gray-100">
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">ลำดับ</th>
+                  <th class="text-left py-3 px-4 font-medium text-gray-700">เลขอ้างอิง</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
@@ -23,7 +23,7 @@
                 <tr v-for="(ticket, index) in myTickets" :key="ticket.id"
                     class="border-b align-top hover:bg-gray-50 cursor-pointer"
                     @click="goToTicket(ticket.id)">
-                  <td class="py-3 px-4 text-gray-700">{{ index + 1 }}</td>
+                  <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
                   <td class="py-3 px-4 text-gray-600 max-w-xs truncate">{{ ticket.description }}</td>
                   <td class="py-3 px-4 text-gray-700">{{ ticket.department?.name || "-" }}</td>
@@ -54,7 +54,7 @@ import cardcontent from '@/ui/cardcontent.vue';
 import { ref, onMounted, computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from 'vue-router';
-import api from '@/api/axios-instance'; // Your configured axios instance
+import api from '@/api/axios-instance'; //Your configured axios instance
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -75,12 +75,14 @@ interface Assignee {
 }
 
 interface TicketCreatorInfo {
+  id: number;
   name: string;
   email?: string;
 }
 
 interface Ticket {
   id: number;
+  reference_number: string;
   title: string;
   description: string;
   status: 'open' | 'in_progress' | 'pending' | 'closed';
@@ -88,7 +90,7 @@ interface Ticket {
   updated_at: string;
   department?: Department;
   assignee?: Assignee;
-  user_id: number; // ID of the user who created the ticket
+  user_id: number; //ID of the user who created the ticket
   user?: TicketCreatorInfo; // The user object (name, email) from API
   // ticket_types?: { name: string; }; // Uncomment if needed
   // files?: Array<{ id: number; filename: string; filepath: string; }>; // Uncomment if needed
@@ -98,14 +100,14 @@ const allFetchedTickets = ref<Ticket[]>([]);
 const isLoading = ref(true);
 
 const myTickets = computed(() => {
-//   console.log("OfficerMyTicketsPage: myTickets computed - Evaluating.");
+// console.log("OfficerMyTicketsPage: myTickets computed - Evaluating.");
   if (!auth.user || typeof auth.user.id !== 'number') {
     console.warn("OfficerMyTicketsPage: myTickets - Auth user or ID invalid/missing.", { user: JSON.parse(JSON.stringify(auth.user)) });
     return [];
   }
 
   const officerId = auth.user.id;
-//   console.log(`OfficerMyTicketsPage: myTickets - Filtering for officer ID: ${officerId} (type: ${typeof officerId})`);
+// console.log(`OfficerMyTicketsPage: myTickets - Filtering for officer ID: ${officerId} (type: ${typeof officerId})`);
 
   if (allFetchedTickets.value.length === 0) {
     // console.log("OfficerMyTicketsPage: myTickets - allFetchedTickets is empty, returning empty array.");
@@ -114,36 +116,40 @@ const myTickets = computed(() => {
 
   // Filter tickets where the creator's ID matches the logged-in officer's ID
   const filtered = allFetchedTickets.value.filter(ticket => {
-    const ticketCreatorId = ticket.user_id; // <--- CHANGED: Use ticket.user_id
-    // console.log(`OfficerMyTicketsPage: myTickets - Comparing ticket ID ${ticket.id}: creator ID (from ticket.user_id) ${ticketCreatorId} (type: ${typeof ticketCreatorId}) === officer ID ${officerId} (type: ${typeof officerId}) -> ${String(ticketCreatorId) === String(officerId)}`);
-    // The check for !ticket.user is no longer strictly necessary for the ID comparison,
-    // but ticket.user might still be used for displaying the name, so it can be kept if needed for other purposes.
-    // For filtering by creator ID, ticket.user_id is the source of truth.
+    // Use ticket.user.id for filtering, as the API provides the user object with an ID.
+    // Ensure ticket.user and ticket.user.id exist before comparing.
+    const ticketCreatorId = ticket.user?.id;
+    // console.log(`OfficerMyTicketsPage: myTickets - Comparing ticket ID ${ticket.id}: creator ID (from ticket.user.id) ${ticketCreatorId} (type: ${typeof ticketCreatorId}) === officer ID ${officerId} (type: ${typeof officerId}) -> ${ticketCreatorId !== undefined && String(ticketCreatorId) === String(officerId)}`);
+
+    if (ticket.user === undefined || ticket.user.id === undefined) {
+      console.warn(`OfficerMyTicketsPage: myTickets - Ticket ID ${ticket.id} has undefined user or user.id. Skipping.`);
+      return false;
+    }
 
     // Ensure comparison is robust, e.g. if one is string and other is number
     return String(ticketCreatorId) === String(officerId);
   });
 
-//   console.log(`OfficerMyTicketsPage: myTickets - Found ${filtered.length} tickets for officer ID ${officerId}.`);
+  // console.log(`OfficerMyTicketsPage: myTickets - Found ${filtered.length} tickets for officer ID ${officerId}.`);
   if (filtered.length === 0 && allFetchedTickets.value.length > 0) {
-    //   console.log("OfficerMyTicketsPage: myTickets - No tickets matched the officer ID. Dumping first few ticket.user.id values from allFetchedTickets:");
+      // console.log("OfficerMyTicketsPage: myTickets - No tickets matched the officer ID. Dumping first few ticket.user.id values from allFetchedTickets:");
       for (let i = 0; i < Math.min(5, allFetchedTickets.value.length); i++) {
           const t = allFetchedTickets.value[i];
-        //   console.log(`  Ticket ${t.id}: ticket.user_id = ${t.user_id} (type: ${typeof t.user_id}), creator name from ticket.user = ${t.user?.name}`);
+          // console.log(`  Ticket ${t.id}: ticket.user.id = ${t.user?.id} (type: ${typeof t.user?.id}), creator name from ticket.user = ${t.user?.name}`);
       }
   }
   return filtered;
 });
 
 const fetchOfficerTickets = async () => {
-//   console.log("OfficerMyTicketsPage: fetchOfficerTickets - Starting.");
+  // console.log("OfficerMyTicketsPage: fetchOfficerTickets - Starting.");
   isLoading.value = true;
   if (!auth.accessToken) {
     console.error("OfficerMyTicketsPage: fetchOfficerTickets - No access token found.");
     isLoading.value = false;
     return;
   }
-//   console.log("OfficerMyTicketsPage: fetchOfficerTickets - Logged in Officer ID from auth store:", auth.user?.id, "Role:", auth.user?.role);
+  // console.log("OfficerMyTicketsPage: fetchOfficerTickets - Logged in Officer ID from auth store:", auth.user?.id, "Role:", auth.user?.role);
 
   try {
     const response = await api.get('/tickets', {
@@ -169,17 +175,17 @@ const fetchOfficerTickets = async () => {
     // console.log(`OfficerMyTicketsPage: fetchOfficerTickets - Fetched ${allFetchedTickets.value.length} tickets in total and assigned to allFetchedTickets.`);
   } catch (err) {
     console.error("OfficerMyTicketsPage: fetchOfficerTickets - Failed to load tickets.", err);
-    // Consider adding user-facing error notification here
+    //Consider adding user-facing error notification here
   } finally {
     isLoading.value = false;
   }
 };
 
 onMounted(() => {
-//   console.log("OfficerMyTicketsPage: onMounted - Component mounted.");
+  // console.log("OfficerMyTicketsPage: onMounted - Component mounted.");
   const initFetch = () => {
     if (auth.user && typeof auth.user.id === 'number' && auth.user.role === 'OFFICER') {
-    //   console.log("OfficerMyTicketsPage: initFetch - Conditions met, calling fetchOfficerTickets.", { userId: auth.user.id, role: auth.user.role });
+      // console.log("OfficerMyTicketsPage: initFetch - Conditions met, calling fetchOfficerTickets.", { userId: auth.user.id, role: auth.user.role });
       fetchOfficerTickets();
     } else {
       console.warn("OfficerMyTicketsPage: initFetch - Conditions NOT met for fetching.", {
@@ -197,13 +203,13 @@ onMounted(() => {
     initFetch();
   } else {
     // console.log("OfficerMyTicketsPage: onMounted - Initial user data not fully present or ID not a number, subscribing to auth store.", { user: JSON.parse(JSON.stringify(auth.user)) });
-    // Subscribe to auth store changes in case user info is loaded asynchronously
+    //Subscribe to auth store changes in case user info is loaded asynchronously
     const unsubscribe = auth.$subscribe((_mutation, state) => {
-    //   console.log("OfficerMyTicketsPage: Auth store update received. New state user:", JSON.parse(JSON.stringify(state.user)));
-      if (state.user && typeof state.user.id === 'number' && state.user.role === 'OFFICER') { // Added role check here too for clarity
+      // console.log("OfficerMyTicketsPage: Auth store update received. New state user:", JSON.parse(JSON.stringify(state.user)));
+      if (state.user && typeof state.user.id === 'number' && state.user.role === 'OFFICER') { //Added role check here too for clarity
         // console.log("OfficerMyTicketsPage: Auth store update - User data now valid for Officer, calling initFetch.");
         initFetch();
-        unsubscribe(); // Unsubscribe after successful fetch trigger
+        unsubscribe(); //Unsubscribe after successful fetch trigger
       } else {
         // console.log("OfficerMyTicketsPage: Auth store update - User data still not fully meeting criteria for initFetch.");
       }
@@ -213,7 +219,7 @@ onMounted(() => {
 
 const goToTicket = (id: number) => {
   router.push(`/tickets/${id}`);
-//   console.log(`Navigating to ticket ${id}`)
+  // console.log(`Navigating to ticket ${id}`)
 };
 
 const statusName = (status: Ticket['status']): string => {

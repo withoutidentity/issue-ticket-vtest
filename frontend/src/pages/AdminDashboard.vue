@@ -90,12 +90,18 @@ interface Department {
 
 interface Ticket {
   id: number;
+  reference_number?: string;
   title: string;
   description: string;
-  type_id: number | ""; // Assuming type_id refers to category
-  priority: "" | "low" | "medium" | "high";
+  ticket_types?: {
+    name: string;
+  }; // Assuming type_id refers to category
+  priority: "low" | "medium" | "high" | "";
   contact: string;
-  department_id: number | ""; // Direct department ID
+  department?: { // Ensure department includes id
+    id?: number;
+    name: string; 
+  }
   status: "open" | "in_progress" | "pending" | "closed" | ""; // Ensure empty string is a valid status if applicable
   assignee?: { name: string; }; // Optional assignee
   comment?: string; // Optional comment
@@ -260,7 +266,7 @@ const processedDepartmentTrendData = computed(() => {
     dateLabels.forEach(label => countsByDate[label] = 0); // Reset for each department for THIS specific date label
     
     filteredTicketsForRange.forEach((ticket: Ticket) => {
-      if (ticket.department_id === dept.id) { // Group by department using ticket.department_id
+      if (ticket.department.id === dept.id) { // Group by department using ticket.department_id
         const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
         if (countsByDate.hasOwnProperty(ticketDate)) {
           countsByDate[ticketDate]++;
@@ -393,9 +399,12 @@ const updateDepartmentChart = () => {
   // console.log("[AdminDashboard] updateDepartmentChart: Initial countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
   ticketStore.tickets.forEach((ticket: Ticket) => {
     // Use ticket.department?.id to match department object in ticket
-    const dept = departments.value.find(d => d.id === ticket.department_id); // Now using department_id directly
-    if (dept && countsByDepartment.hasOwnProperty(dept.name)) {
-      countsByDepartment[dept.name]++;
+    // Ensure department_id is a number and not null/empty string before comparing
+    if (typeof ticket.department.id === 'number' && ticket.department.id !== null) {
+      const dept = departments.value.find(d => d.id === ticket.department.id);
+      if (dept && countsByDepartment.hasOwnProperty(dept.name)) {
+        countsByDepartment[dept.name]++;
+      }
     }
   });
   console.log("[AdminDashboard] updateDepartmentChart: Final countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
@@ -460,7 +469,8 @@ onMounted(async () => {
   } = await res.data
 
   summary.value = data.statusSummary
-  // console.log("[AdminDashboard] Summary data fetched.");
+  console.log("[AdminDashboard] Summary data fetched.");
+  console.log(summary)
 
   // Call chart updates after all data is potentially loaded
   if (departments.value.length > 0 && ticketStore.tickets.length > 0) {

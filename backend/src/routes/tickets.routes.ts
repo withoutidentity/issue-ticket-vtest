@@ -4,6 +4,7 @@ import { PrismaClient, TicketStatus, LogActionType, User } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
 import { uploadUser, uploadAssignee } from '../middleware/upload'
 import path from 'path'; // เพิ่ม import path
+import { format, startOfDay, endOfDay } from 'date-fns'; // นำเข้า date-fns
 import fs from 'fs';
 import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController'; 
 
@@ -117,6 +118,32 @@ router.post(
 
       const files = req.files as Express.Multer.File[]
 
+      // --- สร้างเลข Reference Number ---
+      const now = new Date();
+      // รูปแบบ YYMMDD (ปี พ.ศ. สองหลักท้าย)
+      const Year = now.getFullYear();
+      const datePart = format(now, 'ddMM') // วันเดือน
+      const yearPart = Year.toString().substring(2); // ปี พ.ศ. สองหลักท้าย
+      const fullDatePart = `${yearPart}${format(now, 'MMdd')}`; // ปีเดือนวัน เช่น 670523 สำหรับ 2024-05-23
+
+      // กำหนดช่วงเวลาของวันนี้
+      const todayStart = startOfDay(now);
+      const todayEnd = endOfDay(now);
+
+      // นับจำนวน Ticket ที่สร้างในวันนี้
+      const ticketsCreatedToday = await prisma.ticket.count({
+        where: {
+          created_at: { // ตรวจสอบว่า model Ticket ของคุณมี field created_at
+            gte: todayStart,
+            lte: todayEnd,
+          },
+        }
+      });
+      const sequenceNumber = ticketsCreatedToday + 1;
+      const paddedSequence = sequenceNumber.toString().padStart(2, '0'); // ลำดับ 2 หลักตามตัวอย่าง TK25052301
+      const referenceNumberGenerated = `TK${fullDatePart}${paddedSequence}`; // รูปแบบ TKปีเดือนวันลำดับ
+      // --- สิ้นสุดการสร้างเลข Reference Number ---
+
       const newTicket = await prisma.ticket.create({
         data: {
           title,
@@ -124,6 +151,7 @@ router.post(
           ticket_types: {
             connect: { id: parseInt(type_id) } // เชื่อมกับ ticket_types ที่มี id = 1
           },
+          reference_number: referenceNumberGenerated, // เพิ่ม reference_number ที่สร้างขึ้น
           priority,
           contact,
           department: {
@@ -152,16 +180,24 @@ router.post(
         performingUser.id,
         performingUser.name,
         LogActionType.TICKET_CREATED,
-        `Ticket '${newTicket.title}' ถูกสร้างขึ้น`,
+        `Ticket '${newTicket.reference_number}' ถูกสร้างขึ้น`, // เปลี่ยนเป็น reference_number
         null, // field_changed
         null, // old_value
-        `หัวข้อ: ${newTicket.title}` // new_value (summary)
+        `Reference: ${newTicket.reference_number}` // new_value (summary with reference_number)
       );
 
       res.status(201).json(newTicket)
-    } catch (error) {
-      console.error('Error creating ticket:', error)
-      res.status(500).json({ error: 'Failed to create ticket' })
+    } catch (error: any) {
+      if (error.code === 'P2002' && error.meta?.target?.includes('reference_number')) {
+        res.status(409).json({ // 409 Conflict
+            success: false,
+            message: 'Failed to create ticket due to a reference number conflict. Please try again.',
+            error: 'Reference number conflict'
+        });
+        return 
+      }
+      console.error('Error creating ticket:', error);
+      res.status(500).json({ error: 'Failed to create ticket' });
     }
   }
 )
@@ -172,17 +208,27 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
     const user = req.user
     const tickets = await prisma.ticket.findMany({
       where: user?.role === 'ADMIN' || user?.role === 'OFFICER' ? {} : { user_id: user?.id },
-      include: {
-        user: { select: { name: true, email: true } },
-        ticket_types: { select: { name: true } },
-        files: true,
-        department: { select: { id:true, name: true}},
+      select: { // เปลี่ยนมาใช้ select เพื่อความชัดเจนในการดึงข้อมูล
+        id: true,
+        title: true,
+        reference_number: true, // เพิ่ม reference_number
+        description: true, // เพิ่มตามความจำเป็น
+        status: true,
+        priority: true,
+        created_at: true,
+        updated_at: true,
+        user_id: true,
+        user: { select: { id: true, name: true, email: true } },
+        ticket_types: { select: { id: true, name: true } },
+        files: { select: { id: true, filename: true } }, // เลือกเฉพาะฟิลด์ที่ต้องการจาก files
+        department: { select: { id: true, name: true } },
         assignee: {
           select: {
             id: true,
             name: true,
           },
         },
+        // เพิ่มฟิลด์อื่นๆ ของ Ticket ที่ต้องการดึงโดยตรง
       },
       orderBy: { created_at: 'asc' },
     })

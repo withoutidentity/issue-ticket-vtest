@@ -1,5 +1,5 @@
 <template>
-    <div class="title text-2xl font-semibold ml-3">
+    <div class="title ml-3">
         <slot />
     </div>
 </template>

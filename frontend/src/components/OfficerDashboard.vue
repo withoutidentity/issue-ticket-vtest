@@ -77,8 +77,15 @@ const types = ref<{ id: number; name: string }[]>([]);
 const isLoadingChart = ref(true);
 
 const summary = computed(() => {
-  if (!officerDepartmentId.value) return { total: 0, open: 0, in_progress: 0, pending: 0, closed: 0 };
-  const departmentTickets = ticketStore.tickets.filter(ticket => ticket.department_id === officerDepartmentId.value);
+  // Wait for both officerDepartmentId and tickets to be available
+  if (!officerDepartmentId.value || !ticketStore.tickets || ticketStore.tickets.length === 0) {
+    // console.log("OfficerDashboard: Summary calculation skipped, data not ready.", { officerDeptId: officerDepartmentId.value, ticketsCount: ticketStore.tickets?.length });
+    return { total: 0, open: 0, in_progress: 0, pending: 0, closed: 0 };
+  }
+  // console.log("OfficerDashboard: Calculating summary. Officer Dept ID:", officerDepartmentId.value, "Tickets count:", ticketStore.tickets.length);
+  const departmentTickets = ticketStore.tickets.filter(ticket => ticket.department.id === officerDepartmentId.value);
+  // console.log("OfficerDashboard: Tickets in officer's department:", departmentTickets.length);
+
   return {
     total: departmentTickets.length,
     open: departmentTickets.filter(t => t.status === 'open').length,
@@ -120,11 +127,17 @@ const fetchTicketTypes = async () => {
 
 const processedCategoryTrendData = computed(() => {
   // isLoadingChart.value = true; // Set loading at the beginning of the watcher or on specific actions instead
-  if (!categoryTrendStartDate.value || !categoryTrendEndDate.value || !ticketStore.tickets.length || types.value.length === 0 || !officerDepartmentId.value) {
+  if (!categoryTrendStartDate.value || !categoryTrendEndDate.value || !ticketStore.tickets || !ticketStore.tickets.length || !types.value || types.value.length === 0 || !officerDepartmentId.value) {
+    // console.log("OfficerDashboard: processedCategoryTrendData - Pre-conditions not met.", {
+    //   dates: !!(categoryTrendStartDate.value && categoryTrendEndDate.value),
+    //   tickets: ticketStore.tickets?.length,
+    //   types: types.value?.length,
+    //   officerDeptId: !!officerDepartmentId.value
+    // });
     isLoadingChart.value = false;
     return { labels: [], datasets: [] };
   }
-
+  // console.log("OfficerDashboard: processedCategoryTrendData - All pre-conditions met. Processing chart data.");
   const startStr = categoryTrendStartDate.value; // YYYY-MM-DD
   const endStr = categoryTrendEndDate.value;   // YYYY-MM-DD
   const start = new Date(startStr + 'T00:00:00'); // Create Date object for iteration (local time)
@@ -135,8 +148,9 @@ const processedCategoryTrendData = computed(() => {
     return { labels: [], datasets: [] };
   }
 
-  const officerTickets = ticketStore.tickets.filter(ticket => ticket.department_id === officerDepartmentId.value);
+  const officerTickets = ticketStore.tickets.filter(ticket => ticket.department.id === officerDepartmentId.value);
   const filteredTicketsForRange = officerTickets.filter(ticket => {
+    if (!ticket.created_at) return false; // Guard against undefined created_at
     const createdAt = new Date(ticket.created_at);
     // Compare date strings to avoid timezone issues with time part
     const ticketDateStr = createdAt.toLocaleDateString('en-CA'); // YYYY-MM-DD
@@ -144,9 +158,11 @@ const processedCategoryTrendData = computed(() => {
   });
 
   if (filteredTicketsForRange.length === 0) {
+    // console.log("OfficerDashboard: processedCategoryTrendData - No tickets found in the selected date range for the officer's department.");
     isLoadingChart.value = false;
     return { labels: [], datasets: [] };
   }
+  // console.log(`OfficerDashboard: processedCategoryTrendData - Found ${filteredTicketsForRange.length} tickets in date range for department ${officerDepartmentId.value}.`);
 
   const dateLabels: string[] = [];
   let currentDate = new Date(start);
@@ -160,7 +176,8 @@ const processedCategoryTrendData = computed(() => {
     dateLabels.forEach(label => countsByDate[label] = 0); // Initialize all dates with 0 for this type
 
     filteredTicketsForRange.forEach(ticket => {
-      if (ticket.type_id === type.id) {
+      if (ticket.ticket_types.id === type.id) {
+        if (!ticket.created_at) return; // Guard
         const ticketDate = new Date(ticket.created_at).toLocaleDateString('en-CA'); // YYYY-MM-DD
         if (countsByDate.hasOwnProperty(ticketDate)) {
           countsByDate[ticketDate]++;
@@ -186,6 +203,7 @@ const processedCategoryTrendData = computed(() => {
     return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
   });
 
+  // console.log("OfficerDashboard: processedCategoryTrendData - Chart data processed successfully.");
   isLoadingChart.value = false;
   return {
     labels: displayDateLabels,
@@ -230,18 +248,32 @@ const handleCategoryChartClick = (categoryName: string) => {
 
 watch([categoryTrendStartDate, categoryTrendEndDate, () => ticketStore.tickets, types, officerDepartmentId], () => {
   isLoadingChart.value = true; // Set loading before re-calculating
+  // console.log("OfficerDashboard: Watcher for category trend chart triggered.");
   updateCategoryTrendChart();
   // isLoadingChart will be set to false at the end of processedCategoryTrendData computation
 }, { deep: true, immediate: false }); // immediate: false to avoid running on initial mount before data is ready
 
 onMounted(async () => {
+  // console.log("OfficerDashboard: Component mounted.");
   isLoadingChart.value = true;
-  if (!ticketStore.tickets.length) {
+
+  // Ensure auth.user.department is available, otherwise summary and chart might not work correctly.
+  // This might already be handled by how authStore initializes, but an explicit check or wait could be added if needed.
+  // console.log("OfficerDashboard: Current auth user onMount:", JSON.parse(JSON.stringify(auth.user)));
+
+  // Fetch tickets if not already loaded or if a refresh is desired.
+  // The ticketStore itself should ideally handle not re-fetching if data is fresh.
+  if (!ticketStore.tickets || ticketStore.tickets.length === 0) {
+    // console.log("OfficerDashboard: Tickets not found in store, fetching...");
     await ticketStore.fetchTickets();
+    // console.log("OfficerDashboard: Tickets fetched, count:", ticketStore.tickets.length);
+  } else {
+    // console.log("OfficerDashboard: Tickets already in store, count:", ticketStore.tickets.length);
   }
+
   await fetchTicketTypes();
   initializeDefaultDates();
-  updateCategoryTrendChart(); // Initial population
+  // updateCategoryTrendChart(); // Call this to ensure key is incremented and computed property re-evaluates.
   // isLoadingChart will be set to false by the computed property after its first run
 });
 </script>
