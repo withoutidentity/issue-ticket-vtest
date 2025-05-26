@@ -1,75 +1,100 @@
 <template>
   <AppLayout>
-    <cardtitle2>
-      <div class="flex items-center justify-between mb-4">
-    <p class="text-sm text-gray-600 font-medium">
-      ปัญหาที่ฉันสร้างทั้งหมด: 
-      <span class="text-blue-600 font-semibold">{{ officerCreatedTickets.length }}</span> 
-      (แสดงผล: 
-      <span class="text-blue-600 font-semibold">{{ filteredAndSearchedTickets.length }}</span>)
-    </p>
-    
-    <!-- ปุ่มแสดงรายการต่อหน้า -->
-    <div class="flex items-center space-x-2">
-      <label for="perPageInput" class="text-sm text-gray-600">แสดง:</label>
-      <input 
-        id="perPageInput" 
-        type="number" 
-        min="1" 
-        v-model.number="perPage" 
-        class="w-12 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
-      />
-      <span class="text-sm text-gray-600">รายการต่อหน้า</span>
-    </div>
-  </div>
-
-  <!-- ส่วนค้นหาและกรอง -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-    <!-- ช่องค้นหา -->
-    <div class="relative">
-      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      </div>
-      <input 
-        type="text" 
-        v-model="searchQuery" 
-        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" 
-        placeholder="ค้นหาหัวข้อ, เลขอ้างอิง, สถานะ..."
-      />
-    </div>
-
-    <!-- Dropdown กรองสถานะ -->
-    <div class="relative">
-      <select 
-        v-model="statusFilter" 
-        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm appearance-none bg-white"
-      >
-        <option value="total">ทั้งหมด</option>
-        <option value="open">ใหม่</option>
-        <option value="in_progress">กำลังดำเนินการ</option>
-        <option value="closed">เสร็จสิ้น</option>
-      </select>
-      <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
-      </div>
-    </div>
-
-    <!-- ปุ่มรีเซ็ต (เพิ่มเข้ามาเพื่อความสะดวก) -->
-    <button 
-      @click="resetFilters"
-      class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-    >
-      รีเซ็ตการกรอง
-    </button>
-  </div>
-    </cardtitle2>
+    <!-- <cardtitle2>
+    </cardtitle2> -->
     <card>
       <cardcontent>
-        <cardtitle>รายการแจ้งปัญหาของฉัน</cardtitle>
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex flex-col">
+            <cardtitle>รายการแจ้งปัญหาของฉัน</cardtitle>
+            <p class="text-sm text-gray-600 font-medium ml-3">
+              ปัญหาของฉันทั้งหมด:
+              <span class="text-blue-600 font-semibold">{{ officerCreatedTickets.length }}</span>
+              <!-- (แสดงผล: 
+            <span class="text-blue-600 font-semibold">{{ filteredAndSearchedTickets.length }}</span>) -->
+            </p>
+          </div>
+          <div class="flex items-center">
+            <div class="flex items-center space-x-3">
+              <!-- ส่วนค้นหาและกรอง -->
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input type="text" v-model="searchQuery"
+                  class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  placeholder="ค้นหาหัวข้อ, เลขอ้างอิง, สถานะ..." />
+              </div>
+
+              <!-- Dropdown กรองสถานะ -->
+              <div class="relative" ref="statusFilterDropdownMyTicketsRef">
+                <button @click="toggleStatusFilterDropdownMyTickets"
+                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                  <!-- Filter Icon -->
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                </button>
+                <!-- Dropdown List -->
+                <div v-if="isStatusFilterDropdownOpenMyTickets"
+                  class="absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0">
+                  <ul class="py-1">
+                    <li @click="selectStatusFilterMyTickets('total')"
+                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                      ทั้งหมด
+                    </li>
+                    <li @click="selectStatusFilterMyTickets('open')"
+                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                      ใหม่
+                    </li>
+                    <li @click="selectStatusFilterMyTickets('in_progress')"
+                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                      กำลังดำเนินการ
+                    </li>
+                    <li @click="selectStatusFilterMyTickets('closed')"
+                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                      เสร็จสิ้น
+                    </li>
+                    <!-- เพิ่ม 'pending' ถ้าต้องการ -->
+                    <!-- <li @click="selectStatusFilterMyTickets('pending')"
+                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                    รอดำเนินการ
+                  </li> -->
+                  </ul>
+                </div>
+              </div>
+
+
+
+
+              <!-- Reset button -->
+              <button @click="resetFilters"
+                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ปุ่มแสดงรายการต่อหน้า -->
+        <div
+          class="flex items-center space-x-2 mt-4 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
+          <label for="perPageInput" class="text-sm text-gray-600">แสดง:</label>
+          <input id="perPageInput" type="number" min="1" v-model.number="perPage"
+            class="w-12 px-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+          <span class="text-sm text-gray-600">รายการต่อหน้า</span>
+        </div>
+
         <div class="mt-6 space-y-6 overflow-y-auto overflow-x-auto truncate">
           <div v-if="isLoading" class="text-center py-4 text-gray-600">กำลังโหลดข้อมูล...</div>
           <div v-else-if="!filteredAndSearchedTickets.length" class="text-center py-4 text-gray-500">
@@ -90,11 +115,13 @@
               </thead>
               <tbody>
                 <tr v-for="ticket in paginatedTickets" :key="ticket.id"
-                  class="border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer" @click="goToTicket(ticket.id)">
+                  class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer"
+                  @click="goToTicket(ticket.id)">
                   <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.reference_number }}</td>
                   <td class="py-3 px-4 text-gray-700">{{ ticket.title }}</td>
                   <td class="py-3 px-4 text-gray-600 max-w-xs truncate">{{ ticket.description }}</td>
-                  <td class="py-3 px-4 text-gray-700"><span class="uppercase">{{ ticket.department?.name || "-" }}</span></td>
+                  <td class="py-3 px-4 text-gray-700"><span class="uppercase">{{ ticket.department?.name || "-"
+                      }}</span></td>
                   <td class="py-3 px-4 text-center">
                     <div>
                       <span :class="statusClass(ticket.status)" class="px-3 py-1 rounded-full text-sm ">
@@ -110,21 +137,15 @@
           </div>
           <!-- Pagination Controls -->
           <div v-if="totalPages > 1" class="mt-6 flex justify-between items-center">
-            <button
-              @click="prevPage"
-              :disabled="currentPage === 1"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button @click="prevPage" :disabled="currentPage === 1"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
               ก่อนหน้า
             </button>
             <span class="text-sm text-gray-700">
               หน้า {{ currentPage }} จาก {{ totalPages }}
             </span>
-            <button
-              @click="nextPage"
-              :disabled="currentPage === totalPages"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button @click="nextPage" :disabled="currentPage === totalPages"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
               ถัดไป
             </button>
           </div>
@@ -140,7 +161,7 @@ import cardtitle from '@/ui/cardtitle.vue';
 import cardtitle2 from '@/ui/cardtitle2.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from 'vue-router';
 import api from '@/api/axios-instance'; //Your configured axios instance
@@ -192,6 +213,9 @@ const searchQuery = ref(''); // เพิ่ม ref สำหรับคำค�
 const perPage = ref(10);
 const currentPage = ref(1);
 const statusFilter = ref<'total' | 'open' | 'in_progress' | 'pending' | 'closed'>('total');
+
+const isStatusFilterDropdownOpenMyTickets = ref(false);
+const statusFilterDropdownMyTicketsRef = ref<HTMLElement | null>(null);
 
 const officerCreatedTickets = computed(() => {
   if (!auth.user || typeof auth.user.id !== 'number') {
@@ -296,6 +320,7 @@ onMounted(() => {
       }
     });
   }
+  document.addEventListener('click', handleClickOutsideStatusFilterMyTickets);
 });
 
 watch([searchQuery, perPage, statusFilter], () => {
@@ -309,6 +334,11 @@ watch(currentPage, (newPage) => {
     currentPage.value = totalPages.value;
   }
 });
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutsideStatusFilterMyTickets);
+});
+
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
@@ -342,11 +372,25 @@ const goToTicket = (id: number) => {
   router.push(`/tickets/${id}`);
 };
 
+const toggleStatusFilterDropdownMyTickets = () => {
+  isStatusFilterDropdownOpenMyTickets.value = !isStatusFilterDropdownOpenMyTickets.value;
+};
+
+const selectStatusFilterMyTickets = (selectedStatusValue: 'total' | 'open' | 'in_progress' | 'pending' | 'closed') => {
+  statusFilter.value = selectedStatusValue;
+  isStatusFilterDropdownOpenMyTickets.value = false;
+};
+
+const handleClickOutsideStatusFilterMyTickets = (event: MouseEvent) => {
+  if (statusFilterDropdownMyTicketsRef.value && !statusFilterDropdownMyTicketsRef.value.contains(event.target as Node)) {
+    isStatusFilterDropdownOpenMyTickets.value = false;
+  }
+};
 const resetFilters = () => {
   searchQuery.value = '' // ล้างการค้นหา
   statusFilter.value = 'total' // กลับไปแสดงทั้งหมด
   perPage.value = 10 // รีเซ็ตเป็นค่าเริ่มต้น
-  
+
   // ถ้ามีตัวกรองอื่นๆ สามารถเพิ่มได้ที่นี่
   // dateFilter.value = null
   // categoryFilter.value = 'all'

@@ -1,14 +1,76 @@
 <template>
   <AppLayout>
-    <cardtitle>จัดการผู้ใช้งาน</cardtitle>
-    <carddescrip>ดูแลและจัดการผู้ใช้งานในระบบ</carddescrip>
     <card>
       <cardcontent>
-        <div className="space-y-6">
-          <div className="overflow-x-auto">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex flex-col">
+            <cardtitle>จัดการผู้ใช้งาน</cardtitle>
+            <p class="text-sm text-gray-600 font-medium ml-3">
+              ผู้ใช้งานทั้งหมด:
+              <span class="text-blue-600 font-semibold">{{ users.length }}</span>
+            </p>
+          </div>
+          <div class="flex items-center">
+            <div class="flex items-center space-x-3">
+              <!-- Search box -->
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input type="text" v-model="searchQueryUsers"
+                  class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  placeholder="ค้นหาชื่อ, อีเมล, บทบาท..." />
+              </div>
+
+              <!-- Department Filter Dropdown -->
+              <div class="relative" ref="departmentFilterDropdownRef">
+                <button @click="toggleDepartmentFilterDropdown"
+                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                    <!-- Filter Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                </button>
+                <div v-if="isDepartmentFilterDropdownOpen"
+                     class="absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-60 overflow-y-auto">
+                  <ul class="py-1">
+                    <li @click="selectDepartmentFilter(null)" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">แผนกทั้งหมด</li>
+                    <li v-for="dept in departmentsList" :key="dept.id" @click="selectDepartmentFilter(dept.id)"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                      {{ dept.name }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Reset button -->
+              <button @click="resetUserFilters"
+                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Items per page -->
+        <div class="flex items-center space-x-2 mt-4 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
+          <label for="perPageUsersInput" class="text-sm text-gray-600">แสดง:</label>
+          <input id="perPageUsersInput" type="number" min="1" v-model.number="perPageUsers"
+            class="w-12 px-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+          <span class="text-sm text-gray-600">รายการต่อหน้า</span>
+        </div>
+
+        <div className="space-y-6 overflow-x-auto">
+          <div class="mt-3 rounded-lg overflow-hidden overflow-x-auto border border-gray-200">
             <table class="w-full">
               <thead>
-                <tr class="bg-gray-200">
+                <tr class="bg-gray-100">
                   <th class="text-left py-3 px-4 font-medium">ชื่อผู้ใช้</th>
                   <th class="text-left py-3 px-4 font-medium">อีเมล</th>
                   <th class="text-left py-3 px-8 font-medium">บทบาท</th>
@@ -18,7 +80,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="user in users" :key="user.id" class="border-b hover:bg-gray-50">
+                <tr v-for="user in paginatedUsers" :key="user.id" class="text-sm border-b hover:bg-gray-50">
                   <td class="py-3 px-4">{{ user.name }}</td>
                   <td class="py-3 px-4">{{ user.email }}</td>
                   <td class="py-3 px-4">
@@ -44,14 +106,16 @@
                     <span v-else>-</span>
                   </td>
                   <td class="py-3 px-4 space-x-2 text-center">
-                    <button @click="openEdit(user)" class="border px-3 py-1 rounded hover:bg-gray-100">แก้ไขบทบาท</button>
-                    <button v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
-                            @click="confirmOfficer(user.id)"
-                            class="border px-3 py-1 rounded text-green-600 hover:bg-green-50">ยืนยัน Officer</button>
-                    <button @click="bandUser(user.id)" class="border px-3 py-1 rounded text-red-600 hover:bg-red-50">ระงับ</button>
+                    <button @click="openEdit(user)"
+                      class="border px-3 py-1 rounded hover:bg-gray-100">แก้ไขบทบาท</button>
+                    <button
+                      v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
+                      @click="confirmOfficer(user.id)"
+                      class="border px-3 py-1 rounded text-green-600 hover:bg-green-50">ยืนยัน Officer</button>
+                    <button @click="bandUser(user.id)"
+                      class="border px-3 py-1 rounded text-red-600 hover:bg-red-50">ระงับ</button>
                   </td>
                 </tr>
-
                 <!-- แก้ไข role -->
                 <tr v-if="editingUser" class="bg-gray-50">
                   <td colspan="5" class="px-4 py-3">
@@ -72,6 +136,21 @@
             </table>
           </div>
         </div>
+        <!-- Pagination Controls -->
+        <div v-if="totalPagesUsers > 1" class="mt-6 flex justify-between items-center">
+            <button @click="prevPageUsers" :disabled="currentPageUsers === 1"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              ก่อนหน้า
+            </button>
+            <span class="text-sm text-gray-700">
+              หน้า {{ currentPageUsers }} จาก {{ totalPagesUsers }}
+            </span>
+            <button @click="nextPageUsers" :disabled="currentPageUsers === totalPagesUsers"
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+              ถัดไป
+            </button>
+        </div>
+
       </cardcontent>
     </card>
   </AppLayout>
@@ -85,7 +164,7 @@ import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 
 import { config } from '@/config';
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth';
 import Swal from 'sweetalert2'
@@ -104,6 +183,12 @@ interface User {
   } | null;
 }
 
+interface DepartmentListItem {
+  id: number;
+  name: string;
+}
+
+
 const form = ref<User>({
   id: 0,
   name: '',
@@ -118,6 +203,15 @@ const editingUser = ref<User | null>(null)
 const selectedRole = ref('USER')
 const auth = useAuthStore(); // Access the auth store
 
+const searchQueryUsers = ref('');
+const selectedDepartmentFilter = ref<number | null>(null);
+const perPageUsers = ref(10);
+const currentPageUsers = ref(1);
+const departmentsList = ref<DepartmentListItem[]>([]);
+
+const isDepartmentFilterDropdownOpen = ref(false);
+const departmentFilterDropdownRef = ref<HTMLElement | null>(null);
+
 const fetchUsers = async () => {
   try {
     // Use the pre-configured axios instance (api) which should include the auth token
@@ -129,7 +223,61 @@ const fetchUsers = async () => {
   }
 }
 
-onMounted(fetchUsers)
+const fetchDepartmentsList = async () => {
+  try {
+    const res = await api.get(`/departments`); // Assuming this endpoint returns all departments
+    departmentsList.value = res.data as DepartmentListItem[];
+  } catch (error) {
+    console.error('Failed to fetch departments list:', error);
+    // departmentsList.value = []; // Or handle error appropriately
+  }
+};
+
+const filteredAndSearchedUsers = computed(() => {
+  let filtered = [...users.value];
+
+  // Filter by department
+  if (selectedDepartmentFilter.value !== null) {
+    filtered = filtered.filter(user => user.department?.id === selectedDepartmentFilter.value);
+  }
+
+  // Filter by search query (name, email, role)
+  if (searchQueryUsers.value.trim() !== '') {
+    const lowerSearchQuery = searchQueryUsers.value.toLowerCase();
+    filtered = filtered.filter(user =>
+      user.name.toLowerCase().includes(lowerSearchQuery) ||
+      user.email.toLowerCase().includes(lowerSearchQuery) ||
+      roleName(user.role).toLowerCase().includes(lowerSearchQuery)
+    );
+  }
+  return filtered;
+});
+
+const totalPagesUsers = computed(() => {
+  if (perPageUsers.value <= 0) return 1;
+  return Math.ceil(filteredAndSearchedUsers.value.length / perPageUsers.value);
+});
+
+const paginatedUsers = computed(() => {
+  const start = (currentPageUsers.value - 1) * perPageUsers.value;
+  const end = start + perPageUsers.value;
+  return filteredAndSearchedUsers.value.slice(start, end);
+});
+
+onMounted(() => {
+  fetchUsers();
+  fetchDepartmentsList();
+  document.addEventListener('click', handleClickOutsideDepartmentFilter);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutsideDepartmentFilter);
+});
+
+watch([searchQueryUsers, selectedDepartmentFilter, perPageUsers], () => {
+  currentPageUsers.value = 1;
+});
+
 
 const bandUser = async (id: number) => {
   const result = await Swal.fire({
@@ -153,7 +301,7 @@ const bandUser = async (id: number) => {
     try {
       const payload = {
         role: 'BANNED',
-       };
+      };
       // Use the pre-configured axios instance (api)
       await api.put(`/users/update/${id}`, payload);
       await fetchUsers(); // Refresh the user list
@@ -229,8 +377,8 @@ const confirmOfficer = async (userId: number) => {
     } catch (error) {
       console.error('Error confirming officer:', error.response || error);
       const errorMessage = error.response?.data?.error || // พยายามดึงข้อความ error จาก backend response
-                           error.message || // หรือใช้ error message ทั่วไปของ JavaScript
-                           'ไม่สามารถยืนยัน Officer ได้'; // ข้อความ fallback
+        error.message || // หรือใช้ error message ทั่วไปของ JavaScript
+        'ไม่สามารถยืนยัน Officer ได้'; // ข้อความ fallback
       Swal.fire('ผิดพลาด!', errorMessage, 'error');
     }
   }
@@ -249,5 +397,35 @@ const roleName = (role: string) => {
     default:
       return role
   }
-}
+};
+
+const toggleDepartmentFilterDropdown = () => {
+  isDepartmentFilterDropdownOpen.value = !isDepartmentFilterDropdownOpen.value;
+};
+
+const selectDepartmentFilter = (departmentId: number | null) => {
+  selectedDepartmentFilter.value = departmentId;
+  isDepartmentFilterDropdownOpen.value = false;
+};
+
+const handleClickOutsideDepartmentFilter = (event: MouseEvent) => {
+  if (departmentFilterDropdownRef.value && !departmentFilterDropdownRef.value.contains(event.target as Node)) {
+    isDepartmentFilterDropdownOpen.value = false;
+  }
+};
+
+const resetUserFilters = () => {
+  searchQueryUsers.value = '';
+  selectedDepartmentFilter.value = null;
+  perPageUsers.value = 10;
+  currentPageUsers.value = 1;
+};
+
+const nextPageUsers = () => {
+  if (currentPageUsers.value < totalPagesUsers.value) currentPageUsers.value++;
+};
+
+const prevPageUsers = () => {
+  if (currentPageUsers.value > 1) currentPageUsers.value--;
+};
 </script>

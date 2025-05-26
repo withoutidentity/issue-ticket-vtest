@@ -1,6 +1,6 @@
 // src/utils/ticketUtils.ts
 
-export type TicketStatus = 'open' | 'in_progress' | 'pending' | 'closed';
+export type TicketStatus = 'open' | 'in_progress' | 'pending' | 'closed' | null;
 
 export interface Ticket {
   id: number;
@@ -26,6 +26,10 @@ export interface Ticket {
     id?: number;
     name: string;
   };
+   priority?: '' | 'low' | 'medium' | 'high'; // เพิ่ม priority
+  contact?: string; // เพิ่ม contact
+  comment?: string; // เพิ่ม comment
+  files?: Array<{ id: number; filename: string; filepath: string; }>; // เพิ่ม files
   // files?: Array<{ id: number; filename: string; filepath: string; }>; // ถ้าต้องการค้นหาข้อมูลไฟล์ด้วย
 }
 

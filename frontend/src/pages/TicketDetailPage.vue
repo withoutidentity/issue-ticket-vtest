@@ -77,9 +77,8 @@
                                 <select v-model="form.status" :disabled="!isEditing"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                     :class="{ 'bg-gray-50': !isEditing }">
-                                    <option value="open">เปิด</option>
+                                    <option value="open">รอดำเนินการ</option>
                                     <option value="in_progress">กำลังดำเนินการ</option>
-                                    <option value="pending">รอดำเนินการ</option>
                                     <option value="closed">เสร็จสิ้น</option>
                                 </select>
                             </div>
@@ -265,9 +264,8 @@
                                     <select v-model="form.status" :disabled="!isEditingAssignee"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                         :class="{ 'bg-gray-50': !isEditingAssignee }">
-                                        <option value="open">เปิด</option>
+                                        <option value="open">รอดำเนินการ</option>
                                         <option value="in_progress">กำลังดำเนินการ</option>
-                                        <option value="pending">รอดำเนินการ</option>
                                         <option value="closed">เสร็จสิ้น</option>
                                     </select>
                                 </div>
