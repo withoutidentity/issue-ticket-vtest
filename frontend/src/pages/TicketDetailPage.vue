@@ -1,8 +1,19 @@
 <template>
     <AppLayout>
-        <cardtitle>
-            รายละเอียด Ticket: {{ form.reference_number }}
-        </cardtitle>
+        <div class="flex items-center space-x-3 ml-3"> <!-- Vertically centered, adjusted spacing and padding -->
+            <button @click="goBack" type="button"
+                class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>ย้อนกลับ</span>
+            </button>
+            <cardtitle>
+                {{ form.reference_number }}: {{ form.title }}
+            </cardtitle>
+        </div>
         <card>
             <cardcontent>
                 <form @submit.prevent="handleSubmit" class="w-full bg-white rounded-xl overflow-hidden p-6">
@@ -301,17 +312,8 @@
                             </div>
 
                             <div class="flex flex-wrap justify-between items-center gap-y-3 pt-4 mt-8 border-t">
-                                <!-- ปุ่มย้อนกลับ -->
+                                <!-- ปุ่มดู log -->
                                 <div class="flex space-x-2">
-                                    <button @click="goBack" type="button"
-                                        class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                        </svg>
-                                        <span>ย้อนกลับ</span>
-                                    </button>
                                      <button @click="openLogsModal" type="button"
                                         class="flex items-center space-x-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-200 transition-colors duration-200">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

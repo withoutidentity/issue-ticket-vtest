@@ -106,7 +106,17 @@
                   <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
                   <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">วันที่สร้าง</th>
+                  <th 
+                    @click="toggleSortDirectionDashboard"
+                    class="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150"
+                  >
+                    <div class="flex items-center">
+                      <span>วันที่สร้าง</span>
+                      <svg v-if="sortDirectionDashboard === 'asc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                      <svg v-if="sortDirectionDashboard === 'desc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                      <svg v-if="!sortDirectionDashboard" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                    </div>
+                  </th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
                 </tr>
               </thead>
@@ -218,6 +228,7 @@ const departmentFilterForTable = ref<string | null>(null);
 const officerStatusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null); // For Officer's own status filter
 const officerCategoryFilterForTable = ref<string | null>(null); // For Officer's category filter
 const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
+const sortDirectionDashboard = ref<'asc' | 'desc' | null>(null); // For DashboardPage sorting
 
 const isStatusFilterDropdownOpen = ref(false);
 const statusFilterDropdown = ref<HTMLElement | null>(null); // Ref for the dropdown element
@@ -346,6 +357,16 @@ const filteredTableTickets = computed((): ticket[] => { // กำหนด type 
     // searchTickets รับ UtilTicket[] และคืนค่า UtilTicket[]
     searchedResult = searchTickets(processingTickets, searchQuery.value);
   }
+
+  // 4. Apply sorting
+  if (sortDirectionDashboard.value) {
+    searchedResult.sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortDirectionDashboard.value === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+  }
+
   // เนื่องจาก interface ticket extends UtilTicket และควรจะเข้ากันได้
   // การ cast (as ticket[]) ตรงนี้จะปลอดภัย
   // และทำให้ type ที่คืนค่าตรงกับที่ระบุไว้สำหรับ computed property
@@ -394,7 +415,7 @@ const handleClickOutsideStatusFilter = (event: MouseEvent) => {
     isStatusFilterDropdownOpen.value = false;
   }
 };
-watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, officerStatusFilterForTable, officerCategoryFilterForTable], () => {
+watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, officerStatusFilterForTable, officerCategoryFilterForTable, sortDirectionDashboard], () => {
   currentPage.value = 1;
 });
 
@@ -475,5 +496,15 @@ const resetFilters = () => {
   // Note: The handle... functions already clear other related filters when one is set.
   // This reset ensures everything goes back to default.
 }
+
+const toggleSortDirectionDashboard = () => {
+  if (sortDirectionDashboard.value === null) {
+    sortDirectionDashboard.value = 'desc'; // Default to newest first
+  } else if (sortDirectionDashboard.value === 'desc') {
+    sortDirectionDashboard.value = 'asc'; // Then oldest first
+  } else {
+    sortDirectionDashboard.value = null; // Then unsorted
+  }
+};
 
 </script>

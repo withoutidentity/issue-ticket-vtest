@@ -108,8 +108,18 @@
                   <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
-                  <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">วันที่สร้าง</th>
+                  <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>                  
+                  <th 
+                    @click="toggleSortDirection" 
+                    class="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150"
+                  >
+                    <div class="flex items-center">
+                      <span>วันที่สร้าง</span>
+                      <svg v-if="sortDirection === 'asc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                      <svg v-if="sortDirection === 'desc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                      <svg v-if="!sortDirection" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                    </div>
+                  </th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
                 </tr>
               </thead>
@@ -213,6 +223,7 @@ const searchQuery = ref(''); // เพิ่ม ref สำหรับคำค�
 const perPage = ref(10);
 const currentPage = ref(1);
 const statusFilter = ref<'total' | 'open' | 'in_progress' | 'pending' | 'closed'>('total');
+const sortDirection = ref<'asc' | 'desc' | null>(null); // null: unsorted, 'asc': oldest first, 'desc': newest first
 
 const isStatusFilterDropdownOpenMyTickets = ref(false);
 const statusFilterDropdownMyTicketsRef = ref<HTMLElement | null>(null);
@@ -255,7 +266,32 @@ const filteredAndSearchedTickets = computed(() => {
   if (statusFilter.value !== 'total') {
     tickets = tickets.filter(ticket => ticket.status === statusFilter.value);
   }
-  return tickets;
+
+  // Apply sorting
+  if (sortDirection.value) {
+    // สร้างสำเนาของ array tickets ก่อนทำการเรียงลำดับ
+    // เพื่อป้องกันการแก้ไข array เดิมโดยไม่ตั้งใจ และเพื่อให้การทำงานชัดเจนขึ้น
+    const ticketsToSort = [...tickets];
+
+    ticketsToSort.sort((a, b) => {
+      const dateA = new Date(a.created_at);
+      const dateB = new Date(b.created_at);
+
+      const timeA = dateA.getTime();
+      const timeB = dateB.getTime();
+
+      // จัดการกรณีที่วันที่อาจจะไม่ถูกต้อง (ทำให้ getTime() คืนค่า NaN)
+      if (isNaN(timeA) && isNaN(timeB)) return 0; // ถ้าทั้งคู่ไม่ถูกต้อง ให้ถือว่าเท่ากัน
+      if (isNaN(timeA)) return 1;  // ถ้า dateA ไม่ถูกต้อง ให้ไปอยู่ท้าย (สำหรับ 'asc' หมายถึง มากกว่า)
+      if (isNaN(timeB)) return -1; // ถ้า dateB ไม่ถูกต้อง ให้ไปอยู่ท้าย (สำหรับ 'asc' หมายถึง น้อยกว่า)
+
+      return sortDirection.value === 'asc' ? timeA - timeB : timeB - timeA;
+    });
+    return ticketsToSort; // คืนค่า array ที่เรียงลำดับแล้ว (สำเนา)
+  }
+
+  // ถ้าไม่ได้กำหนด sortDirection ให้คืนค่า tickets ที่ผ่านการกรองอื่นๆ มาแล้ว
+  return tickets; 
 });
 
 const totalPages = computed(() => {
@@ -323,7 +359,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutsideStatusFilterMyTickets);
 });
 
-watch([searchQuery, perPage, statusFilter], () => {
+watch([searchQuery, perPage, statusFilter, sortDirection], () => {
   currentPage.value = 1;
 });
 
@@ -395,6 +431,16 @@ const resetFilters = () => {
   // dateFilter.value = null
   // categoryFilter.value = 'all'
 }
+
+const toggleSortDirection = () => {
+  if (sortDirection.value === null) {
+    sortDirection.value = 'desc'; // Default to newest first
+  } else if (sortDirection.value === 'desc') {
+    sortDirection.value = 'asc'; // Then oldest first
+  } else {
+    sortDirection.value = null; // Then unsorted (or back to default API order)
+  }
+};
 </script>
 
 <style scoped>
