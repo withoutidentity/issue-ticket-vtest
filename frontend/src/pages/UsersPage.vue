@@ -29,7 +29,7 @@
               <!-- Department Filter Dropdown -->
               <div class="relative" ref="departmentFilterDropdownRef">
                 <button @click="toggleDepartmentFilterDropdown"
-                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm cursor-pointer text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                     <!-- Filter Icon -->
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
                       viewBox="0 0 24 24" stroke="currentColor">
@@ -51,7 +51,7 @@
 
               <!-- Reset button -->
               <button @click="resetUserFilters"
-                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 cursor-pointer bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
               </button>
             </div>
@@ -107,29 +107,13 @@
                   </td>
                   <td class="py-3 px-4 space-x-2 text-center">
                     <button @click="openEdit(user)"
-                      class="border px-3 py-1 rounded hover:bg-gray-100">แก้ไขบทบาท</button>
+                      class="border px-3 py-1 cursor-pointer rounded hover:bg-gray-100">แก้ไขบทบาท</button>
                     <button
                       v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
                       @click="confirmOfficer(user.id)"
-                      class="border px-3 py-1 rounded text-green-600 hover:bg-green-50">ยืนยัน Officer</button>
+                      class="border px-3 py-1 rounded text-green-600 cursor-pointer hover:bg-green-50">ยืนยัน Officer</button>
                     <button @click="bandUser(user.id)"
-                      class="border px-3 py-1 rounded text-red-600 hover:bg-red-50">ระงับ</button>
-                  </td>
-                </tr>
-                <!-- แก้ไข role -->
-                <tr v-if="editingUser" class="bg-gray-50">
-                  <td colspan="5" class="px-4 py-3">
-                    <div class="flex items-center gap-4">
-                      <span class="font-medium">เปลี่ยนบทบาทของ {{ editingUser.name }} เป็น:</span>
-                      <select v-model="selectedRole" class="border rounded px-3 py-1">
-                        <option value="ADMIN">ผู้ดูแลระบบ</option>
-                        <option value="OFFICER">เจ้าหน้าที่</option>
-                        <option value="USER">ผู้ใช้งาน</option>
-                        <option value="BANNED">ระงับบัญชี</option>
-                      </select>
-                      <button @click="updateRole" class="bg-blue-500 text-white px-3 py-1 rounded">บันทึก</button>
-                      <button @click="cancelEdit" class="text-gray-500">ยกเลิก</button>
-                    </div>
+                      class="border px-3 py-1 rounded text-red-600 cursor-pointer hover:bg-red-50">ระงับ</button>
                   </td>
                 </tr>
               </tbody>
@@ -152,6 +136,35 @@
         </div>
 
       </cardcontent>
+
+      <!-- Edit Role Modal -->
+      <div v-if="isEditModalOpen && editingUser"
+        class="fixed inset-0 backdrop-blur-sm bg-black/60 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4">
+        <div class="relative p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+          <div class="mt-3">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">แก้ไขบทบาทสำหรับ: <span class="font-semibold">{{ editingUser.name }}</span></h3>
+            <div class="mt-2 px-7 py-3">
+              <label for="roleSelectModal" class="block text-sm font-medium text-gray-700 text-left mb-1">บทบาท:</label>
+              <select id="roleSelectModal" v-model="selectedRole" class="w-full border border-gray-300 rounded px-3 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="ADMIN">ผู้ดูแลระบบ</option>
+                <option value="OFFICER">เจ้าหน้าที่</option>
+                <option value="USER">ผู้ใช้งาน</option>
+                <option value="BANNED">ระงับบัญชี</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-end px-4 py-3 space-x-3">
+              <button @click="closeEditModal" type="button"
+                      class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                ยกเลิก
+              </button>
+              <button @click="updateRole" type="button"
+                      class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </card>
   </AppLayout>
 </template>
@@ -208,6 +221,7 @@ const selectedDepartmentFilter = ref<number | null>(null);
 const perPageUsers = ref(10);
 const currentPageUsers = ref(1);
 const departmentsList = ref<DepartmentListItem[]>([]);
+const isEditModalOpen = ref(false);
 
 const isDepartmentFilterDropdownOpen = ref(false);
 const departmentFilterDropdownRef = ref<HTMLElement | null>(null);
@@ -320,24 +334,28 @@ const bandUser = async (id: number) => {
 }
 
 const openEdit = (user: User) => {
-  editingUser.value = user
-  selectedRole.value = user.role
-}
+  editingUser.value = { ...user }; // Clone user object to avoid direct mutation if cancelled
+  selectedRole.value = user.role;
+  isEditModalOpen.value = true;
+};
 
-const cancelEdit = () => {
-  editingUser.value = null
-}
+const closeEditModal = () => {
+  isEditModalOpen.value = false;
+  editingUser.value = null;
+  // Optionally reset selectedRole if needed, e.g., selectedRole.value = 'USER';
+};
 
 const updateRole = async () => {
-  if (!editingUser.value) return
+  if (!editingUser.value) return;
   try {
     // Use the pre-configured axios instance (api)
     await api.put(`/users/update/${editingUser.value.id}`, {
       role: selectedRole.value,
     });
-    editingUser.value = null;
+    // editingUser.value = null; // This will be handled by closeEditModal
     await fetchUsers(); // Refresh the user list
     Swal.fire('สำเร็จ!', 'บทบาทถูกปรับปรุงแล้ว', 'success');
+    closeEditModal(); // Close modal on successful update
   } catch (error) {
     console.error('Error updating role:', error);
     Swal.fire('ผิดพลาด!', 'ไม่สามารถปรับปรุงบทบาทได้', 'error');

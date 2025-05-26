@@ -33,7 +33,7 @@
               <!-- Dropdown กรองสถานะ -->
               <div class="relative" ref="statusFilterDropdownMyTicketsRef">
                 <button @click="toggleStatusFilterDropdownMyTickets"
-                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                   <!-- Filter Icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -70,18 +70,24 @@
                 </div>
               </div>
 
-
-
-
               <!-- Reset button -->
               <button @click="resetFilters"
-                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
                   stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
+
+              <!-- Export to Excel button -->
+                <button @click="exportToExcel"
+                  class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Export Excel
+                </button>
             </div>
           </div>
         </div>
@@ -176,6 +182,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useRouter } from 'vue-router';
 import api from '@/api/axios-instance'; //Your configured axios instance
 import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket } from '@/utils/ticketUtils';
+import * as XLSX from 'xlsx'; // Import the xlsx library
 
 
 const router = useRouter();
@@ -440,6 +447,38 @@ const toggleSortDirection = () => {
   } else {
     sortDirection.value = null; // Then unsorted (or back to default API order)
   }
+};
+
+const exportToExcel = () => {
+  if (!filteredAndSearchedTickets.value || filteredAndSearchedTickets.value.length === 0) {
+    alert("ไม่มีข้อมูลให้ export");
+    return;
+  }
+
+  // Map data to a simpler structure for Excel, customize as needed
+  const dataToExport = filteredAndSearchedTickets.value.map(ticket => ({
+    'เลขอ้างอิง': ticket.reference_number,
+    'หัวข้อ': ticket.title,
+    'คำอธิบาย': ticket.description,
+    'แผนก': ticket.department?.name || "-",
+    'สถานะ': ticket.status, // Use the existing statusName function
+    'ผู้แจ้ง': ticket.user?.name || "-",
+    'วันที่สร้าง': formatDateDDMMYYYY(ticket.created_at), // Use the existing formatDate function
+    'ผู้รับผิดชอบ': ticket.assignee?.name || "-",
+  }));
+
+  // Create a new workbook and a new worksheet
+  const ws = XLSX.utils.json_to_sheet(dataToExport);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "รายการแจ้งปัญหา"); // "รายการแจ้งปัญหา" is the sheet name
+
+  // Generate a filename (e.g., tickets_YYYY-MM-DD.xlsx)
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const fileName = `my_tickets_export_${dateStr}.xlsx`;
+
+  // Trigger the download
+  XLSX.writeFile(wb, fileName);
 };
 </script>
 
