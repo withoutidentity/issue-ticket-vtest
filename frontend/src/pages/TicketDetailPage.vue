@@ -3,8 +3,8 @@
         <div class="flex items-center space-x-3 ml-3"> <!-- Vertically centered, adjusted spacing and padding -->
             <button @click="goBack" type="button"
                 class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
@@ -83,7 +83,8 @@
                             </div>
 
                             <!-- สถานะ -->
-                            <div v-if="auth.user.role === 'USER' || auth.user.role === 'OFFICER' && form.user.id === auth.user.id">
+                            <div
+                                v-if="auth.user.role === 'USER' || auth.user.role === 'OFFICER' && form.user.id === auth.user.id">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                                 <select v-model="form.status" :disabled="!isEditing"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -152,7 +153,7 @@
                             </div>
                             <!-- ส่วนสำหรับเพิ่มไฟล์ใหม่ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
                             <div v-if="isEditing" class="mt-6 pt-6 border-t border-gray-200">
-                                <h3 class="text-md font-semibold text-gray-700 mb-3">
+                                <h3 class="block text-sm font-medium text-gray-700 mb-1">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="h-5 w-5 mr-2 inline-block text-gray-500" fill="none" viewBox="0 0 24 24"
                                         stroke="currentColor">
@@ -161,16 +162,22 @@
                                     </svg>
                                     เพิ่มไฟล์ใหม่ (สูงสุด {{ MAX_FILES }} ไฟล์รวมทั้งหมด)
                                 </h3>
-                                <input type="file" multiple @change="handleFileChange" class="input mb-3"
+                                <input type="file" multiple @change="handleFileChange"
+                                    class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70"
                                     accept=".pdf,.jpg,.jpeg,.png" />
-                                <div v-if="newFiles.length > 0" class="mt-2">
+                                <p class="mt-1 text-xs text-gray-500">
+                                    ประเภทไฟล์ที่อนุญาต: PDF, JPG, PNG
+                                </p>
+                                <div v-if="newFiles.length > 0" class="mb-4">
                                     <h4 class="text-sm font-medium text-gray-600 mb-1">ไฟล์ใหม่ที่เลือก:</h4>
-                                    <ul class="list-disc list-inside pl-4 space-y-1">
+                                    <ul class="list-disc list-inside pl-4 space-y-1 mt-1">
                                         <li v-for="(file, index) in newFiles" :key="index"
                                             class="text-sm text-gray-700 flex justify-between items-center py-1">
                                             <span>{{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)</span>
                                             <button type="button" @click="removeNewFile(index)"
-                                                class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded">ลบ</button>
+                                                class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+                                                ลบ
+                                            </button>
                                         </li>
                                     </ul>
                                 </div>
@@ -257,9 +264,10 @@
                                 </strong>
                             </div>
 
-                            <div v-if="auth.user?.role === 'OFFICER' && !form.assignee?.name && form.user.id !== auth.user.id" class="mb-6">
+                            <div v-if="auth.user?.role === 'OFFICER' && !form.assignee?.name" class="mb-6">
                                 <button @click="assignToMe" type="button" :disabled="!isEditingAssignee"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center"
+                                    :class="{ 'cursor-pointer': isEditingAssignee, 'cursor-not-allowed': !isEditingAssignee }">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -269,8 +277,9 @@
                                 </button>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER' && form.user.id !== auth.user.id">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div
+                                    v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER' && form.user.id !== auth.user.id">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
                                     <select v-model="form.status" :disabled="!isEditingAssignee"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
@@ -304,9 +313,8 @@
                             </div>
                             <!-- ไฟล์แนบสำหรับผู้รับผิดชอบ -->
                             <div>
-                                <AssigneeFileUpload :disabled="!isEditingAssignee"
-                                    :ticket-id="form.id" ref="assigneeFileUploadRef"
-                                    :initial-assignee-files="form.assigneeFiles"
+                                <AssigneeFileUpload :disabled="!isEditingAssignee" :ticket-id="form.id"
+                                    ref="assigneeFileUploadRef" :initial-assignee-files="form.assigneeFiles"
                                     :class="{ 'bg-gray-50': !isEditingAssignee }"
                                     @files-uploaded="handleAssigneeFilesUploaded" />
                             </div>
@@ -314,10 +322,12 @@
                             <div class="flex flex-wrap justify-between items-center gap-y-3 pt-4 mt-8 border-t">
                                 <!-- ปุ่มดู log -->
                                 <div class="flex space-x-2">
-                                     <button @click="openLogsModal" type="button"
+                                    <button @click="openLogsModal" type="button"
                                         class="flex items-center space-x-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg shadow-sm text-gray-700 cursor-pointer  hover:bg-gray-200 transition-colors duration-200">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                         <span>ดูประวัติ</span>
                                     </button>
@@ -327,7 +337,7 @@
                                 <div class="flex space-x-3"
                                     v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
                                     <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
-                                    <button v-if="!isEditingAssignee && form.user.id !== auth.user.id" type="button" @click="isEditingAssignee = true"
+                                    <button v-if="!isEditingAssignee" type="button" @click="isEditingAssignee = true"
                                         class="px-5 py-2.5 bg-blue-600 cursor-pointer hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor">
@@ -361,12 +371,8 @@
             </card>
         </div>
     </AppLayout>
-    <TicketLogsModal 
-        :visible="showLogsModal"
-        :logs="ticketLogs"
-        :referenceNumber="form.reference_number"
-        @close="closeLogsModal"
-    />
+    <TicketLogsModal :visible="showLogsModal" :logs="ticketLogs" :referenceNumber="form.reference_number"
+        @close="closeLogsModal" />
 </template>
 
 <script setup lang="ts">
@@ -459,7 +465,7 @@ const form = ref<TicketForm>({
     type_id: '',
     priority: '',
     contact: '',
-    user: { id: 0, name: '', email:'', role: '' },
+    user: { id: 0, name: '', email: '', role: '' },
     department_id: '',
     assignee: {
         assignee_id: 0,

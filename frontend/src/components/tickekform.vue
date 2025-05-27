@@ -10,7 +10,7 @@
 
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700">รายละเอียด <span class="text-red-500">*</span></label>
-                    <textarea id="description" v-model="description" placeholder="อธิบายรายละเอียดของปัญหา" class="input mt-1" rows="5" required />
+                    <textarea id="description" v-model="description" placeholder="อธิบายรายละเอียดของปัญหา" class="input mt-1" rows="3" required />
                 </div>
 
                 <div>
@@ -18,7 +18,7 @@
                     <input id="contact" v-model="contact" type="text" placeholder="เช่น เบอร์โทรศัพท์ หรือ อีเมล" class="input mt-1" required />
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
                     <div>
                         <label for="department" class="block text-sm font-medium text-gray-700">แผนก <span class="text-red-500">*</span></label>
                         <select id="department" v-model="department_id" class="input mt-1" required :disabled="loadingDepartments">
@@ -38,17 +38,18 @@
                             <option value="high">สูง</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700">ประเภท <span class="text-red-500">*</span></label>
+                        <select id="type" v-model="type_id" class="input mt-1" required :disabled="loadingTypes">
+                            <option disabled value="">{{ loadingTypes ? 'กำลังโหลด...' : '-- เลือกประเภท --' }}</option>
+                            <option v-if="!loadingTypes" v-for="type in types" :key="type.id" :value="type.id">
+                                {{ `${type.name}: ` }} {{ type.description }}
+                            </option>
+                        </select>
+                    </div>
                 </div>
 
-                <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700">ประเภท <span class="text-red-500">*</span></label>
-                    <select id="type" v-model="type_id" class="input mt-1" required :disabled="loadingTypes">
-                        <option disabled value="">{{ loadingTypes ? 'กำลังโหลด...' : '-- เลือกประเภท --' }}</option>
-                        <option v-if="!loadingTypes" v-for="type in types" :key="type.id" :value="type.id">
-                            {{ `${type.name}: ` }} {{ type.description }}
-                        </option>
-                    </select>
-                </div>
+                
 
                 <!-- <select v-model="status" class="input">
                     <option disabled value="">-- สถานะ --</option>
@@ -58,9 +59,13 @@
                     <option value="closed">ปิดแล้ว</option>
                 </select> -->
 
-                <div>
-                    <label for="files" class="block text-sm font-medium text-gray-700">แนบไฟล์ (สูงสุด 5 ไฟล์, ประเภท: PDF, JPG, PNG)</label>
-                    <input id="files" type="file" multiple @change="handleFileChange" class="input mt-1" accept=".pdf, .jpg, .jpeg, .png" />
+                <div class="mb-3">
+                    <label for="files" class="block text-sm font-medium text-gray-700 mb-1">เลือกไฟล์ (สูงสุด {{ maxFiles }} ไฟล์)</label>
+                    <input id="files" type="file" multiple @change="handleFileChange" class="iblock w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70" 
+                            accept=".pdf, .jpg, .jpeg, .png" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        ประเภทไฟล์ที่อนุญาต: PDF, JPG, PNG
+                    </p>
                     <p v-if="fileError" class="text-red-500 text-sm mt-1">{{ fileError }}</p>
                 </div>
                 
@@ -76,7 +81,13 @@
 
                 <p v-if="formError" class="text-red-500 text-sm">{{ formError }}</p>
 
-                <button type="submit" :disabled="isSubmitting" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
+                <button type="submit" :disabled="isSubmitting"
+                    class="flex items-center justify-center w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
                     {{ isSubmitting ? 'กำลังส่ง...' : 'ส่ง Ticket' }}
                 </button>
             </form>
@@ -113,6 +124,7 @@ const fileError = ref('')
 const isSubmitting = ref(false)
 const loadingDepartments = ref(false)
 const loadingTypes = ref(false)
+const maxFiles = 5
 
 function handleFileChange(event: Event) {
     fileError.value = '' // Reset file error
@@ -121,7 +133,6 @@ function handleFileChange(event: Event) {
 
     const selectedFiles = Array.from(input.files)
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
-    const maxFiles = 5
 
     if (selectedFiles.length > maxFiles) {
         fileError.value = `ไม่สามารถแนบไฟล์เกิน ${maxFiles} ไฟล์ได้`
