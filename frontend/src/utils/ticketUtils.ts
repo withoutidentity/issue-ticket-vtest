@@ -26,8 +26,8 @@ export interface Ticket {
     id?: number;
     name: string;
   };
-   priority?: '' | 'low' | 'medium' | 'high'; // เพิ่ม priority
-  contact?: string; // เพิ่ม contact
+   priority: 'low' | 'medium' | 'high'; // เพิ่ม priority
+  contact: string; // เพิ่ม contact
   comment?: string; // เพิ่ม comment
   files?: Array<{ id: number; filename: string; filepath: string; }>; // เพิ่ม files
   // files?: Array<{ id: number; filename: string; filepath: string; }>; // ถ้าต้องการค้นหาข้อมูลไฟล์ด้วย
@@ -94,6 +94,7 @@ export function searchTickets(tickets: Ticket[], searchTerm: string): Ticket[] {
       ticket.department?.name,
       ticket.status, // ค้นหาจาก key สถานะ (เช่น 'open')
       statusName(ticket.status), // ค้นหาจากชื่อสถานะภาษาไทย (เช่น 'เปิด')
+      ticket.priority,
       ticket.user?.name, // ชื่อผู้แจ้ง
       ticket.assignee?.name, // ชื่อผู้รับผิดชอบ
       ticket.ticket_types?.name, // ชื่อประเภท Ticket

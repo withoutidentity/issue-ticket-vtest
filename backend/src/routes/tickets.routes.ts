@@ -215,6 +215,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
         description: true, // เพิ่มตามความจำเป็น
         status: true,
         priority: true,
+        contact: true,
         created_at: true,
         updated_at: true,
         user_id: true,

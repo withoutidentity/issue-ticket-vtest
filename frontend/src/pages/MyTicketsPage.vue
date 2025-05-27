@@ -182,6 +182,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useRouter } from 'vue-router';
 import api from '@/api/axios-instance'; //Your configured axios instance
 import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket } from '@/utils/ticketUtils';
+import Swal from 'sweetalert2'; // Import SweetAlert2
 import * as XLSX from 'xlsx'; // Import the xlsx library
 
 
@@ -215,12 +216,14 @@ interface Ticket extends UtilTicket { // สามารถ extends จาก Ut
   title: string;
   description: string;
   status: 'open' | 'in_progress' | 'pending' | 'closed';
+  priority: 'low' | 'medium' | 'high';
+  contact: string;
   created_at: string;
   updated_at: string;
   department?: Department;
   assignee?: Assignee;
   user?: TicketCreatorInfo; // The user object (name, email) from API - ตรงกับ user ใน UtilTicket
-  // ticket_types?: { name: string; }; // Uncomment if needed
+  ticket_types?: { name: string; }; 
   // files?: Array<{ id: number; filename: string; filepath: string; }>; // Uncomment if needed
 }
 
@@ -449,9 +452,28 @@ const toggleSortDirection = () => {
   }
 };
 
+const statusName = (status: string) => {
+  switch (status) {
+    case "open":
+      return "รอดำเนินการ";
+    case "in_progress":
+      return "กำลังดำเนินการ";
+    case "pending":
+      return "รอดำเนินการ";
+    case "closed":
+      return "เสร็จสิ้น";
+    default:
+      return status;
+  }
+};
+
 const exportToExcel = () => {
   if (!filteredAndSearchedTickets.value || filteredAndSearchedTickets.value.length === 0) {
-    alert("ไม่มีข้อมูลให้ export");
+    Swal.fire({
+      icon: 'info',
+      title: 'ไม่มีข้อมูล',
+      text: 'ไม่พบข้อมูลตั๋วตามเงื่อนไขปัจจุบันสำหรับ Export',
+    });
     return;
   }
 
@@ -459,12 +481,16 @@ const exportToExcel = () => {
   const dataToExport = filteredAndSearchedTickets.value.map(ticket => ({
     'เลขอ้างอิง': ticket.reference_number,
     'หัวข้อ': ticket.title,
-    'คำอธิบาย': ticket.description,
+    'รายละเอียด': ticket.description,
     'แผนก': ticket.department?.name || "-",
-    'สถานะ': ticket.status, // Use the existing statusName function
+    'หมวดหมู่': ticket.ticket_types?.name || "-",
+    'ความสำคัญ': ticket.priority || "-",
+    'สถานะ': statusName(ticket.status), // Use the existing statusName function
     'ผู้แจ้ง': ticket.user?.name || "-",
+    'ติดต่อ': ticket.contact || "-",
     'วันที่สร้าง': formatDateDDMMYYYY(ticket.created_at), // Use the existing formatDate function
     'ผู้รับผิดชอบ': ticket.assignee?.name || "-",
+    'หมายเหตุ': ticket.comment || "-",
   }));
 
   // Create a new workbook and a new worksheet
@@ -479,6 +505,12 @@ const exportToExcel = () => {
 
   // Trigger the download
   XLSX.writeFile(wb, fileName);
+
+  Swal.fire({
+    icon: 'success',
+    title: 'Export สำเร็จ!',
+    text: `ไฟล์ ${fileName} ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`,
+  });
 };
 </script>
 

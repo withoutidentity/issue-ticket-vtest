@@ -199,6 +199,7 @@ import { useTicketStore } from "@/stores/ticketStore"; // Import ticket store
 import { config } from "@/config";
 import { useRouter } from 'vue-router'
 import * as XLSX from 'xlsx'; // Import the xlsx library
+import Swal from 'sweetalert2'; // Import SweetAlert2
 import api from '@/api/axios-instance'
 
 const router = useRouter()
@@ -242,6 +243,8 @@ const sortDirectionDashboard = ref<'asc' | 'desc' | null>(null); // For Dashboar
 
 const isStatusFilterDropdownOpen = ref(false);
 const statusFilterDropdown = ref<HTMLElement | null>(null); // Ref for the dropdown element
+
+console.log('Ticket Dashboard: ', ticketStore.tickets)
 
 const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
   statusFilterForTable.value = newStatus;
@@ -517,22 +520,30 @@ const toggleSortDirectionDashboard = () => {
   }
 };
 
+
 const exportToExcel = () => {
   if (!filteredTableTickets.value || filteredTableTickets.value.length === 0) {
-    alert("ไม่มีข้อมูลให้ export");
+    Swal.fire({
+      icon: 'info',
+      title: 'ไม่มีข้อมูล',
+      text: 'ไม่พบข้อมูลตั๋วตามเงื่อนไขปัจจุบันสำหรับ Export',
+    });
     return;
   }
-
-  // Map data to a simpler structure for Excel, customize as needed
+  
   const dataToExport = filteredTableTickets.value.map(ticket => ({
     'เลขอ้างอิง': ticket.reference_number,
     'หัวข้อ': ticket.title,
-    'คำอธิบาย': ticket.description,
+    'รายละเอียด': ticket.description,
     'แผนก': ticket.department?.name || "-",
+    'หมวดหมู่': ticket.ticket_types?.name || "-",
+    'ความสำคัญ': ticket.priority || "-",
     'สถานะ': statusName(ticket.status), // Use the existing statusName function
     'ผู้แจ้ง': ticket.user?.name || "-",
+    'ติดต่อ': ticket.contact || "-",
     'วันที่สร้าง': formatDateDDMMYYYY(ticket.created_at), // Use the existing formatDate function
     'ผู้รับผิดชอบ': ticket.assignee?.name || "-",
+    'หมายเหตุ': ticket.comment || "-",
   }));
 
   // Create a new workbook and a new worksheet
@@ -547,5 +558,11 @@ const exportToExcel = () => {
 
   // Trigger the download
   XLSX.writeFile(wb, fileName);
+
+  Swal.fire({
+    icon: 'success',
+    title: 'Export สำเร็จ!',
+    text: `ไฟล์ ${fileName} ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`,
+  });
 };
 </script>
