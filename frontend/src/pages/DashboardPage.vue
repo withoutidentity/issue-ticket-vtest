@@ -71,7 +71,7 @@
                 </div>
 
                 <!-- Reset button -->
-                <button @click="resetFilters"
+                <button @click="resetFilters" ref="resetButtonRef"
                   class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg cursor-pointer shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -237,6 +237,7 @@ const sortDirectionDashboard = ref<'asc' | 'desc' | null>(null); // For Dashboar
 
 const isStatusFilterDropdownOpen = ref(false);
 const statusFilterDropdown = ref<HTMLElement | null>(null); // Ref for the dropdown element
+const resetButtonRef = ref<HTMLButtonElement | null>(null); // Ref for the reset button
 
 console.log('Ticket Dashboard: ', ticketStore.tickets)
 
@@ -470,6 +471,9 @@ const resetFilters = () => {
 
   // Note: The handle... functions already clear other related filters when one is set.
   // This reset ensures everything goes back to default.
+
+  // Remove focus from the reset button
+  resetButtonRef.value?.blur();
 }
 
 const toggleSortDirectionDashboard = () => {
@@ -483,7 +487,7 @@ const toggleSortDirectionDashboard = () => {
 };
 
 
-const exportToExcel = () => {
+const exportToExcel = async () => { // Changed to async to await Swal
   if (!filteredTableTickets.value || filteredTableTickets.value.length === 0) {
     Swal.fire({
       icon: 'info',
@@ -491,6 +495,22 @@ const exportToExcel = () => {
       text: 'ไม่พบข้อมูลตั๋วตามเงื่อนไขปัจจุบันสำหรับ Export',
     });
     return;
+  }
+
+  // Add confirmation step
+  const result = await Swal.fire({
+    title: 'ยืนยันการ Export?',
+    text: `คุณต้องการ Export ข้อมูลตั๋วจำนวน ${filteredTableTickets.value.length} รายการเป็นไฟล์ Excel หรือไม่?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'ใช่, Export เลย!',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!result.isConfirmed) {
+    return; // User cancelled
   }
 
   const dataToExport = filteredTableTickets.value.map(ticket => ({

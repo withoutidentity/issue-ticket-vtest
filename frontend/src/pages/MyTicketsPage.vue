@@ -467,7 +467,7 @@ const statusName = (status: string) => {
   }
 };
 
-const exportToExcel = () => {
+const exportToExcel = async () => {
   if (!filteredAndSearchedTickets.value || filteredAndSearchedTickets.value.length === 0) {
     Swal.fire({
       icon: 'info',
@@ -476,6 +476,18 @@ const exportToExcel = () => {
     });
     return;
   }
+
+  const result = await Swal.fire({
+    title: 'ยืนยันการ Export?',
+    text: `คุณต้องการ Export ข้อมูลตั๋วจำนวน ${filteredAndSearchedTickets.value.length} รายการเป็นไฟล์ Excel หรือไม่?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'ใช่, Export เลย!',
+    cancelButtonText: 'ยกเลิก'
+  });
+
 
   // Map data to a simpler structure for Excel, customize as needed
   const dataToExport = filteredAndSearchedTickets.value.map(ticket => ({

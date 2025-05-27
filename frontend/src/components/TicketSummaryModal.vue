@@ -190,11 +190,27 @@ watch([modalSearchQuery, modalPerPage], () => {
 const prevModalPage = () => { if (modalCurrentPage.value > 1) modalCurrentPage.value--; };
 const nextModalPage = () => { if (modalCurrentPage.value < modalTotalPages.value) modalCurrentPage.value++; };
 
-const exportModalDataToExcel = () => {
+const exportModalDataToExcel = async () => {
   if (!filteredAndSearchedModalTickets.value || filteredAndSearchedModalTickets.value.length === 0) {
     Swal.fire('ไม่มีข้อมูล', 'ไม่พบข้อมูลสำหรับ Export ใน Modal นี้', 'info');
     return;
   }
+  
+  const result = await Swal.fire({
+    title: 'ยืนยันการ Export?',
+    text: `คุณต้องการ Export ข้อมูลตั๋วจำนวน ${filteredAndSearchedModalTickets.value.length} รายการเป็นไฟล์ Excel หรือไม่?`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'ใช่, Export เลย!',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!result.isConfirmed) {
+    return; // User cancelled
+  }
+
   const dataToExport = filteredAndSearchedModalTickets.value.map(ticket => ({
     'เลขอ้างอิง': ticket.reference_number,
     'หัวข้อ': ticket.title,
