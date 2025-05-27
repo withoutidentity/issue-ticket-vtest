@@ -4,12 +4,9 @@
       <cardcontent>
         <!-- <cardtitle>Dashboard</cardtitle> -->
         <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
-          <AdminDashboard v-if="auth.user.role === 'ADMIN'" @filter-status-changed="handleStatusFilterChange"
+          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user.role === 'OFFICER'" @filter-status-changed="handleStatusFilterChange"
             @filter-type-changed="handleTypeFilterChange" @filter-creation-date-changed="handleCreationDateFilterChange"
             @filter-department-changed="handleDepartmentFilterChange" />
-          <OfficerDashboard v-else-if="auth.user.role === 'OFFICER'"
-            @filter-officer-status-changed="handleOfficerStatusFilterChange"
-            @filter-officer-category-changed="handleOfficerCategoryFilterChange" />
         </div>
       </cardcontent>
     </card>
@@ -188,8 +185,7 @@ import AppLayout from "@/layouts/AppLayout.vue";
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
-import AdminDashboard from "./AdminDashboard.vue";
-import OfficerDashboard from "@/components/OfficerDashboard.vue"; // Import OfficerDashboard
+import AdminDashboard from "./AdminDashboard.vue"; // AdminDashboard is now used for both
 import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket } from '@/utils/ticketUtils';
 
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
@@ -236,8 +232,6 @@ const currentPage = ref(1);
 const statusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null);
 const typeFilterForTable = ref<string | null>(null);
 const departmentFilterForTable = ref<string | null>(null);
-const officerStatusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' | null>(null); // For Officer's own status filter
-const officerCategoryFilterForTable = ref<string | null>(null); // For Officer's category filter
 const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
 const sortDirectionDashboard = ref<'asc' | 'desc' | null>(null); // For DashboardPage sorting
 
@@ -262,8 +256,6 @@ const handleTypeFilterChange = (newType: string | null) => {
     statusFilterForTable.value = null;
     departmentFilterForTable.value = null;
     creationDateFilterForTable.value = null;
-    officerCategoryFilterForTable.value = null;
-    officerStatusFilterForTable.value = null;
   }
 };
 
@@ -273,8 +265,6 @@ const handleDepartmentFilterChange = (newDepartment: string | null) => {
     statusFilterForTable.value = null;
     typeFilterForTable.value = null;
     creationDateFilterForTable.value = null;
-    officerCategoryFilterForTable.value = null;
-    officerStatusFilterForTable.value = null;
   }
 };
 
@@ -284,66 +274,40 @@ const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilte
     statusFilterForTable.value = null;
     typeFilterForTable.value = null;
     departmentFilterForTable.value = null;
-    officerCategoryFilterForTable.value = null;
-    officerStatusFilterForTable.value = null;
   }
-};
-
-const handleOfficerStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
-  officerStatusFilterForTable.value = newStatus;
-  // When officer filters by their dashboard's status cards, clear other admin-level filters
-  statusFilterForTable.value = null;
-  typeFilterForTable.value = null;
-  departmentFilterForTable.value = null;
-  creationDateFilterForTable.value = null;
-  officerCategoryFilterForTable.value = null;
-  // The base officer department filter in filteredTableTickets will still apply
-};
-
-const handleOfficerCategoryFilterChange = (newCategory: string | null) => {
-  officerCategoryFilterForTable.value = newCategory;
-  // When officer filters by category, clear other admin-level and officer status filters
-  statusFilterForTable.value = null;
-  typeFilterForTable.value = null;
-  departmentFilterForTable.value = null;
-  creationDateFilterForTable.value = null;
-  officerStatusFilterForTable.value = null;
-  // The base officer department filter in filteredTableTickets will still apply
 };
 
 const filteredTableTickets = computed((): ticket[] => { // กำหนด type การคืนค่าให้ชัดเจน
   // เริ่มต้นด้วย type UtilTicket[] จาก store
   let processingTickets: UtilTicket[] = [...ticketStore.tickets];
 
-  // 1. Officer's department filter (if user is Officer)
-  if (auth.user?.role === 'OFFICER') {
-    const officerDepartmentId = auth.user?.department?.id;
-    if (officerDepartmentId !== undefined && officerDepartmentId !== null) {
-      processingTickets = processingTickets.filter(ticket => ticket.department?.id === officerDepartmentId);
-    } else {
-      processingTickets = [];
-    }
-  }
+  // 1. REMOVED: Officer's department filter. Now ADMIN and OFFICER see all tickets by default,
+  //    subject to filters from AdminDashboard component.
+  // if (auth.user?.role === 'OFFICER') {
+  //   const officerDepartmentId = auth.user?.department?.id;
+  //   if (officerDepartmentId !== undefined && officerDepartmentId !== null) {
+  //     processingTickets = processingTickets.filter(ticket => ticket.department?.id === officerDepartmentId);
+  //   } else {
+  //     processingTickets = []; // If officer has no department, they see no tickets.
+  //   }
+  // }
 
   // 2. Apply active filter from AdminDashboard or OfficerDashboard events
   //    The handle... functions ensure that only one of these high-level filters is active at a time
   //    by clearing others. For example, handleTypeFilterChange clears statusFilterForTable.
   // processingTickets ยังคงเป็น UtilTicket[] ตลอดการกรองเหล่านี้
 
-  if (officerStatusFilterForTable.value && auth.user?.role === 'OFFICER') {
-    processingTickets = processingTickets.filter(t => t.status === officerStatusFilterForTable.value);
-  }
-  else if (officerCategoryFilterForTable.value && auth.user?.role === 'OFFICER') {
-    processingTickets = processingTickets.filter(t => t.ticket_types?.name === officerCategoryFilterForTable.value);
-  }
-  // Admin Dashboard Filters
+  // Filters from AdminDashboard (now used by both ADMIN and OFFICER)
   // Note: statusFilterForTable is also v-model for the local dropdown.
   // If typeFilter, departmentFilter, or creationDateFilter are set by AdminDashboard,
   // their respective handle... functions will clear statusFilterForTable.
-  else if (typeFilterForTable.value) {
+
+  if (typeFilterForTable.value) {
     processingTickets = processingTickets.filter(t => t.ticket_types?.name === typeFilterForTable.value);
   }
-  else if (departmentFilterForTable.value && auth.user.role === 'ADMIN') {
+  // Apply department filter if it's active.
+  // This filter is set by AdminDashboard, which is visible to both ADMIN and OFFICER.
+  else if (departmentFilterForTable.value) {
     processingTickets = processingTickets.filter(t => t.department?.name === departmentFilterForTable.value);
   }
   else if (creationDateFilterForTable.value && creationDateFilterForTable.value.value) {
@@ -428,7 +392,7 @@ const handleClickOutsideStatusFilter = (event: MouseEvent) => {
     isStatusFilterDropdownOpen.value = false;
   }
 };
-watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, officerStatusFilterForTable, officerCategoryFilterForTable, sortDirectionDashboard], () => {
+watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, sortDirectionDashboard], () => {
   currentPage.value = 1;
 });
 
@@ -503,8 +467,6 @@ const resetFilters = () => {
   typeFilterForTable.value = null;
   departmentFilterForTable.value = null;
   creationDateFilterForTable.value = null;
-  officerStatusFilterForTable.value = null;
-  officerCategoryFilterForTable.value = null;
 
   // Note: The handle... functions already clear other related filters when one is set.
   // This reset ensures everything goes back to default.
@@ -530,7 +492,7 @@ const exportToExcel = () => {
     });
     return;
   }
-  
+
   const dataToExport = filteredTableTickets.value.map(ticket => ({
     'เลขอ้างอิง': ticket.reference_number,
     'หัวข้อ': ticket.title,

@@ -53,6 +53,13 @@
         </div>
       </div>
     </div>
+
+    <TicketSummaryModal
+      :visible="isSummaryModalVisible"
+      :tickets="ticketsForModal"
+      :status-title="modalStatusTitle"
+      @close="closeSummaryModal"
+    />
   </div>
 </template>
 
@@ -64,6 +71,7 @@ import api from '@/api/axios-instance'
 import { useTicketStore } from '@/stores/ticketStore'
 import { useAuthStore } from "@/stores/auth";
 import TicketCreationTrendChart from '@/components/TicketCreationTrendChart.vue'
+import TicketSummaryModal from '@/components/TicketSummaryModal.vue';
 
 
 const auth = useAuthStore();
@@ -90,24 +98,32 @@ interface Department {
 
 interface Ticket {
   id: number;
-  reference_number?: string;
+  reference_number: string;
   title: string;
   description: string;
-  ticket_types?: {
-    name: string;
-  }; // Assuming type_id refers to category
-  priority: "low" | "medium" | "high" | "";
-  contact: string;
-  department?: { // Ensure department includes id
-    id?: number;
-    name: string; 
-  }
-  status: "open" | "in_progress" | "pending" | "closed" | ""; // Ensure empty string is a valid status if applicable
-  assignee?: { name: string; }; // Optional assignee
-  comment?: string; // Optional comment
-  files?: { id: number; name: string; path: string; }[]; // Optional files
+  status: 'open' | 'in_progress' | 'pending' | 'closed'; // Removed null as status should always be one of these
   created_at: string;
-  user?: { name: string; email: string; }; // Optional user who created
+  updated_at: string;
+  department?: {
+    id?: number;
+    name: string;
+  };
+  assignee?: {
+    name: string;
+  };
+  user?: { // คนที่สร้าง Ticket (ผู้แจ้ง)
+    id: number;
+    name: string;
+    email?: string;
+  };
+  ticket_types?: { // ประเภทของ Ticket
+    id?: number;
+    name: string;
+  };
+  priority: 'low' | 'medium' | 'high'; // เพิ่ม priority
+  contact: string; // เพิ่ม contact
+  comment?: string; // เพิ่ม comment
+  files?: Array<{ id: number; filename: string; filepath: string; }>; // เพิ่ม files
 }
 
 
@@ -119,6 +135,11 @@ const types = ref<{ id: number; name: string }[]>([]);
 const creationDateFilter = ref<CreationDateFilter | null>(null);
 
 const ticketStore = useTicketStore()
+
+// For Summary Modal
+const isSummaryModalVisible = ref(false);
+const ticketsForModal = ref<Ticket[]>([]);
+const modalStatusTitle = ref('');
 
 
 import { Bar, Line } from 'vue-chartjs'
@@ -151,21 +172,39 @@ interface DepartmentSummary {
   count: number
 }
 
-function filterByStatus(statusToFilter: 'open' | 'in_progress' | 'pending' | 'closed' | 'total' ) {
+function filterByStatus(statusToFilter: 'open' | 'in_progress' | 'pending' | 'closed' | 'total') {
+  let title = '';
+  let filteredTicketsForModal: Ticket[] = [];
+  const allTicketsFromStore = ticketStore.tickets as Ticket[]; // Assuming ticketStore.tickets are of type Ticket or compatible
+
   if (statusToFilter === 'total') {
     statusFilter.value = null; // Set to null to show all tickets
+    title = 'ทั้งหมด';
+    filteredTicketsForModal = [...allTicketsFromStore];
   } else {
     statusFilter.value = statusToFilter; // Store the selected status
+    title = statusToFilter === 'open' ? 'รอดำเนินการ' :
+            statusToFilter === 'in_progress' ? 'กำลังดำเนินการ' :
+            statusToFilter === 'closed' ? 'ดำเนินการเสร็จ' :
+            statusToFilter === 'pending' ? 'รออะไหล่/การอนุมัติ' : ''; // Adjust if 'pending' is not a card status
+    filteredTicketsForModal = allTicketsFromStore.filter(ticket => ticket.status === statusToFilter);
   }
+
+  // Prepare data for the modal
+  modalStatusTitle.value = title;
+  ticketsForModal.value = filteredTicketsForModal;
+  isSummaryModalVisible.value = true;
+
+  // Clear other filters and emit for the main DashboardPage table
   typeFilter.value = null; // Clear type filter when status filter is applied
   departmentFilter.value = null; // Clear department filter
-  emit('filter-status-changed', statusFilter.value);
   creationDateFilter.value = null; // Clear creation date filter
+
+  emit('filter-status-changed', statusFilter.value); // This updates DashboardPage
   emit('filter-department-changed', null);
   emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
   emit('filter-type-changed', null); // Notify parent to clear type filter
 }
-
 
 const fetchTypes = async () => {
   try {
@@ -183,22 +222,37 @@ const typeName = computed(() => (typeId: number | "") => {
 });
 
 function handleDepartmentChartClick(departmentName: string) {
-  // console.log("[AdminDashboard] handleDepartmentChartClick called with departmentName:", departmentName);
+  const allTicketsFromStore = ticketStore.tickets as Ticket[];
+
   if (departmentFilter.value === departmentName) {
     departmentFilter.value = null; // Toggle off if the same department is clicked again
+    isSummaryModalVisible.value = false; // Close modal
   } else {
     departmentFilter.value = departmentName;
+
+    // Filter tickets for the modal
+    const filteredTicketsForModal = allTicketsFromStore.filter(
+      ticket => ticket.department?.name === departmentName
+    );
+    
+    // Prepare data for the modal
+    // We can reuse modalStatusTitle, or create a new one like modalDepartmentTitle if preferred for clarity
+    // For now, reusing modalStatusTitle for simplicity, the modal's title will be "รายการแจ้งปัญหา: [Department Name]"
+    modalStatusTitle.value = departmentName; 
+    ticketsForModal.value = filteredTicketsForModal;
+    isSummaryModalVisible.value = true;
   }
-  statusFilter.value = null; // Clear status filter when type filter is applied
+
+  // Clear other filters and emit for the main DashboardPage table
+  statusFilter.value = null; 
   creationDateFilter.value = null; // Clear creation date filter
-  typeFilter.value = null; // Clear type filter (if it were used for main table)
+  typeFilter.value = null; 
+
   emit('filter-department-changed', departmentFilter.value);
-  // console.log("[AdminDashboard] Emitting 'filter-department-changed' with value:", departmentFilter.value);
   emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
   emit('filter-status-changed', null); // Notify parent to clear status filter
   emit('filter-type-changed', null);
 }
-
 const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
   creationDateFilter.value = filter;
   if (filter) {
@@ -214,6 +268,10 @@ const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
   // Note: The TicketCreationTrendChart itself will update its bar colors
   // because its internal selectedBarOriginalKey changes, triggering a re-render.
   // If other charts needed to clear their selection, they'd need similar logic or props.
+};
+
+const closeSummaryModal = () => {
+  isSummaryModalVisible.value = false;
 };
 
 // --- Bar Chart for Ticket Trends by Department (Daily) ---
@@ -263,18 +321,19 @@ const processedDepartmentTrendData = computed(() => {
   const countsByDate: { [date: string]: number } = {}; // Initialize once before the loop
 
   const datasets = departments.value.map((dept, index) => {
-    dateLabels.forEach(label => countsByDate[label] = 0); // Reset for each department for THIS specific date label
-    
+    const departmentCountsOnDate: { [date: string]: number } = {};
+    dateLabels.forEach(label => departmentCountsOnDate[label] = 0);
+
     filteredTicketsForRange.forEach((ticket: Ticket) => {
-      if (ticket.department.id === dept.id) { // Group by department using ticket.department_id
+      if (ticket.department?.id === dept.id) {
         const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0];
-        if (countsByDate.hasOwnProperty(ticketDate)) {
-          countsByDate[ticketDate]++;
+        if (departmentCountsOnDate.hasOwnProperty(ticketDate)) { // แก้ไข: ใช้ตัวนับเฉพาะของแผนกนี้
+          departmentCountsOnDate[ticketDate]++;
         }
       }
     });
 
-    const data = dateLabels.map(label => countsByDate[label]);
+    const data = dateLabels.map(label => departmentCountsOnDate[label] || 0);
     const color = primaryColorsPalette[index % primaryColorsPalette.length];
 
     return {
