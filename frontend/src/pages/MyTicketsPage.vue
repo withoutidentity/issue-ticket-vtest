@@ -31,8 +31,8 @@
               </div>
 
               <!-- Dropdown กรองสถานะ -->
-              <div class="relative" ref="statusFilterDropdownMyTicketsRef">
-                <button @click="toggleStatusFilterDropdownMyTickets"
+              <div class="relative" ref="filterDropdownMyTicketsRef">
+                <button @click="toggleFilterDropdownMyTickets"
                   class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                   <!-- Filter Icon -->
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
@@ -42,30 +42,45 @@
                   </svg>
                 </button>
                 <!-- Dropdown List -->
-                <div v-if="isStatusFilterDropdownOpenMyTickets"
-                  class="absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0">
-                  <ul class="py-1">
-                    <li @click="selectStatusFilterMyTickets('total')"
+                <div v-if="isFilterDropdownOpenMyTickets"
+                  class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-80 overflow-y-auto">
+                  <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
+                  <ul class="pb-1 border-b border-gray-200">
+                    <li @click="applyMyTicketsFilter('status', 'total')"
                       class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                       ทั้งหมด
                     </li>
-                    <li @click="selectStatusFilterMyTickets('open')"
+                    <li @click="applyMyTicketsFilter('status', 'open')"
                       class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                       ใหม่
                     </li>
-                    <li @click="selectStatusFilterMyTickets('in_progress')"
+                    <li @click="applyMyTicketsFilter('status', 'in_progress')"
                       class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                       กำลังดำเนินการ
                     </li>
-                    <li @click="selectStatusFilterMyTickets('closed')"
+                    <li @click="applyMyTicketsFilter('status', 'closed')"
                       class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                       เสร็จสิ้น
                     </li>
                     <!-- เพิ่ม 'pending' ถ้าต้องการ -->
-                    <!-- <li @click="selectStatusFilterMyTickets('pending')"
+                    <!-- <li @click="applyMyTicketsFilter('status', 'pending')"
                       class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                     รอดำเนินการ
                   </li> -->
+                  </ul>
+                  <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
+                  <ul class="py-1">
+                    <li @click="applyMyTicketsFilter('department', null)"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                      ทั้งหมด (แผนก)
+                    </li>
+                    <li v-if="departmentsListMyTickets.length === 0 && !loadingDepartmentsMyTickets" class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
+                    <li v-if="loadingDepartmentsMyTickets" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
+                    <li v-for="dept in departmentsListMyTickets" :key="dept.id"
+                        @click="applyMyTicketsFilter('department', dept.id)"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
+                      {{ dept.name }}
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -233,11 +248,18 @@ const searchQuery = ref(''); // เพิ่ม ref สำหรับคำค�
 const perPage = ref(10);
 const currentPage = ref(1);
 const statusFilter = ref<'total' | 'open' | 'in_progress' | 'pending' | 'closed'>('total');
+const departmentFilterMyTickets = ref<number | null>(null);
 const sortDirection = ref<'asc' | 'desc' | null>(null); // null: unsorted, 'asc': oldest first, 'desc': newest first
 
-const isStatusFilterDropdownOpenMyTickets = ref(false);
-const statusFilterDropdownMyTicketsRef = ref<HTMLElement | null>(null);
+const isFilterDropdownOpenMyTickets = ref(false);
+const filterDropdownMyTicketsRef = ref<HTMLElement | null>(null);
 
+interface DepartmentListItem {
+  id: number;
+  name: string;
+}
+const departmentsListMyTickets = ref<DepartmentListItem[]>([]);
+const loadingDepartmentsMyTickets = ref(false);
 const officerCreatedTickets = computed(() => {
   if (!auth.user || typeof auth.user.id !== 'number') {
     // console.warn("OfficerMyTicketsPage: officerCreatedTickets - Auth user or ID invalid/missing.");
@@ -275,6 +297,11 @@ const filteredAndSearchedTickets = computed(() => {
   // Apply status filter
   if (statusFilter.value !== 'total') {
     tickets = tickets.filter(ticket => ticket.status === statusFilter.value);
+  }
+
+  // Apply department filter
+  if (departmentFilterMyTickets.value !== null) {
+    tickets = tickets.filter(ticket => ticket.department?.id === departmentFilterMyTickets.value);
   }
 
   // Apply sorting
@@ -366,10 +393,11 @@ onMounted(() => {
       }
     });
   }
-  document.addEventListener('click', handleClickOutsideStatusFilterMyTickets);
+  fetchDepartmentsListMyTickets();
+  document.addEventListener('click', handleClickOutsideFilterDropdownMyTickets);
 });
 
-watch([searchQuery, perPage, statusFilter, sortDirection], () => {
+watch([searchQuery, perPage, statusFilter, departmentFilterMyTickets, sortDirection], () => {
   currentPage.value = 1;
 });
 
@@ -382,7 +410,7 @@ watch(currentPage, (newPage) => {
 });
 
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutsideStatusFilterMyTickets);
+  document.removeEventListener('click', handleClickOutsideFilterDropdownMyTickets);
 });
 
 
@@ -418,23 +446,49 @@ const goToTicket = (id: number) => {
   router.push(`/tickets/${id}`);
 };
 
-const toggleStatusFilterDropdownMyTickets = () => {
-  isStatusFilterDropdownOpenMyTickets.value = !isStatusFilterDropdownOpenMyTickets.value;
-};
-
-const selectStatusFilterMyTickets = (selectedStatusValue: 'total' | 'open' | 'in_progress' | 'pending' | 'closed') => {
-  statusFilter.value = selectedStatusValue;
-  isStatusFilterDropdownOpenMyTickets.value = false;
-};
-
-const handleClickOutsideStatusFilterMyTickets = (event: MouseEvent) => {
-  if (statusFilterDropdownMyTicketsRef.value && !statusFilterDropdownMyTicketsRef.value.contains(event.target as Node)) {
-    isStatusFilterDropdownOpenMyTickets.value = false;
+const fetchDepartmentsListMyTickets = async () => {
+  loadingDepartmentsMyTickets.value = true;
+  try {
+    const res = await api.get(`/departments`);
+    departmentsListMyTickets.value = res.data as DepartmentListItem[];
+  } catch (error) {
+    console.error('MyTicketsPage: Failed to fetch departments list:', error);
+  } finally {
+    loadingDepartmentsMyTickets.value = false;
   }
 };
+
+const toggleFilterDropdownMyTickets = () => {
+  isFilterDropdownOpenMyTickets.value = !isFilterDropdownOpenMyTickets.value;
+};
+
+const applyMyTicketsFilter = (filterType: 'status' | 'department', value: 'total' | 'open' | 'in_progress' | 'pending' | 'closed' | number | null) => {
+  if (filterType === 'status') {
+    statusFilter.value = value as 'total' | 'open' | 'in_progress' | 'pending' | 'closed';
+    // Clear department filter when a status is selected from this dropdown
+    if (value !== 'total') { // or some other indicator that a specific status was chosen
+      departmentFilterMyTickets.value = null;
+    }
+  } else if (filterType === 'department') {
+    departmentFilterMyTickets.value = value as number | null;
+    // Clear status filter when a department is selected from this dropdown
+    if (value !== null) {
+      statusFilter.value = 'total'; // Reset status filter to 'all'
+    }
+  }
+  isFilterDropdownOpenMyTickets.value = false;
+};
+
+const handleClickOutsideFilterDropdownMyTickets = (event: MouseEvent) => {
+  if (filterDropdownMyTicketsRef.value && !filterDropdownMyTicketsRef.value.contains(event.target as Node)) {
+    isFilterDropdownOpenMyTickets.value = false;
+  }
+};
+
 const resetFilters = () => {
   searchQuery.value = '' // ล้างการค้นหา
   statusFilter.value = 'total' // กลับไปแสดงทั้งหมด
+  departmentFilterMyTickets.value = null; // ล้าง filter แผนก
   perPage.value = 10 // รีเซ็ตเป็นค่าเริ่มต้น
 
   // ถ้ามีตัวกรองอื่นๆ สามารถเพิ่มได้ที่นี่

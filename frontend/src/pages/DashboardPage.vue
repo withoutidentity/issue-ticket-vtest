@@ -36,8 +36,8 @@
                 </div>
 
                 <!-- Filter button -->
-                <div class="relative" ref="statusFilterDropdown">
-                  <button @click="toggleStatusFilterDropdown"
+                <div class="relative" ref="filterDropdownRef">
+                  <button @click="toggleFilterDropdown"
                     class="h-10 w-10 flex items-center justify-center border border-gray-300 cursor-pointer rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                     <!-- Filter Icon -->
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
@@ -47,24 +47,39 @@
                     </svg>
                   </button>
                   <!-- Dropdown List -->
-                  <div v-if="isStatusFilterDropdownOpen"
-                       class="absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0">
-                    <ul class="py-1">
-                      <li @click="selectStatusFilter(null)"
+                  <div v-if="isFilterDropdownOpen"
+                       class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-80 overflow-y-auto">
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
+                    <ul class="pb-1 border-b border-gray-200">
+                      <li @click="applyFilter('status', null)"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         ทั้งหมด
                       </li>
-                      <li @click="selectStatusFilter('open')"
+                      <li @click="applyFilter('status', 'open')"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         ใหม่
                       </li>
-                      <li @click="selectStatusFilter('in_progress')"
+                      <li @click="applyFilter('status', 'in_progress')"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         กำลังดำเนินการ
                       </li>
-                      <li @click="selectStatusFilter('closed')"
+                      <li @click="applyFilter('status', 'closed')"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         เสร็จสิ้น
+                      </li>
+                    </ul>
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
+                    <ul class="py-1">
+                      <li @click="applyFilter('department', null)"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        ทั้งหมด (แผนก)
+                      </li>
+                      <li v-if="departmentsList.length === 0 && !loadingDepartments" class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
+                      <li v-if="loadingDepartments" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
+                      <li v-for="dept in departmentsList" :key="dept.id"
+                          @click="applyFilter('department', dept.name)"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
+                        {{ dept.name }}
                       </li>
                     </ul>
                   </div>
@@ -235,11 +250,16 @@ const departmentFilterForTable = ref<string | null>(null);
 const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
 const sortDirectionDashboard = ref<'asc' | 'desc' | null>(null); // For DashboardPage sorting
 
-const isStatusFilterDropdownOpen = ref(false);
-const statusFilterDropdown = ref<HTMLElement | null>(null); // Ref for the dropdown element
+const isFilterDropdownOpen = ref(false);
+const filterDropdownRef = ref<HTMLElement | null>(null); // Ref for the dropdown element
 const resetButtonRef = ref<HTMLButtonElement | null>(null); // Ref for the reset button
 
-console.log('Ticket Dashboard: ', ticketStore.tickets)
+interface Department {
+  id: number;
+  name: string;
+}
+const departmentsList = ref<Department[]>([]);
+const loadingDepartments = ref(false);
 
 const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
   statusFilterForTable.value = newStatus;
@@ -370,29 +390,60 @@ onMounted(async () => {
   if (!ticketStore.tickets || ticketStore.tickets.length === 0) {
     ticketStore.fetchTickets();
   }
+  fetchDepartmentsList();
   // Add event listener for clicks outside the status filter dropdown
-  document.addEventListener('click', handleClickOutsideStatusFilter);
+  document.addEventListener('click', handleClickOutsideFilterDropdown);
 });
 
 onUnmounted(() => {
   // Remove event listener when component is unmounted
-  document.removeEventListener('click', handleClickOutsideStatusFilter);
+  document.removeEventListener('click', handleClickOutsideFilterDropdown);
 });
 
-const toggleStatusFilterDropdown = () => {
-  isStatusFilterDropdownOpen.value = !isStatusFilterDropdownOpen.value;
-};
-
-const selectStatusFilter = (status: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
-  statusFilterForTable.value = status; // This will trigger the handleStatusFilterChange if you want to keep that logic
-  isStatusFilterDropdownOpen.value = false;
-};
-
-const handleClickOutsideStatusFilter = (event: MouseEvent) => {
-  if (statusFilterDropdown.value && !statusFilterDropdown.value.contains(event.target as Node)) {
-    isStatusFilterDropdownOpen.value = false;
+const fetchDepartmentsList = async () => {
+  loadingDepartments.value = true;
+  try {
+    const res = await api.get(`/departments`);
+    departmentsList.value = res.data as Department[];
+  } catch (error) {
+    console.error('Failed to fetch departments list for filter dropdown:', error);
+    // Optionally, show an error to the user or set departmentsList to an empty array
+  } finally {
+    loadingDepartments.value = false;
   }
 };
+
+const toggleFilterDropdown = () => {
+  isFilterDropdownOpen.value = !isFilterDropdownOpen.value;
+};
+
+const applyFilter = (filterType: 'status' | 'department', value: string | null) => {
+  if (filterType === 'status') {
+    // Directly call handleStatusFilterChange to ensure consistent logic
+    // (like clearing other AdminDashboard filters if a status is explicitly chosen here)
+    handleStatusFilterChange(value as 'open' | 'in_progress' | 'pending' | 'closed' | null);
+    // If a status is chosen from this dropdown, ensure department filter from AdminDashboard is cleared
+    // This might be redundant if handleStatusFilterChange already does this, but good for clarity
+    if (value !== null) {
+        departmentFilterForTable.value = null; 
+    }
+  } else if (filterType === 'department') {
+    // Directly call handleDepartmentFilterChange
+    handleDepartmentFilterChange(value);
+     // If a department is chosen from this dropdown, ensure status filter from AdminDashboard is cleared
+    if (value !== null) {
+        statusFilterForTable.value = null;
+    }
+  }
+  isFilterDropdownOpen.value = false;
+};
+
+const handleClickOutsideFilterDropdown = (event: MouseEvent) => {
+  if (filterDropdownRef.value && !filterDropdownRef.value.contains(event.target as Node)) {
+    isFilterDropdownOpen.value = false;
+  }
+};
+
 watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, sortDirectionDashboard], () => {
   currentPage.value = 1;
 });

@@ -105,15 +105,24 @@
                     </span>
                     <span v-else>-</span>
                   </td>
-                  <td class="py-3 px-4 space-x-2 text-center">
+                  <td class="py-3 px-4 space-x-1 text-center">
                     <button @click="openEdit(user)"
-                      class="border px-3 py-1 cursor-pointer rounded hover:bg-gray-100">แก้ไขบทบาท</button>
+                      class="p-2 rounded-full hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors duration-150"
+                      title="แก้ไขบทบาท">
+                      <span class="material-icons text-lg">edit</span>
+                    </button>
                     <button
                       v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
                       @click="confirmOfficer(user.id)"
-                      class="border px-3 py-1 rounded text-green-600 cursor-pointer hover:bg-green-50">ยืนยัน Officer</button>
+                      class="p-2 rounded-full hover:bg-green-100 text-green-600 hover:text-green-800 transition-colors duration-150"
+                      title="ยืนยัน Officer">
+                      <span class="material-icons text-lg">how_to_reg</span>
+                    </button>
                     <button @click="bandUser(user.id)"
-                      class="border px-3 py-1 rounded text-red-600 cursor-pointer hover:bg-red-50">ระงับ</button>
+                      class="p-2 rounded-full hover:bg-red-100 text-red-600 hover:text-red-800 transition-colors duration-150"
+                      title="ระงับบัญชี">
+                      <span class="material-icons text-lg">block</span>
+                    </button>
                   </td>
                 </tr>
               </tbody>

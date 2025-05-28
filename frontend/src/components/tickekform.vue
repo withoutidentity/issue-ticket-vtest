@@ -1,8 +1,8 @@
 <template>
-    <cardtitle>สร้าง Ticket ใหม่</cardtitle>
     <card>
         <cardcontent>
-            <form @submit.prevent="submitTicket" class="space-y-4">
+            <cardtitle>สร้าง Ticket ใหม่</cardtitle>
+            <form @submit.prevent="submitTicket" class="space-y-4 mt-6">
                 <div>
                     <label for="title" class="block text-sm font-medium text-gray-700">หัวข้อปัญหา <span class="text-red-500">*</span></label>
                     <input id="title" v-model="title" type="text" placeholder="ระบุหัวข้อปัญหา" class="input mt-1" required />

@@ -1,17 +1,22 @@
 <template>
   <AppLayout>
-    <cardtitle>หน้าจัดการหมวดหมู่</cardtitle>
     <card>
       <cardcontent>
         <div class="space-y-6">
           <!-- ส่วนหัวกับปุ่มเพิ่ม -->
           <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-gray-800">รายการหมวดหมู่ทั้งหมด</h2>
-            <button 
-              @click="openAddModal" 
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="flex flex-col">
+              <cardtitle>หน้าจัดการหมวดหมู่</cardtitle>
+              <p class="text-sm text-gray-600 font-medium ml-3">
+                รายการหมวดหมู่ทั้งหมด: 
+                <span class="text-blue-600 font-semibold">{{ types.length }}</span>
+                หมวดหมู่
+              </p>
+            </div>
+            <button @click="openAddModal"
+              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
               เพิ่มหมวดหมู่
@@ -19,50 +24,43 @@
           </div>
 
           <!-- Modal เพิ่มหมวดหมู่ -->
-          <div v-if="isAddModalOpen" class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
+          <div v-if="isAddModalOpen"
+            class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
             <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
               <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 เพิ่มหมวดหมู่
               </h3>
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อหมวดหมู่ <span class="text-red-500">*</span></label>
-                  <input 
-                    v-model="newType.name" 
-                    type="text"
+                  <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อหมวดหมู่ <span
+                      class="text-red-500">*</span></label>
+                  <input v-model="newType.name" type="text"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    placeholder="กรอกชื่อหมวดหมู่" 
-                    @keyup.enter="addType" 
-                  />
+                    placeholder="กรอกชื่อหมวดหมู่" @keyup.enter="addType" />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย<span class="text-red-500">*</span></label>
-                  <textarea
-                    v-model="newType.description" 
-                    type="text" rows="3"
+                  <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย<span
+                      class="text-red-500">*</span></label>
+                  <textarea v-model="newType.description" type="text" rows="3"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    placeholder="กรอกคำอธิบาย" 
-                    @keyup.enter="addType">
+                    placeholder="กรอกคำอธิบาย" @keyup.enter="addType">
                   </textarea>
-                  
+
                 </div>
               </div>
               <div class="mt-6 flex justify-end space-x-3">
-                <button 
-                  @click="closeAddModal"
-                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                >
+                <button @click="closeAddModal"
+                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
                   ยกเลิก
                 </button>
-                <button 
-                  @click="addType"
+                <button @click="addType"
                   class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
-                  :disabled="!newType.name" 
-                  :class="{ 'opacity-50 cursor-not-allowed': !newType.name }"
-                >
+                  :disabled="!newType.name" :class="{ 'opacity-50 cursor-not-allowed': !newType.name }">
                   บันทึก
                 </button>
               </div>
@@ -70,48 +68,42 @@
           </div>
 
           <!-- Modal แก้ไขหมวดหมู่ -->
-          <div v-if="isEditModalOpen" class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
+          <div v-if="isEditModalOpen"
+            class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
             <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
               <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none"
+                  viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                 </svg>
                 แก้ไขหมวดหมู่
               </h3>
               <div class="space-y-4">
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อหมวดหมู่ <span class="text-red-500">*</span></label>
-                  <input 
-                    v-model="editingTypeData.name" 
-                    type="text"
+                  <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อหมวดหมู่ <span
+                      class="text-red-500">*</span></label>
+                  <input v-model="editingTypeData.name" type="text"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    placeholder="กรอกชื่อหมวดหมู่" 
-                    @keyup.enter="updateType" 
-                  />
+                    placeholder="กรอกชื่อหมวดหมู่" @keyup.enter="updateType" />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย<span class="text-red-500">*</span></label>
-                  <textarea
-                    v-model="editingTypeData.description" 
-                    rows="3"
+                  <label class="block text-sm font-medium text-gray-700 mb-1">คำอธิบาย<span
+                      class="text-red-500">*</span></label>
+                  <textarea v-model="editingTypeData.description" rows="3"
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-                    placeholder="กรอกคำอธิบาย"
-                  ></textarea>
+                    placeholder="กรอกคำอธิบาย"></textarea>
                 </div>
               </div>
               <div class="mt-6 flex justify-end space-x-3">
-                <button 
-                  @click="closeEditModal"
-                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200"
-                >
+                <button @click="closeEditModal"
+                  class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors duration-200">
                   ยกเลิก
                 </button>
-                <button 
-                  @click="updateType"
+                <button @click="updateType"
                   class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
-                  :disabled="!editingTypeData.name || !editingTypeData.description" 
-                  :class="{ 'opacity-50 cursor-not-allowed': !editingTypeData.name || !editingTypeData.description }"
-                >
+                  :disabled="!editingTypeData.name || !editingTypeData.description"
+                  :class="{ 'opacity-50 cursor-not-allowed': !editingTypeData.name || !editingTypeData.description }">
                   บันทึก
                 </button>
               </div>
@@ -123,9 +115,12 @@
             <table class="w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อหมวดหมู่</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">คำอธิบาย</th>
-                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">การดำเนินการ</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    ชื่อหมวดหมู่</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">คำอธิบาย
+                  </th>
+                  <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    การดำเนินการ</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
@@ -134,24 +129,22 @@
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ data.description }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex justify-end space-x-3 items-center">
-                      <button 
-                        @click="openEditModal(data)" 
-                        title="แก้ไข"
-                        class="text-blue-600 hover:text-blue-900 transition-colors duration-200 p-1 rounded hover:bg-blue-100"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      <button @click="openEditModal(data)" title="แก้ไข"
+                        class="text-blue-600 hover:text-blue-900 transition-colors duration-200 p-1 rounded hover:bg-blue-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                          stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
                       </button>
-                      <button 
-                        @click="confirmDelete(data.id)" 
-                        title="ลบ"
-                        class="text-red-600 hover:text-red-900 transition-colors duration-200 p-1 rounded hover:bg-red-100"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
+                      <button @click="confirmDelete(data.id)" title="ลบ"
+                        class="text-red-600 hover:text-red-900 transition-colors duration-200 p-1 rounded hover:bg-red-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                          stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
