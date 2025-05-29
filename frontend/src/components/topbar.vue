@@ -2,6 +2,7 @@
     <!-- Changed from fixed to sticky, removed left-0 right-0 -->
     <header :class="headerClass" class="px-6 py-3 flex justify-end sticky top-0 z-10 transition-colors duration-300">
         <div class="flex items-center space-x-2">
+            <Notification />
             <div class="w-8 h-8 bg-black rounded-full"></div>
             <span>{{ auth.user.name }}</span>
         </div>
@@ -10,6 +11,7 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted, onUnmounted, getCurrentInstance } from 'vue'
+import Notification from '@/components/Notification.vue'
 
 const auth = useAuthStore()
 const isScrolled = ref(false)

@@ -4,6 +4,8 @@ import { PrismaClient, TicketStatus, LogActionType, User } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
 import { uploadUser, uploadAssignee } from '../middleware/upload'
 import path from 'path'; // เพิ่ม import path
+import { io, connectedUsers } from '../index'; // 🟢 เพิ่ม import สำหรับ Socket.IO
+import { sendTelegramMessage } from '../utils/sendTelegram'; // 🟢 เพิ่ม import สำหรับ Telegram
 import { format, startOfDay, endOfDay } from 'date-fns'; // นำเข้า date-fns
 import fs from 'fs';
 import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController'; 
@@ -185,6 +187,69 @@ router.post(
         null, // old_value
         `Reference: ${newTicket.reference_number}` // new_value (summary with reference_number)
       );
+
+  // 🟢 เริ่ม: แจ้งเตือน OFFICER ที่ออนไลน์เมื่อมี Ticket ใหม่ (status: open)
+  if (newTicket.status === TicketStatus.open) {
+    const notificationMessageToOfficer = `ปัญหาใหม่ รหัส ${newTicket.reference_number} (${newTicket.title}) เข้ามาในระบบ`;
+    const eventTypeForOfficer = 'open_ticket_alert';
+
+    // ดึง ID ของ Officer ทั้งหมดที่ is_officer_confirmed เป็น true
+    const activeOfficers = await prisma.user.findMany({
+      where: {
+        role: 'OFFICER',
+        is_officer_confirmed: true, // พิจารณาว่าต้องการแจ้งเตือนเฉพาะ Officer ที่ confirmed หรือไม่
+      },
+      select: { id: true, telegram_chat_id: true },
+    });
+
+    for (const officer of activeOfficers) {
+      // สร้าง Notification ใน DB สำหรับ Officer แต่ละคน (ถ้ายังไม่มี)
+      // (ส่วนนี้คล้ายกับใน notification.routes.ts /check-open แต่ทำทันที)
+      let dbNotificationForOfficer = await prisma.notifications.findFirst({
+        where: { user_id: officer.id, ticket_id: newTicket.id, type: eventTypeForOfficer },
+      });
+
+      let wasNotificationNewlyCreated = false; // 🟢 ตัวแปรใหม่เพื่อติดตามว่า notification ถูกสร้างใหม่หรือไม่
+
+      if (!dbNotificationForOfficer) {
+        const createdDbNotification = await prisma.notifications.create({
+          data: {
+            user_id: officer.id,
+            ticket_id: newTicket.id,
+            message: notificationMessageToOfficer,
+            type: eventTypeForOfficer,
+            is_read: false,
+          },
+        });
+        dbNotificationForOfficer = createdDbNotification; // ใช้อันที่เพิ่งสร้าง
+        wasNotificationNewlyCreated = true; // 🟢 ตั้งค่าเป็น true เมื่อสร้างใหม่
+      }
+
+      const officerSocketId = connectedUsers.get(officer.id);
+      if (officerSocketId && dbNotificationForOfficer) { // ตรวจสอบว่ามี dbNotificationForOfficer ด้วย
+        console.log(`[Ticket Create] Emitting 'notification:new' (open_alert) to OFFICER ${officer.id} (socket ${officerSocketId}) for new ticket ${newTicket.id}`);
+        io.to(officerSocketId).emit('notification:new', {
+          userId: officer.id, // ID ของ Officer ผู้รับ
+          message: notificationMessageToOfficer,
+          ticketId: newTicket.id,
+          ticketCode: newTicket.reference_number,
+          type: eventTypeForOfficer,
+          timestamp: new Date().toISOString(),
+          // 🟢 เพิ่มข้อมูลจาก DB Notification ที่เกี่ยวข้อง
+          db_notification_id: dbNotificationForOfficer.id,
+          db_is_read: dbNotificationForOfficer.is_read,
+          db_created_at: dbNotificationForOfficer.created_at?.toISOString(),
+        });
+      }
+      // 🟢 ส่ง Telegram ไปยัง Officer ด้วย (ถ้ามี telegram_chat_id และเป็นการสร้าง notification ใหม่ใน DB)
+      // ใช้ wasNotificationNewlyCreated ในการตัดสินใจ
+      if (officer.telegram_chat_id && wasNotificationNewlyCreated) { // 🟢 แก้ไขเงื่อนไขตรงนี้
+        console.log(`[Ticket Create] Attempting to send Telegram to OFFICER ${officer.id} for new ticket ${newTicket.id}`);
+        await sendTelegramMessage(officer.telegram_chat_id, notificationMessageToOfficer);
+      }
+    }
+  }
+  // 🟢 สิ้นสุด: แจ้งเตือน OFFICER
 
       res.status(201).json(newTicket)
     } catch (error: any) {
@@ -693,6 +758,91 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
         updatedTicketStatus.status
       );
     }
+
+    // 🟢 เริ่ม: ส่งแจ้งเตือน Real-time ไปยังเจ้าของ Ticket เมื่อสถานะเปลี่ยน
+    if (oldTicket.status !== updatedTicketStatus.status) {
+      const ticketDetails = await prisma.ticket.findUnique({
+          where: { id: ticketId },
+          select: { user_id: true, reference_number: true, title: true } // ดึง user_id และ reference_number
+      });
+
+      if (ticketDetails && ticketDetails.user_id) {
+          const ownerUserId = ticketDetails.user_id;
+          let eventType: 'in_progress_alert' | 'done_alert' | null = null;
+          let dynamicMessage = "";
+
+          if (updatedTicketStatus.status === TicketStatus.in_progress) {
+              eventType = 'in_progress_alert';
+              dynamicMessage = `เจ้าหน้าที่กำลังดำเนินการกับ tickets รหัส ${ticketDetails.reference_number}`;
+          } else if (updatedTicketStatus.status === TicketStatus.closed) {
+              eventType = 'done_alert';
+              dynamicMessage = `เจ้าหน้าที่ดำเนินการเสร็จสิ้นแล้วสำหรับ Ticket รหัส ${ticketDetails.reference_number}`;
+          }
+
+          if (eventType) {
+              let dbNotification = await prisma.notifications.findFirst({
+                  where: {
+                      user_id: ownerUserId,
+                      ticket_id: ticketId,
+                      type: eventType,
+                  },
+              });
+
+              let shouldSendWebSocket = false;
+              let shouldSendTelegram = false;
+
+              if (!dbNotification) {
+                  const newNotification = await prisma.notifications.create({
+                      data: {
+                          user_id: ownerUserId,
+                          ticket_id: ticketId,
+                          message: dynamicMessage,
+                          type: eventType,
+                          is_read: false,
+                      },
+                  });
+                  dbNotification = newNotification;
+                  shouldSendWebSocket = true;
+                  shouldSendTelegram = true; // ส่ง Telegram เฉพาะเมื่อสร้าง Notification ใหม่ใน DB
+              } else if (!dbNotification.is_read) {
+                  // ถ้า Notification เดิมยังไม่อ่าน ให้ส่ง WebSocket ซ้ำเพื่อเตือน
+                  shouldSendWebSocket = true;
+              }
+
+              if (shouldSendWebSocket && dbNotification) {
+                  const socketId = connectedUsers.get(ownerUserId);
+                  console.log(`[Update Status] For USER ${ownerUserId}: Found socketId: ${socketId}. dbNotification ID: ${dbNotification.id}, is_read: ${dbNotification.is_read}`);
+                  if (socketId) {
+                      io.to(socketId).emit('notification:new', {
+                          userId: ownerUserId,
+                          message: dynamicMessage,
+                          ticketId: ticketId,
+                          ticketCode: ticketDetails.reference_number,
+                          type: eventType,
+                          timestamp: new Date().toISOString(),
+                          // 🟢 เพิ่ม field เหล่านี้เพื่อให้ Frontend ได้ข้อมูลครบถ้วน
+                          db_notification_id: dbNotification.id,
+                          db_is_read: dbNotification.is_read,
+                          db_created_at: dbNotification.created_at?.toISOString(),
+                      });
+                      console.log(`[Update Status] Emitted 'notification:new' to USER ${ownerUserId} (socket ${socketId}) for ticket ${ticketId}, status ${updatedTicketStatus.status}`);
+                  } else {
+                      console.log(`[Update Status] No socketId found for USER ${ownerUserId}. Cannot send WebSocket.`);
+                  }
+              }
+
+              if (shouldSendTelegram) { // ส่ง Telegram เฉพาะเมื่อสร้าง Notification ใหม่ใน DB
+                  console.log(`[Update Status] Attempting to send Telegram to USER ${ownerUserId} for ticket ${ticketId}, status ${updatedTicketStatus.status}. shouldSendTelegram: ${shouldSendTelegram}`);
+                  const owner = await prisma.user.findUnique({ where: { id: ownerUserId }, select: { telegram_chat_id: true } });
+                  if (owner?.telegram_chat_id) {
+                      await sendTelegramMessage(owner.telegram_chat_id, dynamicMessage);
+                      console.log(`[Update Status] Telegram sent to USER ${ownerUserId} for ticket ${ticketId}.`);
+                  }
+              }
+          }
+      }
+    }
+    // 🟢 สิ้นสุด: ส่งแจ้งเตือน Real-time
 
     res.status(200).json({
       message: 'Status updated successfully',

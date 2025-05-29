@@ -18,11 +18,13 @@ model User {
   refreshToken         String?
   department_id        Int?
   is_officer_confirmed Boolean              @default(false)
+  telegram_chat_id     String?              @db.VarChar(255)
   uploadedFiles        AssigneeFile[]       @relation("UserUploadedFiles")
   passwordResetTokens  PasswordResetToken[]
   actionLogs           TicketLog[]
   tickets_assigned     Ticket[]             @relation("TicketAssignee")
   tickets              Ticket[]
+  notifications        notifications[]
   department           Department?          @relation(fields: [department_id], references: [id])
 
   @@map("users")
@@ -57,6 +59,7 @@ model Ticket {
   assigneeFiles    AssigneeFile[]
   files            TicketFile[]
   logs             TicketLog[]
+  notifications    notifications[]
   assignee         User?           @relation("TicketAssignee", fields: [assignee_id], references: [id])
   department       Department?     @relation(fields: [department_id], references: [id])
   ticket_types     ticket_types?   @relation(fields: [type_id], references: [id])
@@ -128,6 +131,19 @@ model Department {
   users   User[]
 
   @@map("departments")
+}
+
+model notifications {
+  id         Int       @id @default(autoincrement())
+  user_id    Int
+  ticket_id  Int
+  message    String
+  is_read    Boolean?  @default(false)
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  updated_at DateTime? @default(now()) @db.Timestamp(6)
+  type       String    @db.VarChar(20)
+  user       User      @relation(fields: [user_id], references: [id])
+  ticket     Ticket    @relation(fields: [ticket_id], references: [id])
 }
 
 enum Role {

@@ -1,6 +1,7 @@
 // stores/auth.ts
 import { defineStore } from 'pinia'
-import axios from 'axios'
+// import axios from 'axios' // We'll use the api instance for login/refresh
+import api from '@/api/axios-instance' // 👈 Import your configured axios instance
 import { config } from '@/config'
 import Swal from 'sweetalert2';
 
@@ -18,25 +19,40 @@ interface User {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    accessToken: '',
-    user: { id: null, email: '', role: '', name: '', department: null, is_officer_confirmed: false},
+    accessToken: localStorage.getItem('accessToken') || null, // Initialize from localStorage
+    refreshToken: localStorage.getItem('refreshToken') || null, // Initialize from localStorage
+    user: JSON.parse(localStorage.getItem('user') || 'null') as User | null, // Initialize from localStorage
   }),
   // Note: department_id is removed from state as we store the full department objec
   getters: {
+    // 🟢 isAuthenticated getter
+    isAuthenticated: (state) => !!state.accessToken && !!state.user?.id,
     isAdmin: (state) => state.user?.role === 'ADMIN',
     isOfficer: (state) => state.user?.role === 'OFFICER',
     isUser: (state) => state.user?.role === 'USER',
     isConfirmedOfficer: (state) => state.user?.role === 'OFFICER' && state.user?.is_officer_confirmed === true, // <--- อาจจะเพิ่ม getter นี้เพื่อความสะดวก
   },
   actions: {
+    // 🟢 Action to initialize auth state from localStorage
+    initializeAuthFromStorage() {
+      this.accessToken = localStorage.getItem('accessToken') || null;
+      this.refreshToken = localStorage.getItem('refreshToken') || null;
+      this.user = JSON.parse(localStorage.getItem('user') || 'null');
+      // If token exists, set it in api instance default headers (if not already handled by request interceptor)
+      if (this.accessToken) {
+        api.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`;
+      }
+    },
     async login(email: string, password: string) {
       try {
-        const res = await axios.post(`${config.apiUrl}/api/auth/login`, { email, password });
+        const res = await api.post(`/auth/login`, { email, password }); // 👈 Use api instance
         this.accessToken = res.data.accessToken;
         this.refreshToken = res.data.refreshToken;
         this.user = res.data.user;
         localStorage.setItem('accessToken', this.accessToken);
         localStorage.setItem('refreshToken', res.data.refreshToken);
+        localStorage.setItem('user', JSON.stringify(this.user)); // 🟢 Store user object
+        api.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`; // 🟢 Set default header
         // console.log('user login: ', this.user)
         return this.user;
       } catch (error: any) {
@@ -80,25 +96,26 @@ export const useAuthStore = defineStore('auth', {
     },
     async refreshAccessToken() {
       try {
-        const res = await axios.post(`${config.apiUrl}/api/auth/refresh`, {
+        if (!this.refreshToken) {
+          console.warn('No refresh token available for refreshing access token.');
+          this.logout(); // Logout if no refresh token
+          throw new Error('No refresh token');
+        }
+        const res = await api.post(`/auth/refresh`, { // 👈 Use api instance
           token: this.refreshToken,
         })
         const newToken = res.data.accessToken;
         const newUser = res.data.user;
-        // console.log('new user refresh : ', newUser) //ใช้เสร็จลบด้วย
+
         this.accessToken = newToken;
         this.user = newUser; // Update user object from refresh response
         localStorage.setItem('accessToken', newToken); // Always update accessToken
-
-        this.user = newUser // Update user object from refresh response
-        localStorage.setItem('accessToken', newToken) // Always update accessToken
+        localStorage.setItem('user', JSON.stringify(this.user)); // 🟢 Update user in localStorage
+        api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`; // 🟢 Update default header
         if (res.data.refreshToken) { // Update refreshToken only if backend sends a new one
            this.refreshToken = res.data.refreshToken;
            localStorage.setItem('refreshToken', this.refreshToken);
         }
-
-        // console.log('Refreshed token:', newToken)
-        // console.log('local token: ',localStorage.getItem('accessToken'))
         
         return newToken
       } catch (err) {
@@ -116,19 +133,14 @@ export const useAuthStore = defineStore('auth', {
     },
 
     logout() {
-      this.accessToken = ''
-      this.user = { id: null, email: '', role: '', name: '', department: null }
-      localStorage.removeItem('accessToken')
-      localStorage.removeItem('refreshToken')
+      this.accessToken = null;
+      this.refreshToken = null;
+      this.user = null;
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user'); // 🟢 Remove user from localStorage
+      delete api.defaults.headers.common['Authorization']; // 🟢 Remove default header
     },
   },
   persist: true,
 })
-
-function parseJwt(token: string) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]))
-  } catch {
-    return {}
-  }
-}
