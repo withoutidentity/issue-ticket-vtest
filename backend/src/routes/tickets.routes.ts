@@ -188,7 +188,7 @@ router.post(
         `Reference: ${newTicket.reference_number}` // new_value (summary with reference_number)
       );
 
-  // 🟢 เริ่ม: แจ้งเตือน OFFICER ที่ออนไลน์เมื่อมี Ticket ใหม่ (status: open)
+  // เริ่ม: แจ้งเตือน OFFICER ที่ออนไลน์เมื่อมี Ticket ใหม่ (status: open)
   if (newTicket.status === TicketStatus.open) {
     const notificationMessageToOfficer = `ปัญหาใหม่ รหัส ${newTicket.reference_number} (${newTicket.title}) เข้ามาในระบบ`;
     const eventTypeForOfficer = 'open_ticket_alert';
@@ -516,7 +516,81 @@ router.put(
             );
           }
         }
-      } else {
+      } 
+        // 🟢 เริ่ม: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ (ย้ายมาจาก updateStatus)
+        // ตรวจสอบว่ามีการเปลี่ยนแปลงสถานะหรือไม่ และสถานะใหม่เป็นค่าที่ต้องการแจ้งเตือน
+        if (status !== undefined && oldTicket.status !== status) {
+          const ticketDetailsForNotification = await prisma.ticket.findUnique({
+            where: { id },
+            select: { user_id: true, reference_number: true, title: true }
+          });
+
+          if (ticketDetailsForNotification && ticketDetailsForNotification.user_id) {
+            const ownerUserId = ticketDetailsForNotification.user_id;
+            let eventType: 'in_progress_alert' | 'done_alert' | null = null;
+            let dynamicMessage = "";
+
+            if (status === TicketStatus.in_progress) {
+              eventType = 'in_progress_alert';
+              dynamicMessage = `เจ้าหน้าที่กำลังดำเนินการกับ tickets รหัส ${ticketDetailsForNotification.reference_number}`;
+            } else if (status === TicketStatus.closed) {
+              eventType = 'done_alert';
+              dynamicMessage = `เจ้าหน้าที่ดำเนินการเสร็จสิ้นแล้วสำหรับ Ticket รหัส ${ticketDetailsForNotification.reference_number}`;
+            }
+
+            if (eventType) {
+              let dbNotification = await prisma.notifications.findFirst({
+                where: {
+                  user_id: ownerUserId,
+                  ticket_id: id,
+                  type: eventType,
+                },
+              });
+
+              let shouldSendWebSocket = false;
+              let shouldSendTelegram = false;
+
+              if (!dbNotification) {
+                const newNotification = await prisma.notifications.create({
+                  data: {
+                    user_id: ownerUserId,
+                    ticket_id: id,
+                    message: dynamicMessage,
+                    type: eventType,
+                    is_read: false,
+                  },
+                });
+                dbNotification = newNotification;
+                shouldSendWebSocket = true;
+                shouldSendTelegram = true;
+              } else if (!dbNotification.is_read) {
+                shouldSendWebSocket = true;
+              }
+
+              if (shouldSendWebSocket && dbNotification) {
+                const socketId = connectedUsers.get(ownerUserId);
+                if (socketId) {
+                  io.to(socketId).emit('notification:new', {
+                    userId: ownerUserId, message: dynamicMessage, ticketId: id,
+                    ticketCode: ticketDetailsForNotification.reference_number, type: eventType,
+                    timestamp: new Date().toISOString(), db_notification_id: dbNotification.id,
+                    db_is_read: dbNotification.is_read, db_created_at: dbNotification.created_at?.toISOString(),
+                  });
+                  console.log(`[Ticket Update] Emitted 'notification:new' to USER ${ownerUserId} (socket ${socketId}) for ticket ${id}, status ${status}`);
+                }
+              }
+              if (shouldSendTelegram) {
+                console.log('send telagram')
+                const owner = await prisma.user.findUnique({ where: { id: ownerUserId }, select: { telegram_chat_id: true } });
+                if (owner?.telegram_chat_id) {
+                  await sendTelegramMessage(owner.telegram_chat_id, dynamicMessage);
+                  console.log(`[Ticket Update] Telegram sent to USER ${ownerUserId} for ticket ${id}, status ${status}.`);
+                }
+              }
+            }
+          }
+        
+        // 🟢 สิ้นสุด: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ
         console.warn('[DEBUG] Update was not successful OR ticket data missing in result, skipping log creation.');
       }
 
@@ -760,11 +834,13 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
     }
 
     // 🟢 เริ่ม: ส่งแจ้งเตือน Real-time ไปยังเจ้าของ Ticket เมื่อสถานะเปลี่ยน
-    if (oldTicket.status !== updatedTicketStatus.status) {
+    /* 🗑️ ลบ Logic การส่ง Notification จาก updateStatus/:id เพราะย้ายไปที่ update/:id แล้ว
       const ticketDetails = await prisma.ticket.findUnique({
           where: { id: ticketId },
           select: { user_id: true, reference_number: true, title: true } // ดึง user_id และ reference_number
       });
+
+      console.log(`[Update Status] Ticket ${ticketId} status changed from ${oldTicket.status} to ${updatedTicketStatus.status}. Ticket Details:`, ticketDetails);
 
       if (ticketDetails && ticketDetails.user_id) {
           const ownerUserId = ticketDetails.user_id;
@@ -787,6 +863,8 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
                       type: eventType,
                   },
               });
+
+              console.log(`สถานะที่กำลังเดินการ :`, eventType);
 
               let shouldSendWebSocket = false;
               let shouldSendTelegram = false;
@@ -841,7 +919,7 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
               }
           }
       }
-    }
+    */
     // 🟢 สิ้นสุด: ส่งแจ้งเตือน Real-time
 
     res.status(200).json({
