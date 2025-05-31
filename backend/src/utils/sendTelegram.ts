@@ -11,14 +11,20 @@ if (!TELEGRAM_BOT_TOKEN) {
 }
 
 
-export async function sendTelegramMessage(chatId: string, message: string) {
+export async function sendTelegramMessage(chatId: string, message: string, message_thread_id?: string) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const payload: any = {
+    chat_id: chatId,
+    text: message,
+  };
+
+  if (message_thread_id) {
+    payload.message_thread_id = message_thread_id;
+  }
+
   try {
-    await axios.post(url, {
-      chat_id: chatId,
-      text: message,
-    });
-    console.log(`ส่ง Telegram ถึง ${chatId}`);
+    await axios.post(url, payload);
+    console.log(`ส่ง Telegram ถึง ${chatId}${message_thread_id ? ` (Thread: ${message_thread_id})` : ''}: ${message}`);
   } catch (error) {
     console.error('Telegram Error:', error)
   }

@@ -20,11 +20,11 @@ model User {
   is_officer_confirmed Boolean              @default(false)
   telegram_chat_id     String?              @db.VarChar(255)
   uploadedFiles        AssigneeFile[]       @relation("UserUploadedFiles")
+  notifications        notifications[]
   passwordResetTokens  PasswordResetToken[]
   actionLogs           TicketLog[]
   tickets_assigned     Ticket[]             @relation("TicketAssignee")
   tickets              Ticket[]
-  notifications        notifications[]
   department           Department?          @relation(fields: [department_id], references: [id])
 
   @@map("users")
@@ -57,9 +57,9 @@ model Ticket {
   comment          String?
   reference_number String?         @unique @db.VarChar(255)
   assigneeFiles    AssigneeFile[]
+  notifications    notifications[]
   files            TicketFile[]
   logs             TicketLog[]
-  notifications    notifications[]
   assignee         User?           @relation("TicketAssignee", fields: [assignee_id], references: [id])
   department       Department?     @relation(fields: [department_id], references: [id])
   ticket_types     ticket_types?   @relation(fields: [type_id], references: [id])
@@ -125,10 +125,12 @@ model AssigneeFile {
 }
 
 model Department {
-  id      Int      @id @default(autoincrement())
-  name    String   @unique @db.VarChar(255)
-  tickets Ticket[]
-  users   User[]
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(255)
+  group_id  String?  @db.VarChar(255)
+  thread_id String[] @db.VarChar(255)
+  tickets   Ticket[]
+  users     User[]
 
   @@map("departments")
 }
@@ -142,8 +144,8 @@ model notifications {
   created_at DateTime? @default(now()) @db.Timestamp(6)
   updated_at DateTime? @default(now()) @db.Timestamp(6)
   type       String    @db.VarChar(20)
-  user       User      @relation(fields: [user_id], references: [id])
   ticket     Ticket    @relation(fields: [ticket_id], references: [id])
+  user       User      @relation(fields: [user_id], references: [id])
 }
 
 enum Role {

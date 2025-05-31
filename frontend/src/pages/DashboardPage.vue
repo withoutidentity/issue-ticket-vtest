@@ -143,7 +143,7 @@
               </thead>
               <tbody>
                 <tr v-for="ticket in paginatedTickets" :key="ticket.id"
-                  class="text-sm border-b align-top hover:bg-gray-50 cursor-pointer" @click="goToTicket(ticket.id)">
+                  class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer" @click="goToTicket(ticket.id)">
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
                   <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>

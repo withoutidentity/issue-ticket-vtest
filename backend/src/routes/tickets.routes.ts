@@ -246,17 +246,43 @@ router.post(
       if (officer.telegram_chat_id && wasNotificationNewlyCreated) {
         // Skip sending Telegram here since we'll send it once after the loop
       }
-      
+
     } // End of for loop
-        
-    // Send Telegram notification once after the loop
-    const firstOfficer = activeOfficers[0];
-    if (firstOfficer?.telegram_chat_id) {
-    console.log(`[Ticket Create] Sending single Telegram notification to chat group for new ticket ${newTicket.id}`);
-    await sendTelegramMessage(firstOfficer.telegram_chat_id, notificationMessageToOfficer);
+
+    // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram ไปยังกลุ่มแผนก IT ตามเงื่อนไข
+    if (newTicket.status === TicketStatus.open && newTicket.department_id) {
+      const itDepartment = await prisma.department.findUnique({
+        where: { name: 'it' }, 
+        select: { group_id: true, thread_id: true }
+      });
+
+      if (itDepartment && itDepartment.group_id && itDepartment.thread_id && itDepartment.thread_id.length > 0) {
+        const saleDepartment = await prisma.department.findUnique({
+          where: { name: 'sale' }, 
+          select: { id: true }
+        });
+        const hrDepartment = await prisma.department.findUnique({
+          where: { name: 'hr' },   
+          select: { id: true }
+        });
+
+        let targetThreadIdForIT: string | undefined = undefined;
+
+        if (newTicket.department_id === saleDepartment?.id && itDepartment.thread_id.length >= 1) {
+          targetThreadIdForIT = itDepartment.thread_id[0]; // ใช้ thread_id[0] แรกสำหรับแผนก Sale
+          console.log(`[Ticket Create] New ticket for 'Sale' dept. Notifying IT dept in thread: ${targetThreadIdForIT}`);
+        } else if (newTicket.department_id === hrDepartment?.id && itDepartment.thread_id.length >= 2) {
+          targetThreadIdForIT = itDepartment.thread_id[1]; // ใช้ thread_id[1] ที่สองสำหรับแผนก HR
+          console.log(`[Ticket Create] New ticket for 'HR' dept. Notifying IT dept in thread: ${targetThreadIdForIT}`);
+        }
+
+        if (targetThreadIdForIT) { // ส่งเมื่อมี targetThreadId ที่ตรงเงื่อนไขเท่านั้น
+          await sendTelegramMessage(itDepartment.group_id, notificationMessageToOfficer, targetThreadIdForIT);
+        }
+      }
     }
+    // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
   }
-  
   // สิ้นสุด: แจ้งเตือน OFFICER
 
       res.status(201).json(newTicket)
@@ -588,12 +614,60 @@ router.put(
                 }
               }
               if (shouldSendTelegram) {
-                console.log('send telagram')
-                const owner = await prisma.user.findUnique({ where: { id: ownerUserId }, select: { telegram_chat_id: true } }); // แก้ให้มันส่งเป็นแผนกแทน thread_id เดะมาคิด
-                if (owner?.telegram_chat_id) {
-                  await sendTelegramMessage(owner.telegram_chat_id, dynamicMessage);
-                  console.log(`[Ticket Update] Telegram sent to USER ${ownerUserId} for ticket ${id}, status ${status}.`);
+                // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram เมื่อสถานะ Ticket เปลี่ยน
+                const ticketDepartmentId = oldTicket.department_id; // department_id ของ Ticket ที่กำลังอัปเดต
+
+                // แจ้งเตือนไปยังกลุ่มของแผนกเจ้าของ Ticket
+                if (ticketDepartmentId) {
+                  const ticketOwnerDepartment = await prisma.department.findUnique({
+                    where: { id: ticketDepartmentId },
+                    select: { name: true, group_id: true, thread_id: true }
+                  });
+
+                  if (ticketOwnerDepartment?.group_id && ticketOwnerDepartment.thread_id) {
+                    let targetThreadIdForOwnerDept: string | undefined = undefined;
+                    if (status === TicketStatus.in_progress && ticketOwnerDepartment.thread_id.length >= 1) {
+                      targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[0];
+                    } else if (status === TicketStatus.closed && ticketOwnerDepartment.thread_id.length >= 2) {
+                      targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[1];
+                    }
+
+                    if (targetThreadIdForOwnerDept) {
+                      const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} เปลี่ยนสถานะเป็น: ${status}. ข้อความ: ${dynamicMessage}`;
+                      await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
+                      console.log(`[Ticket Update] Telegram sent to TICKET OWNER DEPARTMENT (${ticketOwnerDepartment.name}) group for ticket ${id}, status ${status}.`);
+                    }
+                  }
                 }
+
+                // แจ้งเตือนไปยังแผนก IT (เพิ่มเติม)
+                const itDepartment = await prisma.department.findUnique({
+                  where: { name: 'it' },
+                  select: { group_id: true, thread_id: true }
+                });
+
+                if (itDepartment?.group_id && itDepartment.thread_id && itDepartment.thread_id.length > 0) {
+                  const saleDepartmentInfo = await prisma.department.findUnique({ where: { name: 'sale' }, select: { id: true, name: true } });
+                  const hrDepartmentInfo = await prisma.department.findUnique({ where: { name: 'hr' }, select: { id: true, name: true } });
+
+                  let targetThreadIdForIT: string | undefined = undefined;
+                  let originalTicketDeptName = "ไม่ทราบแผนก";
+
+                  if (ticketDepartmentId === saleDepartmentInfo?.id && itDepartment.thread_id.length >= 1) {
+                    targetThreadIdForIT = itDepartment.thread_id[0];
+                    originalTicketDeptName = saleDepartmentInfo.name;
+                  } else if (ticketDepartmentId === hrDepartmentInfo?.id && itDepartment.thread_id.length >= 2) {
+                    targetThreadIdForIT = itDepartment.thread_id[1];
+                    originalTicketDeptName = hrDepartmentInfo.name;
+                  }
+
+                  if (targetThreadIdForIT) {
+                    const messageToIT = `Ticket รหัส ${ticketDetailsForNotification.reference_number} (แผนก: ${originalTicketDeptName}) เปลี่ยนสถานะเป็น: ${status}. ข้อความ: ${dynamicMessage}`;
+                    await sendTelegramMessage(itDepartment.group_id, messageToIT, targetThreadIdForIT);
+                    console.log(`[Ticket Update] Telegram sent to IT DEPARTMENT group for ticket ${id} (orig dept: ${originalTicketDeptName}), status ${status}.`);
+                  }
+                }
+                // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
               }
             }
           }
