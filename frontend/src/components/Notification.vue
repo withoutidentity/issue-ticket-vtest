@@ -41,7 +41,7 @@
                   'animate-fadeInUp'
                 ]"
                 :style="{ animationDelay: `${index * 80}ms` }"
-                @click="goToTicket(noti.ticketId)"
+                @click="goToTicket(noti)"
               >
                 <p class="text-sm flex items-center gap-2">
                   <span :class="`material-symbols-outlined text-base ${getIconColor(noti.type)}`">
@@ -69,7 +69,7 @@
                   'animate-fadeInUp'
                 ]"
                 :style="{ animationDelay: `${index * 80}ms` }"
-                @click="goToTicket(noti.ticketId)"
+                @click="goToTicket(noti)"
               >
                 <p class="text-sm flex items-center gap-2">
                   <span class="material-symbols-outlined text-base text-blue-500">info</span>
@@ -113,11 +113,32 @@ const currentUserId = computed(() => auth.user?.id);
 const currentUserRole = computed(() => auth.user?.role);
 
 const router = useRouter()
+const LAST_CLEARED_TIMESTAMP_KEY_PREFIX = 'notificationsLastClearedTimestamp_';
 
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value
+  // if (showDropdown.value) { // 🗑️ ลบการเรียก markUnreadAsRead() เดิมออก
+  //   markUnreadAsRead()
+  // }
   if (showDropdown.value) {
-    markUnreadAsRead()
+    // เมื่อเปิด dropdown, ทำให้ badge ตัวเลขหายไป โดยตั้ง unreadCount เป็น 0 ชั่วคราวสำหรับการแสดงผล
+    unreadCount.value = 0;
+
+    // เก็บ timestamp ของการแจ้งเตือนล่าสุด (หรือเวลาปัจจุบันถ้าไม่มี) เพื่อใช้เป็นจุดอ้างอิงว่าเคลียร์ badge ถึงเมื่อไหร่
+    if (currentUserId.value) {
+      let latestTimestamp = new Date().toISOString();
+      if (notifications.value.length > 0) {
+        // Sort by timestamp descending to get the newest
+        const sortedNotifications = [...notifications.value].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        latestTimestamp = sortedNotifications[0].timestamp;
+      }
+      localStorage.setItem(LAST_CLEARED_TIMESTAMP_KEY_PREFIX + currentUserId.value, latestTimestamp);
+    }
+  } else {
+    // เมื่อปิด dropdown, คำนวณ unreadCount ใหม่ตามจำนวนที่ยังไม่อ่านจริง
+    // เพื่อให้ badge แสดงผลถูกต้องหากผู้ใช้ปิดไปโดยไม่ได้อ่าน item ใดๆ
+    // การคำนวณนี้จะเคารพ lastClearedTimestamp ผ่าน calculateUnreadCountForBadge
+    unreadCount.value = calculateUnreadCountForBadge(notifications.value);
   }
 }
 
@@ -137,6 +158,21 @@ function groupNotificationsByDay() {
   return grouped
 }
 
+// Helper function to calculate unread count for the badge, respecting the last cleared timestamp
+function calculateUnreadCountForBadge(notificationsArray) {
+  if (!currentUserId.value) {
+    return notificationsArray.filter(n => !n.read).length; // Fallback if no user ID
+  }
+  const lastClearedTsString = localStorage.getItem(LAST_CLEARED_TIMESTAMP_KEY_PREFIX + currentUserId.value);
+
+  if (lastClearedTsString) {
+    const lastClearedDate = new Date(lastClearedTsString);
+    return notificationsArray.filter(n => !n.read && new Date(n.timestamp) > lastClearedDate).length;
+  } else {
+    return notificationsArray.filter(n => !n.read).length; // No timestamp stored, count all unread
+  }
+}
+
 async function fetchNotifications() {
   try {
     const res = await api.get(`/notifications`)
@@ -149,7 +185,7 @@ async function fetchNotifications() {
       read: n.is_read,
       type: n.type
     }))
-    unreadCount.value = notifications.value.filter(n => !n.read).length
+    unreadCount.value = calculateUnreadCountForBadge(notifications.value);
   } catch (err) {
     console.error('โหลดแจ้งเตือนไม่ได้:', err)
   }
@@ -157,15 +193,20 @@ async function fetchNotifications() {
 
 async function markUnreadAsRead() {
   const unread = notifications.value.filter(n => !n.read)
-  for (const noti of unread) {
+ if (unread.length === 0) return; // แก้ไข: ใช้ unread.length
+ // เราจะ Mark all unread notifications as read
+  // Backend อาจจะมี endpoint สำหรับ mark-all-as-read หรือเราจะวน loop เรียก mark-read/:id
+  // ในที่นี้จะใช้วิธีวน loop เรียก mark-read/:id เหมือนเดิม
+  for (const noti of unread) { // แก้ไข: ใช้ unread
     try {
       await api.post(`/notifications/mark-read/${noti.id}`)
       noti.read = true
     } catch (err) {
-      console.error('Mark as read failed:', err)
+      console.error(`Mark as read failed for notification ${noti.id}:`, err)
     }
   }
-  unreadCount.value = 0
+  // อัปเดต unreadCount หลังจาก mark ทั้งหมดแล้ว
+  unreadCount.value = calculateUnreadCountForBadge(notifications.value);
 }
 
 async function checkDoneNotifications() {
@@ -247,9 +288,25 @@ function timeAgo(dateStr) {
   return `${years} ปีที่แล้ว`;
 }
 
-function goToTicket(ticketId) {
-  showDropdown.value = false
-  router.push(`/tickets/${ticketId}`)
+  async function goToTicket(notificationItem) {
+  // Mark this specific notification as read if it's not already
+  if (!notificationItem.read) {
+    try {
+      await api.post(`/notifications/mark-read/${notificationItem.id}`);
+      // Find the notification in the local array and update its 'read' status
+      const notiInArray = notifications.value.find(n => n.id === notificationItem.id);
+      if (notiInArray) {
+        notiInArray.read = true;
+      }
+      // Recalculate unread count
+      unreadCount.value = calculateUnreadCountForBadge(notifications.value);
+    } catch (err) {
+      console.error(`Failed to mark notification ${notificationItem.id} as read:`, err);
+      // Continue navigation even if marking as read fails
+    }
+  }
+  showDropdown.value = false; // Close dropdown
+  router.push(`/tickets/${notificationItem.ticketId}`); // Navigate to the ticket
 }
 
 function handleClickOutside(event) {
@@ -382,7 +439,7 @@ onMounted(async () => { // 🟢 ทำให้ onMounted เป็น async
       // เรียงลำดับการแจ้งเตือนใหม่ตามเวลา (ใหม่สุดไปเก่าสุด)
       notifications.value.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       // อัปเดตจำนวนที่ยังไม่อ่าน
-      unreadCount.value = notifications.value.filter(n => !n.read).length;
+      unreadCount.value = calculateUnreadCountForBadge(notifications.value);
     } else {
       // Log นี้มีอยู่แล้ว แต่เพิ่ม context ให้ชัดเจน
       console.log('[Notification Skip] Notification not relevant for current user/role or filtered out by shouldDisplay logic.', JSON.parse(JSON.stringify(newNotiData)));

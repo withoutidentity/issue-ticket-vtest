@@ -14,6 +14,7 @@
                 {{ form.reference_number }}: {{ form.title }}
             </cardtitle>
         </div>
+        <div class="ml-40">ผู้แจ้ง: {{form.user.name}}</div>
         <card>
             <cardcontent>
                 <form @submit.prevent="handleSubmit" class="w-full bg-white rounded-xl overflow-hidden p-6">
@@ -86,7 +87,7 @@
                             <div
                                 v-if="auth.user.role === 'USER' || auth.user.role === 'OFFICER' && form.user.id === auth.user.id">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                                <select v-model="form.status" :disabled="!isEditing"
+                                <select v-model="form.status" :disabled="!isEditing || form.status === 'closed'"
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                     :class="{ 'bg-gray-50': !isEditing }">
                                     <option value="open">รอดำเนินการ</option>
@@ -281,7 +282,7 @@
                                 <div
                                     v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER' && form.user.id !== auth.user.id">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                                    <select v-model="form.status" :disabled="!isEditingAssignee"
+                                    <select v-model="form.status" :disabled="!isEditingAssignee || form.status === 'closed'"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                         :class="{ 'bg-gray-50': !isEditingAssignee }">
                                         <option value="open">รอดำเนินการ</option>

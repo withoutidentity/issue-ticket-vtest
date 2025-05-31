@@ -5,7 +5,6 @@
             <Notification />
             <div class="w-8 h-8 bg-black rounded-full"></div>
             <span>{{ auth.user.name }}</span>
-            <span>{{ auth.user.id }}</span>
         </div>
     </header>
 </template>

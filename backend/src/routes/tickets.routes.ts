@@ -4,8 +4,8 @@ import { PrismaClient, TicketStatus, LogActionType, User } from '@prisma/client'
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
 import { uploadUser, uploadAssignee } from '../middleware/upload'
 import path from 'path'; // เพิ่ม import path
-import { io, connectedUsers } from '../index'; // 🟢 เพิ่ม import สำหรับ Socket.IO
-import { sendTelegramMessage } from '../utils/sendTelegram'; // 🟢 เพิ่ม import สำหรับ Telegram
+import { io, connectedUsers } from '../index'; // เพิ่ม import สำหรับ Socket.IO
+import { sendTelegramMessage } from '../utils/sendTelegram'; // เพิ่ม import สำหรับ Telegram
 import { format, startOfDay, endOfDay } from 'date-fns'; // นำเข้า date-fns
 import fs from 'fs';
 import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController'; 
@@ -209,7 +209,7 @@ router.post(
         where: { user_id: officer.id, ticket_id: newTicket.id, type: eventTypeForOfficer },
       });
 
-      let wasNotificationNewlyCreated = false; // 🟢 ตัวแปรใหม่เพื่อติดตามว่า notification ถูกสร้างใหม่หรือไม่
+      let wasNotificationNewlyCreated = false; // ตัวแปรใหม่เพื่อติดตามว่า notification ถูกสร้างใหม่หรือไม่
 
       if (!dbNotificationForOfficer) {
         const createdDbNotification = await prisma.notifications.create({
@@ -222,7 +222,7 @@ router.post(
           },
         });
         dbNotificationForOfficer = createdDbNotification; // ใช้อันที่เพิ่งสร้าง
-        wasNotificationNewlyCreated = true; // 🟢 ตั้งค่าเป็น true เมื่อสร้างใหม่
+        wasNotificationNewlyCreated = true; // ตั้งค่าเป็น true เมื่อสร้างใหม่
       }
 
       const officerSocketId = connectedUsers.get(officer.id);
@@ -235,21 +235,29 @@ router.post(
           ticketCode: newTicket.reference_number,
           type: eventTypeForOfficer,
           timestamp: new Date().toISOString(),
-          // 🟢 เพิ่มข้อมูลจาก DB Notification ที่เกี่ยวข้อง
+          // เพิ่มข้อมูลจาก DB Notification ที่เกี่ยวข้อง
           db_notification_id: dbNotificationForOfficer.id,
           db_is_read: dbNotificationForOfficer.is_read,
           db_created_at: dbNotificationForOfficer.created_at?.toISOString(),
         });
       }
-      // 🟢 ส่ง Telegram ไปยัง Officer ด้วย (ถ้ามี telegram_chat_id และเป็นการสร้าง notification ใหม่ใน DB)
+      // ส่ง Telegram ไปยัง Officer ด้วย (ถ้ามี telegram_chat_id และเป็นการสร้าง notification ใหม่ใน DB)
       // ใช้ wasNotificationNewlyCreated ในการตัดสินใจ
-      if (officer.telegram_chat_id && wasNotificationNewlyCreated) { // 🟢 แก้ไขเงื่อนไขตรงนี้
-        console.log(`[Ticket Create] Attempting to send Telegram to OFFICER ${officer.id} for new ticket ${newTicket.id}`);
-        await sendTelegramMessage(officer.telegram_chat_id, notificationMessageToOfficer);
+      if (officer.telegram_chat_id && wasNotificationNewlyCreated) {
+        // Skip sending Telegram here since we'll send it once after the loop
       }
+      
+    } // End of for loop
+        
+    // Send Telegram notification once after the loop
+    const firstOfficer = activeOfficers[0];
+    if (firstOfficer?.telegram_chat_id) {
+    console.log(`[Ticket Create] Sending single Telegram notification to chat group for new ticket ${newTicket.id}`);
+    await sendTelegramMessage(firstOfficer.telegram_chat_id, notificationMessageToOfficer);
     }
   }
-  // 🟢 สิ้นสุด: แจ้งเตือน OFFICER
+  
+  // สิ้นสุด: แจ้งเตือน OFFICER
 
       res.status(201).json(newTicket)
     } catch (error: any) {
@@ -517,7 +525,7 @@ router.put(
           }
         }
       } 
-        // 🟢 เริ่ม: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ (ย้ายมาจาก updateStatus)
+        // เริ่ม: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ (ย้ายมาจาก updateStatus)
         // ตรวจสอบว่ามีการเปลี่ยนแปลงสถานะหรือไม่ และสถานะใหม่เป็นค่าที่ต้องการแจ้งเตือน
         if (status !== undefined && oldTicket.status !== status) {
           const ticketDetailsForNotification = await prisma.ticket.findUnique({
@@ -581,7 +589,7 @@ router.put(
               }
               if (shouldSendTelegram) {
                 console.log('send telagram')
-                const owner = await prisma.user.findUnique({ where: { id: ownerUserId }, select: { telegram_chat_id: true } });
+                const owner = await prisma.user.findUnique({ where: { id: ownerUserId }, select: { telegram_chat_id: true } }); // แก้ให้มันส่งเป็นแผนกแทน thread_id เดะมาคิด
                 if (owner?.telegram_chat_id) {
                   await sendTelegramMessage(owner.telegram_chat_id, dynamicMessage);
                   console.log(`[Ticket Update] Telegram sent to USER ${ownerUserId} for ticket ${id}, status ${status}.`);
@@ -590,7 +598,7 @@ router.put(
             }
           }
         
-        // 🟢 สิ้นสุด: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ
+        // สิ้นสุด: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ
         console.warn('[DEBUG] Update was not successful OR ticket data missing in result, skipping log creation.');
       }
 
@@ -833,7 +841,7 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
       );
     }
 
-    // 🟢 เริ่ม: ส่งแจ้งเตือน Real-time ไปยังเจ้าของ Ticket เมื่อสถานะเปลี่ยน
+    // เริ่ม: ส่งแจ้งเตือน Real-time ไปยังเจ้าของ Ticket เมื่อสถานะเปลี่ยน
     /* 🗑️ ลบ Logic การส่ง Notification จาก updateStatus/:id เพราะย้ายไปที่ update/:id แล้ว
       const ticketDetails = await prisma.ticket.findUnique({
           where: { id: ticketId },
@@ -898,7 +906,7 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
                           ticketCode: ticketDetails.reference_number,
                           type: eventType,
                           timestamp: new Date().toISOString(),
-                          // 🟢 เพิ่ม field เหล่านี้เพื่อให้ Frontend ได้ข้อมูลครบถ้วน
+                          // เพิ่ม field เหล่านี้เพื่อให้ Frontend ได้ข้อมูลครบถ้วน
                           db_notification_id: dbNotification.id,
                           db_is_read: dbNotification.is_read,
                           db_created_at: dbNotification.created_at?.toISOString(),
@@ -920,7 +928,7 @@ router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequ
           }
       }
     */
-    // 🟢 สิ้นสุด: ส่งแจ้งเตือน Real-time
+    // สิ้นสุด: ส่งแจ้งเตือน Real-time
 
     res.status(200).json({
       message: 'Status updated successfully',
