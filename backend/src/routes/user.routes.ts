@@ -80,29 +80,6 @@ router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']
     });
   }
 
-  // const updatedUser = {
-  //   id: userId,
-  //   role,
-  //   updatedAt: new Date(),
-  // };
-
-  // console.log('user: ',updatedUser)
-  // res.status(200).json({
-  //   message: 'User updated successfully',
-  //   data: updatedUser,
-  // });
-
-  // try {
-  //   const updatedUser = await prisma.user.update({
-  //     where: { id: userId },
-  //     data: { role },
-  //   })
-
-  //   res.json(updatedUser)
-  // } catch (error) {
-  //   console.error('Failed to update user:', error)
-  //   res.status(500).json({ error: 'Failed to update user' })
-  // }
 })
 
 // PATCH /api/users/:userId/confirm-officer - Confirm an officer account

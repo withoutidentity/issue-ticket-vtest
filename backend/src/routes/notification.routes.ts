@@ -102,17 +102,6 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
         console.log(`[Notification/check-inprogress] Conditions not met to send WebSocket for user ${userId}, ticket ${ticket.id}. shouldSendWebSocket: ${shouldSendWebSocket}, dbNotification exists: ${!!dbNotification}`);
       }
 
-      // หากต้องส่ง Telegram (เฉพาะการแจ้งเตือนใหม่)
-      if (shouldSendTelegram) {
-        console.log(`[Notification/check-inprogress] Attempting to send Telegram for user ${userId}, ticket ${ticket.id}`);
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { telegram_chat_id: true },
-        });
-        if (user?.telegram_chat_id) {
-          await sendTelegramMessage(user.telegram_chat_id, dynamicMessage);
-        }
-      }
     }
 
     // สำคัญ: ตอบ notify: true ทุกครั้งถ้ามี ticket in_progress (ไม่ว่ามี insert ใหม่หรือไม่)
@@ -280,17 +269,6 @@ router.get('/check-done/:userId', authenticateToken, async (req: AuthenticatedRe
           console.log(`[Notification/check-done] No socketId found for user ${userId}. Cannot send WebSocket for ticket ${ticket.id}.`);
         }
 
-        // ส่งผ่าน Telegram ถ้ามี chat_id
-        console.log(`[Notification/check-done] Attempting to send Telegram for user ${userId}, ticket ${ticket.id}`);
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          select: { telegram_chat_id: true },
-        });
-
-        if (user?.telegram_chat_id) {
-          await sendTelegramMessage(user.telegram_chat_id, message);
-        }
-
         createdNotificationsDetails.push({
           ticket_id: ticket.reference_number,
           title: ticket.title,
@@ -366,62 +344,6 @@ router.get('/check-open', authenticateToken, authorizeRoles(['OFFICER']), async 
         },
       });
 
-      // if (!existingNotification) {
-      //   // 3. ถ้ายังไม่มีแจ้งเตือน -> สร้างแจ้งเตือนใหม่ใน DB
-      //   console.log(`[Notification/check-open] Creating new 'open_alert' notification in DB for officer ${officerId}, ticket ${ticket.id}`);
-      //   await prisma.notifications.create({
-      //     data: {
-      //       user_id: officerId,
-      //       ticket_id: ticket.id,
-      //       message: notificationMessageText,
-      //       type: 'open_alert',
-      //       is_read: false, // 🟢 ควรตั้ง is_read เป็น false เมื่อสร้างใหม่
-      //       // created_at จะถูกตั้งค่าโดย Prisma (ถ้า schema มี @default(now()))
-      //     },
-      //   });
-
-      //   // 🟢 ปรับปรุง: Endpoint /check-open ไม่ควรส่ง WebSocket ซ้ำจากที่นี่
-      //   // การส่ง WebSocket สำหรับ 'open_alert' ควรมาจากตอนสร้าง Ticket (tickets.routes.ts) เท่านั้น
-      //   // เพื่อให้เป็น Real-time จริงๆ และป้องกันการส่งซ้ำจาก Polling
-      //   // console.log(`[Notification/check-open] WebSocket for new 'open_alert' (ticket ${ticket.id}) should be handled by ticket creation process.`);
-
-      //   // 4. ส่งแจ้งเตือนผ่าน WebSocket ไปยัง OFFICER คนนี้ (ถ้า online) - << ลบส่วนนี้ออก หรือปรับเงื่อนไข >>
-      //   // การส่ง WebSocket จาก endpoint นี้จะทำให้เกิดการแจ้งเตือนซ้ำเมื่อ OFFICER รีเฟรช
-      //   // การแจ้งเตือน real-time ควรมาจาก tickets.routes.ts ตอนสร้าง ticket ใหม่
-      //   // console.log(`[Notification/check-open] Attempting to send WebSocket for officer ${officerId}, ticket ${ticket.id}`);
-      //   // const socketId = connectedUsers.get(officerId);
-      //   // console.log(`[Notification/check-open] Officer ${officerId} socketId from connectedUsers: ${socketId}`);
-      //   // if (socketId) {
-      //   //   console.log(`[Notification/check-open] Emitting 'notification:new' (open_alert) to socket ${socketId} for officer ${officerId}, ticket ${ticket.id}`);
-      //   //   const dbNotificationJustCreated = await prisma.notifications.findFirst({ where: { user_id: officerId, ticket_id: ticket.id, type: 'open_alert' }}); // ดึง ID ที่เพิ่งสร้าง
-      //   //   io.to(socketId).emit('notification:new', {
-      //   //     userId: officerId,
-      //   //     message: notificationMessageText,
-      //   //     ticketId: ticket.id,
-      //   //     ticketCode: ticket.reference_number,
-      //   //     type: 'open_alert',
-      //   //     timestamp: new Date().toISOString(),
-      //   //     db_notification_id: dbNotificationJustCreated?.id, // ส่ง ID ที่เพิ่งสร้าง
-      //   //     db_is_read: false,
-      //   //     db_created_at: dbNotificationJustCreated?.created_at?.toISOString(),
-      //   //   });
-      //   // } else {
-      //   //   console.log(`[Notification/check-open] No socketId found for officer ${officerId}. Cannot send WebSocket for ticket ${ticket.id}.`);
-      //   // }
-
-      //   // 5. ส่งแจ้งเตือนผ่าน Telegram ไปยัง OFFICER คนนี้ (ถ้ามี telegram_chat_id)
-      //   console.log(`[Notification/check-open] Attempting to send Telegram for officer ${officerId}, ticket ${ticket.id}`);
-      //   const officerUser = await prisma.user.findUnique({
-      //     where: { id: officerId },
-      //     select: { telegram_chat_id: true },
-      //   });
-
-      //   if (officerUser?.telegram_chat_id) {
-      //     await sendTelegramMessage(officerUser.telegram_chat_id, notificationMessageText);
-      //   }
-      // } 
-      // เพิ่มข้อมูล ticket นี้เข้าไปใน list ที่จะส่งกลับให้ client
-      // (แสดง ticket 'open' ทั้งหมด ไม่ว่าเพิ่งสร้าง notification หรือมีอยู่แล้ว)
       responseNotificationsList.push({
         ticket_id: ticket.reference_number, // ใช้ reference_number สำหรับการแสดงผล
         title: ticket.title,

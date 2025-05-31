@@ -18,7 +18,6 @@ model User {
   refreshToken         String?
   department_id        Int?
   is_officer_confirmed Boolean              @default(false)
-  telegram_chat_id     String?              @db.VarChar(255)
   uploadedFiles        AssigneeFile[]       @relation("UserUploadedFiles")
   notifications        notifications[]
   passwordResetTokens  PasswordResetToken[]
