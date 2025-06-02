@@ -80,7 +80,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="user in paginatedUsers" :key="user.id" class="text-sm border-b hover:bg-gray-50">
+                <tr v-for="user in paginatedUsers" :key="user.id" class="text-sm border-gray-700/25 border-b hover:bg-gray-50">
                   <td class="py-3 px-4">{{ user.name }}</td>
                   <td class="py-3 px-4">{{ user.email }}</td>
                   <td class="py-3 px-4">

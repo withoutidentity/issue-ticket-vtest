@@ -6,6 +6,7 @@ declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
     roles?: string[]
+    guestOnly?: boolean // ✅ เพิ่ม guestOnly สำหรับ meta
   }
 }
 
@@ -18,17 +19,28 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
-    redirect: '/login' // ให้ redirect ไป /login เมื่อเข้าหน้าแรก
+    // เดิม: redirect: '/login',
+    // เดิม: meta: { guestOnly: true }
+    redirect: () => {
+      const auth = useAuthStore();
+      if (auth.accessToken) {
+        return { name: 'Home' }; // ถ้ามี token (ล็อกอินอยู่) ให้ไปหน้า Home
+      }
+      return { name: 'Login' }; // ถ้าไม่มี token ให้ไปหน้า Login
+    }
+    // meta สำหรับ path '/' โดยตรงอาจจะไม่จำเป็นแล้ว เนื่องจาก redirect จะทำงานทันที
   },
   {
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/LoginPage.vue'),
+    meta: { guestOnly: true } // ✅ ผู้ใช้ที่ล็อกอินแล้วไม่ควรเห็นหน้านี้
   },
   {
     path: '/register',
     name: 'Register',
     component: () => import('@/pages/RegisterPage.vue'),
+    meta: { guestOnly: true } // หน้านี้สำหรับผู้ที่ยังไม่ได้ล็อกอินเท่านั้น
   },
   {
     path: '/403',
@@ -89,24 +101,34 @@ const router = createRouter({
 
 // ✅ Auth & Role-based Global Guard
 router.beforeEach((to, from, next) => {
-  const auth = useAuthStore()
+  const auth = useAuthStore();
+  const isAuthenticated = !!auth.accessToken; // ตรวจสอบสถานะการล็อกอิน
 
-  // console.log("Navigation to:", to.path)
-  // console.log("Token:", auth.accessToken)
-  // console.log("Role:", auth.user?.role)
+  const requiresAuth = to.meta.requiresAuth ?? false;
+  const allowedRoles = to.meta.roles;
+  const guestOnly = to.meta.guestOnly ?? false;
 
-  const requiresAuth = to.meta.requiresAuth ?? false
-  const allowedRoles = to.meta.roles
-
-  if (requiresAuth && !auth.accessToken) {
-    return next('/login')
+  if (guestOnly && isAuthenticated) {
+    // ถ้าเป็นหน้าที่สำหรับ guest เท่านั้น แต่ผู้ใช้ล็อกอินอยู่แล้ว
+    // ให้ redirect ไปหน้า Home (หรือหน้าที่เหมาะสม)
+    return next({ name: 'Home' });
   }
 
-  if (Array.isArray(allowedRoles) && (!auth.user || !allowedRoles.includes(auth.user.role))) {
-    return next('/403')
+  if (requiresAuth && !isAuthenticated) {
+    // ถ้าหน้าที่กำลังจะไปต้องมีการยืนยันตัวตน แต่ผู้ใช้ยังไม่ได้ล็อกอิน
+    // ให้ redirect ไปหน้า Login
+    return next({ name: 'Login' });
   }
 
-  next()
-})
+  if (Array.isArray(allowedRoles) && allowedRoles.length > 0) {
+    // ถ้ามีการกำหนด roles สำหรับหน้านี้
+    if (!isAuthenticated || !auth.user || !allowedRoles.includes(auth.user.role)) {
+      // ถ้าผู้ใช้ไม่ได้ล็อกอิน หรือไม่มี role หรือ role ไม่ตรงกับที่กำหนด
+      return next({ name: 'Forbidden' }); // ไปหน้า 403 Forbidden
+    }
+  }
+
+  next(); // อนุญาตให้ไปต่อ
+});
 
 export default router

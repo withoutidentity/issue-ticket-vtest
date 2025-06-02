@@ -4,8 +4,9 @@
       <cardcontent>
         <!-- <cardtitle>Dashboard</cardtitle> -->
         <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
-          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user.role === 'OFFICER'" @filter-status-changed="handleStatusFilterChange"
-            @filter-type-changed="handleTypeFilterChange" @filter-creation-date-changed="handleCreationDateFilterChange"
+          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user.role === 'OFFICER'"
+            @filter-status-changed="handleStatusFilterChange" @filter-type-changed="handleTypeFilterChange"
+            @filter-creation-date-changed="handleCreationDateFilterChange"
             @filter-department-changed="handleDepartmentFilterChange" />
         </div>
       </cardcontent>
@@ -13,7 +14,8 @@
 
     <card>
       <cardcontent>
-        <div class="flex justify-between items-center mb-4">
+        <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
+          <div class="flex justify-between items-center mb-4">
             <!-- Left side: Title -->
             <cardtitle>รายการแจ้งปัญหา</cardtitle>
 
@@ -48,37 +50,37 @@
                   </button>
                   <!-- Dropdown List -->
                   <div v-if="isFilterDropdownOpen"
-                       class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-80 overflow-y-auto">
+                    class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-80 overflow-y-auto">
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
                     <ul class="pb-1 border-b border-gray-200">
                       <li @click="applyFilter('status', null)"
-                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         ทั้งหมด
                       </li>
                       <li @click="applyFilter('status', 'open')"
-                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         ใหม่
                       </li>
                       <li @click="applyFilter('status', 'in_progress')"
-                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         กำลังดำเนินการ
                       </li>
                       <li @click="applyFilter('status', 'closed')"
-                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         เสร็จสิ้น
                       </li>
                     </ul>
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
                     <ul class="py-1">
                       <li @click="applyFilter('department', null)"
-                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         ทั้งหมด (แผนก)
                       </li>
-                      <li v-if="departmentsList.length === 0 && !loadingDepartments" class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
+                      <li v-if="departmentsList.length === 0 && !loadingDepartments"
+                        class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
                       <li v-if="loadingDepartments" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
-                      <li v-for="dept in departmentsList" :key="dept.id"
-                          @click="applyFilter('department', dept.name)"
-                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
+                      <li v-for="dept in departmentsList" :key="dept.id" @click="applyFilter('department', dept.name)"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
                         {{ dept.name }}
                       </li>
                     </ul>
@@ -98,25 +100,27 @@
                 <!-- Export to Excel button -->
                 <button @click="exportToExcel"
                   class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none"
+                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   Export Excel
                 </button>
               </div>
             </div>
-        </div>
+          </div>
 
           <!-- ส่วนควบคุมจำนวนรายการต่อหน้า -->
-        <div
+          <div
             class="flex items-center space-x-2 mt-4 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
             <label for="perPageDashboardInput" class="text-sm text-gray-600">แสดง:</label>
             <input id="perPageDashboardInput" type="number" min="1" v-model.number="perPage"
               class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
             <span class="text-sm text-gray-600">รายการต่อหน้า</span>
-        </div>
+          </div>
 
-        <div class="mt-3 rounded-lg overflow-hidden overflow-x-auto border border-gray-200">
+          <div class="mt-3 rounded-lg overflow-hidden overflow-x-auto border border-gray-200">
             <!-- Ticket Table -->
             <table class="w-full">
               <thead>
@@ -127,15 +131,24 @@
                   <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
                   <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
-                  <th 
-                    @click="toggleSortDirectionDashboard"
-                    class="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150"
-                  >
+                  <th @click="toggleSortDirectionDashboard"
+                    class="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150">
                     <div class="flex items-center">
                       <span>วันที่สร้าง</span>
-                      <svg v-if="sortDirectionDashboard === 'asc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
-                      <svg v-if="sortDirectionDashboard === 'desc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                      <svg v-if="!sortDirectionDashboard" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                      <svg v-if="sortDirectionDashboard === 'asc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      </svg>
+                      <svg v-if="sortDirectionDashboard === 'desc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <svg v-if="!sortDirectionDashboard" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                      </svg>
                     </div>
                   </th>
                   <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
@@ -143,7 +156,8 @@
               </thead>
               <tbody>
                 <tr v-for="ticket in paginatedTickets" :key="ticket.id"
-                  class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer" @click="goToTicket(ticket.id)">
+                  class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer"
+                  @click="goToTicket(ticket.id)">
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
                   <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>
@@ -174,9 +188,9 @@
                 </tr>
               </tbody>
             </table>
-        </div>
+          </div>
           <!-- Pagination Controls -->
-        <div v-if="totalPages > 0 && totalPages > 1" class="mt-6 flex justify-between items-center">
+          <div v-if="totalPages > 0 && totalPages > 1" class="mt-6 flex justify-between items-center">
             <button @click="prevPage" :disabled="currentPage === 1"
               class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
               ก่อนหน้า
@@ -188,8 +202,8 @@
               class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
               ถัดไป
             </button>
+          </div>
         </div>
-
       </cardcontent>
     </card>
   </AppLayout>
@@ -425,14 +439,14 @@ const applyFilter = (filterType: 'status' | 'department', value: string | null) 
     // If a status is chosen from this dropdown, ensure department filter from AdminDashboard is cleared
     // This might be redundant if handleStatusFilterChange already does this, but good for clarity
     if (value !== null) {
-        departmentFilterForTable.value = null; 
+      departmentFilterForTable.value = null;
     }
   } else if (filterType === 'department') {
     // Directly call handleDepartmentFilterChange
     handleDepartmentFilterChange(value);
-     // If a department is chosen from this dropdown, ensure status filter from AdminDashboard is cleared
+    // If a department is chosen from this dropdown, ensure status filter from AdminDashboard is cleared
     if (value !== null) {
-        statusFilterForTable.value = null;
+      statusFilterForTable.value = null;
     }
   }
   isFilterDropdownOpen.value = false;

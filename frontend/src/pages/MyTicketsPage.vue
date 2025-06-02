@@ -121,7 +121,7 @@
           <div v-else-if="!filteredAndSearchedTickets.length" class="text-center py-4 text-gray-500">
             ไม่พบใบงานแจ้งปัญหาตามเงื่อนไข หรือคุณยังไม่ได้สร้างใบงานใดๆ
           </div>
-          <div v-else class="rounded-lg overflow-hidden border border-gray-200">
+          <div v-else class="rounded-lg overflow-hidden overflow-x-auto border border-gray-200">
             <table class="w-full">
               <thead>
                 <tr class="bg-gray-100">

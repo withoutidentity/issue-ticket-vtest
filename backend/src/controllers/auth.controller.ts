@@ -2,7 +2,6 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { Request, Response } from 'express'
 import { PrismaClient, User } from '@prisma/client'
-import { connect } from 'http2'
 import crypto from 'crypto'; // สำหรับสร้าง token
 import { sendPasswordResetEmail } from '../services/email.service'; // import service ส่งอีเมล
 const prisma = new PrismaClient()

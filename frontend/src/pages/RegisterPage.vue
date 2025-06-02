@@ -40,7 +40,7 @@
           />
           <p v-if="passwordsDoNotMatch && confirmPassword.length > 0" class="text-red-500 text-sm mt-1">รหัสผ่านไม่ตรงกัน</p>
         </div>
-        <div class="space-y-1">
+        <!-- <div class="space-y-1">
           <label for="role" class="block text-sm font-medium text-gray-700">ประเภทผู้ใช้งาน:</label>
           <select v-model="role" id="role" class="w-full p-2 border rounded" required>
             <option value="USER">ผู้ใช้งานทั่วไป (User)</option>
@@ -54,7 +54,7 @@
             <option disabled value="">กรุณาเลือกแผนก</option>
             <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
           </select>
-        </div>
+        </div> -->
         <button type="submit" class="w-full bg-black text-white py-2 rounded hover:bg-gray-800">สมัครสมาชิก</button>
       </form>
       <router-link to="/login" class="mt-4 text-lg text-gray-600 hover:text-gray-800">
