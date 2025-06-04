@@ -18,6 +18,7 @@ model User {
   refreshToken         String?
   department_id        Int?
   is_officer_confirmed Boolean              @default(false)
+  avatar_url           String?
   uploadedFiles        AssigneeFile[]       @relation("UserUploadedFiles")
   notifications        notifications[]
   passwordResetTokens  PasswordResetToken[]
@@ -124,12 +125,13 @@ model AssigneeFile {
 }
 
 model Department {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique @db.VarChar(255)
-  group_id  String?  @db.VarChar(255)
-  thread_id String[] @db.VarChar(255)
-  tickets   Ticket[]
-  users     User[]
+  id                     Int      @id @default(autoincrement())
+  name                   String   @unique @db.VarChar(255)
+  group_id               String?  @db.VarChar(255)
+  thread_id              String[] @db.VarChar(255)
+  it_target_thread_index Int?
+  tickets                Ticket[]
+  users                  User[]
 
   @@map("departments")
 }

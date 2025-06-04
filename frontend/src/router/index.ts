@@ -28,7 +28,6 @@ const routes: RouteRecordRaw[] = [
       }
       return { name: 'Login' }; // ถ้าไม่มี token ให้ไปหน้า Login
     }
-    // meta สำหรับ path '/' โดยตรงอาจจะไม่จำเป็นแล้ว เนื่องจาก redirect จะทำงานทันที
   },
   {
     path: '/login',
@@ -57,7 +56,7 @@ const routes: RouteRecordRaw[] = [
     path: '/profile',
     name: 'Profile',
     component: () => import('@/pages/ProfilePage.vue'),
-    meta: { requiresAuth: true, roles: ['USER'] },
+    meta: { requiresAuth: true, roles: ['USER','ADMIN', 'OFFICER'] },
   },
   {
     path: '/departments',
@@ -91,6 +90,12 @@ const routes: RouteRecordRaw[] = [
   },
   { path: '/forgot-password', component: import('@/pages/ForgotPasswordPage.vue') }, // เพิ่ม route
   { path: '/reset-password', component: import('@/pages/ResetPasswordPage.vue') },
+  {
+      path: '/change-password', // New route path
+      name: 'ChangePassword',
+      component: () => import('@/pages/ChangePasswordPage.vue'), // Use the new component
+      meta: { requiresAuth: true } // Requires authentication
+    },
   
 ]
 

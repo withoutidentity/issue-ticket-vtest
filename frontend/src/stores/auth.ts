@@ -15,6 +15,7 @@ interface User {
     name: string;
   } | null; // Can be null if not an officer or not assigned
   is_officer_confirmed: boolean;
+  avatar_url?: string; // Optional avatar URL
 }
 
 export const useAuthStore = defineStore('auth', {

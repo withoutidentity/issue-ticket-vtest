@@ -246,28 +246,33 @@ router.post(
     // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram ไปยังกลุ่มแผนก IT ตามเงื่อนไข
     if (newTicket.status === TicketStatus.open && newTicket.department_id) {
       const itDepartment = await prisma.department.findUnique({
-        where: { name: 'it' }, 
+        where: { name: 'it' }, // หรือใช้ ID ที่แน่นอนหากชื่อ 'it' อาจมีการเปลี่ยนแปลง
         select: { group_id: true, thread_id: true }
       });
 
       if (itDepartment && itDepartment.group_id && itDepartment.thread_id && itDepartment.thread_id.length > 0) {
-        const saleDepartment = await prisma.department.findUnique({
-          where: { name: 'sale' }, 
-          select: { id: true }
-        });
-        const hrDepartment = await prisma.department.findUnique({
-          where: { name: 'hr' },   
-          select: { id: true }
+        // ดึงข้อมูลแผนกต้นทางของ Ticket ใหม่
+        const sourceDepartment = await prisma.department.findUnique({
+          where: { id: newTicket.department_id },
+          // สมมติว่ามีการเพิ่ม field 'it_target_thread_index' ใน model Department
+          // field นี้จะเก็บ index ของ array thread_id ของแผนก IT ที่จะใช้
+          select: { name: true, it_target_thread_index: true }
         });
 
         let targetThreadIdForIT: string | undefined = undefined;
 
-        if (newTicket.department_id === saleDepartment?.id && itDepartment.thread_id.length >= 1) {
-          targetThreadIdForIT = itDepartment.thread_id[0]; // ใช้ thread_id[0] แรกสำหรับแผนก Sale
-          console.log(`[Ticket Create] New ticket for 'Sale' dept. Notifying IT dept in thread: ${targetThreadIdForIT}`);
-        } else if (newTicket.department_id === hrDepartment?.id && itDepartment.thread_id.length >= 2) {
-          targetThreadIdForIT = itDepartment.thread_id[1]; // ใช้ thread_id[1] ที่สองสำหรับแผนก HR
-          console.log(`[Ticket Create] New ticket for 'HR' dept. Notifying IT dept in thread: ${targetThreadIdForIT}`);
+        if (sourceDepartment && sourceDepartment.it_target_thread_index !== null && sourceDepartment.it_target_thread_index !== undefined) {
+          const targetIndex = sourceDepartment.it_target_thread_index;
+          if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
+            targetThreadIdForIT = itDepartment.thread_id[targetIndex];
+            console.log(`[Ticket Create] New ticket from '${sourceDepartment.name}' dept. Notifying IT dept in thread: ${targetThreadIdForIT} (index ${targetIndex})`);
+          } else {
+            console.warn(`[Ticket Create] Configured IT target thread index ${targetIndex} for department '${sourceDepartment.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
+          }
+        } else if (sourceDepartment) {
+          console.log(`[Ticket Create] Department '${sourceDepartment.name}' does not have IT notification target thread index configured.`);
+        } else {
+          console.warn(`[Ticket Create] Could not find source department with ID ${newTicket.department_id} for IT notification routing.`);
         }
 
         if (targetThreadIdForIT) { // ส่งเมื่อมี targetThreadId ที่ตรงเงื่อนไขเท่านั้น
@@ -640,26 +645,40 @@ router.put(
                   select: { group_id: true, thread_id: true }
                 });
 
-                if (itDepartment?.group_id && itDepartment.thread_id && itDepartment.thread_id.length > 0) {
-                  const saleDepartmentInfo = await prisma.department.findUnique({ where: { name: 'sale' }, select: { id: true, name: true } });
-                  const hrDepartmentInfo = await prisma.department.findUnique({ where: { name: 'hr' }, select: { id: true, name: true } });
+                // ตรวจสอบว่ามีแผนก IT, group_id, thread_id และ ticketDepartmentId (ID ของแผนกที่ Ticket สังกัด) ก่อนดำเนินการ
+                if (itDepartment?.group_id && itDepartment.thread_id?.length > 0 && ticketDepartmentId) {
+                  // ดึงข้อมูลแผนกต้นทางของ Ticket (แผนกที่ Ticket สังกัด) เพื่อใช้ it_target_thread_index
+                  const sourceDepartmentForITRouting = await prisma.department.findUnique({
+                    where: { id: ticketDepartmentId },
+                    select: { name: true, it_target_thread_index: true }
+                  });
 
                   let targetThreadIdForIT: string | undefined = undefined;
                   let originalTicketDeptName = "ไม่ทราบแผนก";
 
-                  if (ticketDepartmentId === saleDepartmentInfo?.id && itDepartment.thread_id.length >= 1) {
-                    targetThreadIdForIT = itDepartment.thread_id[0];
-                    originalTicketDeptName = saleDepartmentInfo.name;
-                  } else if (ticketDepartmentId === hrDepartmentInfo?.id && itDepartment.thread_id.length >= 2) {
-                    targetThreadIdForIT = itDepartment.thread_id[1];
-                    originalTicketDeptName = hrDepartmentInfo.name;
+                  if (sourceDepartmentForITRouting && sourceDepartmentForITRouting.it_target_thread_index !== null && sourceDepartmentForITRouting.it_target_thread_index !== undefined) {
+                    originalTicketDeptName = sourceDepartmentForITRouting.name;
+                    const targetIndex = sourceDepartmentForITRouting.it_target_thread_index;
+                    if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
+                      targetThreadIdForIT = itDepartment.thread_id[targetIndex];
+                      console.log(`[Ticket Update] Ticket from '${sourceDepartmentForITRouting.name}' dept. Notifying IT dept in thread: ${targetThreadIdForIT} (index ${targetIndex}) for status ${status}`);
+                    } else {
+                      console.warn(`[Ticket Update] Configured IT target thread index ${targetIndex} for department '${sourceDepartmentForITRouting.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
+                    }
+                  } else if (sourceDepartmentForITRouting) { // แผนกต้นทางมีอยู่ แต่ไม่ได้กำหนด it_target_thread_index
+                    originalTicketDeptName = sourceDepartmentForITRouting.name; // ยังคงใช้ชื่อแผนกสำหรับข้อความได้
+                    console.log(`[Ticket Update] Department '${sourceDepartmentForITRouting.name}' does not have IT notification target thread index configured for status ${status}.`);
+                  } else { // ไม่พบแผนกต้นทางด้วย ID ที่ระบุ
+                    console.warn(`[Ticket Update] Could not find source department with ID ${ticketDepartmentId} for IT notification routing for status ${status}.`);
                   }
 
                   if (targetThreadIdForIT) {
                     const messageToIT = `Ticket รหัส ${ticketDetailsForNotification.reference_number} (แผนก: ${originalTicketDeptName}) เปลี่ยนสถานะเป็น: ${status}. ข้อความ: ${dynamicMessage}`;
                     await sendTelegramMessage(itDepartment.group_id, messageToIT, targetThreadIdForIT);
-                    console.log(`[Ticket Update] Telegram sent to IT DEPARTMENT group for ticket ${id} (orig dept: ${originalTicketDeptName}), status ${status}.`);
+                    console.log(`[Ticket Update] Telegram sent to IT DEPARTMENT group for ticket ${id} (orig dept: ${originalTicketDeptName}), status ${status}, using thread ${targetThreadIdForIT}.`);
                   }
+                } else if (itDepartment?.group_id && !ticketDepartmentId) { // กรณีมีแผนก IT แต่ Ticket ไม่มี department_id
+                  console.warn(`[Ticket Update] Cannot route IT notification for ticket ${id} because its department ID is missing.`);
                 }
                 // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
               }

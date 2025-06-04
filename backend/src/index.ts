@@ -81,7 +81,8 @@ app.use('/api/types', typeRoutes)
 app.use('/api/tickets', ticketRoutes)
 
 // server uploaded files
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+// Serve static files from the 'uploads' directory inside 'backend'
+app.use('/uploads', express.static(path.join(__dirname, '../uploads'))) // __dirname is backend/src, so ../uploads points to backend/uploads
 
 //dashvoard
 app.use('/api/dashboard', dashboardRoutes)
