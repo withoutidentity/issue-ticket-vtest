@@ -36,18 +36,18 @@ const connectedUsers = new Map<number, string>();
 
 // ⏫ จัดการการเชื่อมต่อของ client
 io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
+  // console.log('Client connected:', socket.id);
 
   socket.on('register', (userId: number) => {
     connectedUsers.set(userId, socket.id);
-    console.log(`📌 Registered user ${userId} with socket ${socket.id}`);
+    // console.log(`📌 Registered user ${userId} with socket ${socket.id}`);
   });
 
   socket.on('disconnect', () => {
     for (const [userId, sid] of connectedUsers.entries()) {
       if (sid === socket.id) {
         connectedUsers.delete(userId);
-        console.log(`❌ User ${userId} disconnected`);
+        // console.log(`❌ User ${userId} disconnected`);
         break;
       }
     }

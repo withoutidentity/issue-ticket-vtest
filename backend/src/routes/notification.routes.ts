@@ -22,7 +22,6 @@ const prisma = new PrismaClient()
 // userId จะมาจาก req.user.id ที่ได้จาก authentication middleware
 router.get('/check-inprogress/:userId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const userId = parseInt(req.params.userId); // 🗑️ ลบออก
-  console.log(`[Notification/check-inprogress] Route called for userId: ${userId}`);
 
   try {
     const inProgressTickets = await prisma.ticket.findMany({
@@ -36,7 +35,6 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
         title: true,
       },
     });
-    console.log(`[Notification/check-inprogress] Found ${inProgressTickets.length} in-progress tickets for userId: ${userId}`);
 
     for (const ticket of inProgressTickets) {
       const dynamicMessage = `เจ้าหน้าที่กำลังดำเนินการกับ tickets รหัส ${ticket.reference_number}`;
@@ -53,7 +51,6 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
       let shouldSendTelegram = false;
 
       if (!dbNotification) {
-        console.log(`check dbNotification`)
         // กรณีเป็นการแจ้งเตือนใหม่เอี่ยม
         const newDbNotification = await prisma.notifications.create({
           data: {
@@ -75,13 +72,9 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
 
       // หากต้องส่ง WebSocket
       if (shouldSendWebSocket && dbNotification) {
-        console.log(shouldSendWebSocket, dbNotification)
-        console.log(`[Notification/check-inprogress] Attempting to send WebSocket for user ${userId}, ticket ${ticket.id}. shouldSendWebSocket: ${shouldSendWebSocket}, dbNotification ID: ${dbNotification.id}`);
         // ส่งผ่าน WebSocket ถ้า user ออนไลน์
         const socketId = connectedUsers.get(userId);
-        console.log(`[Notification/check-inprogress] User ${userId} socketId from connectedUsers: ${socketId}`);
         if (socketId) {
-          console.log(`[Notification/check-inprogress] Emitting 'notification:new' to socket ${socketId} for user ${userId}, ticket ${ticket.id}`);
           io.to(socketId).emit('notification:new', {
             userId,
             message: dynamicMessage, // ใช้ข้อความที่สร้างล่าสุดสำหรับการแจ้งเตือนแบบ real-time
@@ -95,11 +88,9 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
             db_created_at: dbNotification.created_at?.toISOString(),
           });
         } else {
-          console.log(`[Notification/check-inprogress] No socketId found for user ${userId}. Cannot send WebSocket for ticket ${ticket.id}.`);
         }
       } else {
         console.log(shouldSendWebSocket, dbNotification)
-        console.log(`[Notification/check-inprogress] Conditions not met to send WebSocket for user ${userId}, ticket ${ticket.id}. shouldSendWebSocket: ${shouldSendWebSocket}, dbNotification exists: ${!!dbNotification}`);
       }
 
     }
@@ -121,7 +112,6 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
     }
 
   } catch (err) {
-    console.error('Error in /check-inprogress:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -130,7 +120,6 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
 // เปลี่ยนจาก GET /user/:userId เป็น GET /
 // userId จะมาจาก req.user.id
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  console.log('[Notification/get] Route called');
   // const userId = parseInt(req.params.userId); // 🗑️ ลบออก
   const userId = req.user?.id; // 👈  ใช้ userId จาก authenticated user
 
@@ -158,7 +147,6 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 
     res.json(responseNotifications);
   } catch (err) {
-    console.error('Error fetching notifications:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -167,7 +155,6 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 // เปลี่ยน path เป็น /mark-read/:notificationId เพื่อความเป็นระเบียบ (optional)
 router.post('/mark-read/:notificationId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const notificationId = parseInt(req.params.notificationId);
-  console.log(`[Notification/mark-read] Route called for notificationId: ${notificationId}`);
   const userId = req.user?.id; // 👈  ใช้ userId จาก authenticated user
 
   if (isNaN(notificationId)) {
@@ -211,7 +198,6 @@ router.post('/mark-read/:notificationId', authenticateToken, async (req: Authent
 // userId จะมาจาก req.user.id
 router.get('/check-done/:userId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   // const userId = parseInt(req.params.userId); // 🗑️ ลบออก
-  console.log(`[Notification/check-done] Route called for userId: ${req.params.userId}`);
   const userId = parseInt(req.params.userId); // 
 
   try {
@@ -226,7 +212,6 @@ router.get('/check-done/:userId', authenticateToken, async (req: AuthenticatedRe
         reference_number: true, // รหัส ticket ที่เป็น string
       },
     });
-    console.log(`[Notification/check-done] Found ${doneTickets.length} done tickets for userId: ${userId}`);
 
     const createdNotificationsDetails = []; // เก็บรายละเอียดของ notification ที่สร้างใหม่สำหรับ response
 
@@ -252,11 +237,8 @@ router.get('/check-done/:userId', authenticateToken, async (req: AuthenticatedRe
         });
 
         // ส่งผ่าน WebSocket ถ้า user ออนไลน์
-        console.log(`[Notification/check-done] Attempting to send WebSocket for user ${userId}, ticket ${ticket.id}`);
         const socketId = connectedUsers.get(userId);
-        console.log(`[Notification/check-done] User ${userId} socketId from connectedUsers: ${socketId}`);
         if (socketId) {
-          console.log(`[Notification/check-done] Emitting 'notification:new' (done_alert) to socket ${socketId} for user ${userId}, ticket ${ticket.id}`);
           io.to(socketId).emit('notification:new', {
             userId,
             message,
@@ -266,7 +248,6 @@ router.get('/check-done/:userId', authenticateToken, async (req: AuthenticatedRe
             timestamp: new Date().toISOString(),
           });
         } else {
-          console.log(`[Notification/check-done] No socketId found for user ${userId}. Cannot send WebSocket for ticket ${ticket.id}.`);
         }
 
         createdNotificationsDetails.push({
@@ -303,7 +284,6 @@ router.get('/check-done/:userId', authenticateToken, async (req: AuthenticatedRe
 // GET /api/notifications/check-open - สำหรับ OFFICER ตรวจสอบ tickets ใหม่ (status: 'open')
 // และสร้าง notification หากยังไม่เคยแจ้งเตือน officer คนนั้นสำหรับ ticket นั้น
 router.get('/check-open', authenticateToken, authorizeRoles(['OFFICER']), async (req: AuthenticatedRequest, res: Response) => {
-  console.log('[Notification/check-open] Route called');
   const officerId = req.user!.id; // ID ของ OFFICER ที่ login อยู่
   let notifyResponse = false;
   let messageResponse = '';
@@ -322,7 +302,6 @@ router.get('/check-open', authenticateToken, authorizeRoles(['OFFICER']), async 
         title: true,
       },
     });
-    console.log(`[Notification/check-open] Found ${openTickets.length} open tickets. OfficerId: ${officerId}`);
 
     if (openTickets.length > 0) {
       notifyResponse = true;
