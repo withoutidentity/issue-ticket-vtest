@@ -69,7 +69,7 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .app-layout {
   background-color: var(--color-gray-100)
   /* Using Tailwind classes for flex and min-height */
@@ -88,4 +88,4 @@ onUnmounted(() => {
 .content-wrapper {
   /* Tailwind: flex-1 p-6 bg-gray-100 */
 }
-</style>
+</style> -->

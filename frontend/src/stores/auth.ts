@@ -54,7 +54,6 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('refreshToken', res.data.refreshToken);
         localStorage.setItem('user', JSON.stringify(this.user)); // 🟢 Store user object
         api.defaults.headers.common['Authorization'] = `Bearer ${this.accessToken}`; // 🟢 Set default header
-        // console.log('user login: ', this.user)
         return this.user;
       } catch (error: any) {
         console.error('Login failed:', error);
@@ -140,6 +139,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user'); // 🟢 Remove user from localStorage
+      localStorage.removeItem('auth');
       delete api.defaults.headers.common['Authorization']; // 🟢 Remove default header
     },
   },
