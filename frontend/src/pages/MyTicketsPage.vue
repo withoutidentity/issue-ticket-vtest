@@ -4,20 +4,20 @@
     </cardtitle2> -->
     <card>
       <cardcontent>
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex flex-col">
-            <cardtitle>รายการแจ้งปัญหาของฉัน</cardtitle>
-            <p class="text-sm text-gray-600 font-medium ml-3">
+        <div class="flex flex-col sm:flex-wrap space-y-4 mb-4">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+            <cardtitle class="text-lg font-semibold mb-3 sm:mb-0">รายการแจ้งปัญหาของฉัน</cardtitle>
+            <p class="text-sm text-gray-600 font-medium ml-3 sm:text-xs sm:mb-0">
               ปัญหาของฉันทั้งหมด:
               <span class="text-blue-600 font-semibold">{{ officerCreatedTickets.length }}</span>
               <!-- (แสดงผล: 
             <span class="text-blue-600 font-semibold">{{ filteredAndSearchedTickets.length }}</span>) -->
             </p>
           </div>
-          <div class="flex items-center">
-            <div class="flex items-center space-x-3">
+          <div class="flex flex-col space-y-3 sm:flex-wrap sm:justify-between sm:gap-y-3 sm:space-y-0 md:flex-wrap md:gap-y-3">
+            <div class="flex flex-col space-y-3 justify-between sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
               <!-- ส่วนค้นหาและกรอง -->
-              <div class="relative">
+              <div class="relative w-full sm:w-auto">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor">
@@ -26,94 +26,109 @@
                   </svg>
                 </div>
                 <input type="text" v-model="searchQuery"
-                  class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  class="w-full sm:w-56 md:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-all duration-200"
                   placeholder="ค้นหาหัวข้อ, เลขอ้างอิง, สถานะ..." />
               </div>
 
               <!-- Dropdown กรองสถานะ -->
-              <div class="relative" ref="filterDropdownMyTicketsRef">
-                <button @click="toggleFilterDropdownMyTickets"
-                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                  <!-- Filter Icon -->
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                </button>
-                <!-- Dropdown List -->
-                <div v-if="isFilterDropdownOpenMyTickets"
-                  class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-80 overflow-y-auto">
-                  <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
-                  <ul class="pb-1 border-b border-gray-200">
-                    <li @click="applyMyTicketsFilter('status', 'total')"
-                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                      ทั้งหมด
-                    </li>
-                    <li @click="applyMyTicketsFilter('status', 'open')"
-                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                      ใหม่
-                    </li>
-                    <li @click="applyMyTicketsFilter('status', 'in_progress')"
-                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                      กำลังดำเนินการ
-                    </li>
-                    <li @click="applyMyTicketsFilter('status', 'closed')"
-                      class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                      เสร็จสิ้น
-                    </li>
-                    <!-- เพิ่ม 'pending' ถ้าต้องการ -->
-                    <!-- <li @click="applyMyTicketsFilter('status', 'pending')"
+              <div class="flex space-x-3">
+                <div class="relative" ref="filterDropdownMyTicketsRef">
+                  <button @click="toggleFilterDropdownMyTickets"
+                    class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                    <!-- Filter Icon -->
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                  </button>
+                  <!-- Dropdown List -->
+                  <div v-if="isFilterDropdownOpenMyTickets"
+                    class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 left-0 sm:right-0 sm:left-auto max-h-80 overflow-y-auto">
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
+                    <ul class="pb-1 border-b border-gray-200">
+                      <li @click="applyMyTicketsFilter('status', 'total')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        ทั้งหมด
+                      </li>
+                      <li @click="applyMyTicketsFilter('status', 'open')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        ใหม่
+                      </li>
+                      <li @click="applyMyTicketsFilter('status', 'in_progress')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        กำลังดำเนินการ
+                      </li>
+                      <li @click="applyMyTicketsFilter('status', 'closed')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        เสร็จสิ้น
+                      </li>
+                      <!-- เพิ่ม 'pending' ถ้าต้องการ -->
+                      <!-- <li @click="applyMyTicketsFilter('status', 'pending')"
                       class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                     รอดำเนินการ
                   </li> -->
-                  </ul>
-                  <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
-                  <ul class="py-1">
-                    <li @click="applyMyTicketsFilter('department', null)"
+                    </ul>
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
+                    <ul class="py-1">
+                      <li @click="applyMyTicketsFilter('department', null)"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                      ทั้งหมด (แผนก)
-                    </li>
-                    <li v-if="departmentsListMyTickets.length === 0 && !loadingDepartmentsMyTickets" class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
-                    <li v-if="loadingDepartmentsMyTickets" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
-                    <li v-for="dept in departmentsListMyTickets" :key="dept.id"
+                        ทั้งหมด (แผนก)
+                      </li>
+                      <li v-if="departmentsListMyTickets.length === 0 && !loadingDepartmentsMyTickets"
+                        class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
+                      <li v-if="loadingDepartmentsMyTickets" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...
+                      </li>
+                      <li v-for="dept in departmentsListMyTickets" :key="dept.id"
                         @click="applyMyTicketsFilter('department', dept.id)"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
-                      {{ dept.name }}
-                    </li>
-                  </ul>
+                        {{ dept.name }}
+                      </li>
+                    </ul>
+                  </div>
                 </div>
+
+                <!-- Reset button -->
+                <button @click="resetFilters"
+                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:justify-between sm:items-center">
+              <!-- Export to Excel button -->
+              <div class="flex justify-start">
+              <button @click="exportToExcel"
+                class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span class="hidden sm:inline">Export Excel</span>
+                <span class="sm:hidden">Export</span>
+              </button>
               </div>
 
-              <!-- Reset button -->
-              <button @click="resetFilters"
-                class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white cursor-pointer hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
-                  stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-
-              <!-- Export to Excel button -->
-                <button @click="exportToExcel"
-                  class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  Export Excel
-                </button>
+              <!-- Items per page selector -->
+              <div class="flex items-center space-x-2">
+              <label for="perPageInput" class="text-sm text-gray-600">แสดง:</label>
+              <input 
+                id="perPageInput" 
+                type="number" 
+                min="1" 
+                v-model.number="perPage"
+                class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" 
+              />
+              <span class="text-sm text-gray-600">รายการต่อหน้า</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        <!-- ปุ่มแสดงรายการต่อหน้า -->
-        <div
-          class="flex items-center space-x-2 mt-4 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
-          <label for="perPageInput" class="text-sm text-gray-600">แสดง:</label>
-          <input id="perPageInput" type="number" min="1" v-model.number="perPage"
-            class="w-12 px-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
-          <span class="text-sm text-gray-600">รายการต่อหน้า</span>
         </div>
 
         <div class="mt-6 space-y-6 overflow-y-auto overflow-x-auto truncate">
@@ -125,42 +140,66 @@
             <table class="w-full">
               <thead>
                 <tr class="bg-gray-100">
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">เลขอ้างอิง</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
-                  <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>                  
-                  <th 
-                    @click="toggleSortDirection" 
-                    class="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150"
-                  >
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[80px]">
+                    เลขอ้างอิง</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[120px]">
+                    หัวข้อ</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell min-w-[150px]">
+                    คำอธิบาย</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell min-w-[100px]">
+                    แผนก</th>
+                  <th
+                    class="text-center py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[150px]">
+                    สถานะ</th>
+                  <th @click="toggleSortDirection"
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150 text-xs sm:text-sm min-w-[100px]">
                     <div class="flex items-center">
                       <span>วันที่สร้าง</span>
-                      <svg v-if="sortDirection === 'asc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
-                      <svg v-if="sortDirection === 'desc'" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                      <svg v-if="!sortDirection" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                      <svg v-if="sortDirection === 'asc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      </svg>
+                      <svg v-if="sortDirection === 'desc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <svg v-if="!sortDirection" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                      </svg>
                     </div>
                   </th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[120px]">
+                    ชื่อผู้รับผิดชอบ</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="ticket in paginatedTickets" :key="ticket.id"
                   class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer"
                   @click="goToTicket(ticket.id)">
-                  <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.reference_number }}</td>
-                  <td class="py-3 px-4 text-gray-700">{{ ticket.title }}</td>
-                  <td class="py-3 px-4 text-gray-600 max-w-xs truncate">{{ ticket.description }}</td>
-                  <td class="py-3 px-4 text-gray-700"><span class="uppercase">{{ ticket.department?.name || "-"
+                  <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">{{
+                    ticket.description }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words"><span
+                      class="uppercase">{{ ticket.department?.name || "-"
                       }}</span></td>
-                  <td class="py-3 px-4 text-center">
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-center">
                     <div>
                       <span :class="statusClass(ticket.status)" class="px-3 py-1 rounded-full text-sm ">
                         {{ utilStatusName(ticket.status) }}
                       </span>
                     </div>
                   </td>
-                  <td class="py-3 px-4 text-gray-700">{{ formatDateDDMMYYYY(ticket.created_at) }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 break-words">{{
+                    formatDateDDMMYYYY(ticket.created_at) }}</td>
                   <td class="py-3 px-4 text-gray-700">{{ ticket.assignee?.name || "-" }}</td>
                 </tr>
               </tbody>
@@ -238,7 +277,7 @@ interface Ticket extends UtilTicket { // สามารถ extends จาก Ut
   department?: Department;
   assignee?: Assignee;
   user?: TicketCreatorInfo; // The user object (name, email) from API - ตรงกับ user ใน UtilTicket
-  ticket_types?: { name: string; }; 
+  ticket_types?: { name: string; };
   // files?: Array<{ id: number; filename: string; filepath: string; }>; // Uncomment if needed
 }
 
@@ -328,7 +367,7 @@ const filteredAndSearchedTickets = computed(() => {
   }
 
   // ถ้าไม่ได้กำหนด sortDirection ให้คืนค่า tickets ที่ผ่านการกรองอื่นๆ มาแล้ว
-  return tickets; 
+  return tickets;
 });
 
 const totalPages = computed(() => {

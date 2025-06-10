@@ -3,7 +3,7 @@
     <card>
       <cardcontent>
         <!-- <cardtitle>Dashboard</cardtitle> -->
-        <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
+        <div class="space-y-6 overflow-y-auto truncate">
           <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user.role === 'OFFICER'"
             @filter-status-changed="handleStatusFilterChange" @filter-type-changed="handleTypeFilterChange"
             @filter-creation-date-changed="handleCreationDateFilterChange"
@@ -14,17 +14,27 @@
 
     <card>
       <cardcontent>
-        <div class="space-y-6 overflow-y-auto overflow-x-auto truncate">
-          <div class="flex justify-between items-center mb-4">
-            <!-- Left side: Title -->
-            <cardtitle>รายการแจ้งปัญหา</cardtitle>
+        <div class="space-y-6">
+          <div class="flex flex-col space-y-4 mb-4">
+            <!-- Title Row -->
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+              <cardtitle class="text-lg font-semibold mb-3 sm:mb-0">รายการแจ้งปัญหา</cardtitle>
 
-            <!-- Right side: Search, Filter, Reset -->
-            <div class="flex items-center">
+              <!-- Per Page Control - Show on mobile after title -->
+              <div class="flex items-center space-x-2 sm:hidden">
+                <label for="perPageMobileInput" class="text-sm text-gray-600">แสดง:</label>
+                <input id="perPageMobileInput" type="number" min="1" v-model.number="perPage"
+                  class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                <span class="text-sm text-gray-600">รายการต่อหน้า</span>
+              </div>
+            </div>
+
+            <!-- Controls Row -->
+            <div class="flex flex-col space-y-3 sm:flex-wrap sm:justify-between sm:gap-y-3 sm:space-y-0 md:flex-wrap md:gap-y-3">
               <!-- Left side: Search, Filter, Reset -->
-              <div class="flex items-center space-x-3">
+              <div class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                 <!-- Search box -->
-                <div class="relative">
+                <div class="relative w-full sm:w-auto">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
                       viewBox="0 0 24 24" stroke="currentColor">
@@ -33,70 +43,76 @@
                     </svg>
                   </div>
                   <input type="text" v-model="searchQuery"
-                    class="w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-all duration-200"
+                    class="w-full sm:w-56 md:w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white transition-all duration-200"
                     placeholder="ค้นหาหัวข้อ, เลขอ้างอิง, ชื่อผู้แจ้ง..." />
                 </div>
 
-                <!-- Filter button -->
-                <div class="relative" ref="filterDropdownRef">
-                  <button @click="toggleFilterDropdown"
-                    class="h-10 w-10 flex items-center justify-center border border-gray-300 cursor-pointer rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                    <!-- Filter Icon -->
+                <!-- Filter and Reset buttons container -->
+                <div class="flex space-x-3">
+                  <!-- Filter button -->
+                  <div class="relative" ref="filterDropdownRef">
+                    <button @click="toggleFilterDropdown"
+                      class="h-10 w-10 flex items-center justify-center border border-gray-300 cursor-pointer rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                      <!-- Filter Icon -->
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
+                        viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                      </svg>
+                    </button>
+                    <!-- Dropdown List -->
+                    <div v-if="isFilterDropdownOpen"
+                      class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 left-0 sm:right-0 sm:left-auto max-h-80 overflow-y-auto">
+                      <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
+                      <ul class="pb-1 border-b border-gray-200">
+                        <li @click="applyFilter('status', null)"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                          ทั้งหมด
+                        </li>
+                        <li @click="applyFilter('status', 'open')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                          ใหม่
+                        </li>
+                        <li @click="applyFilter('status', 'in_progress')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                          กำลังดำเนินการ
+                        </li>
+                        <li @click="applyFilter('status', 'closed')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                          เสร็จสิ้น
+                        </li>
+                      </ul>
+                      <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
+                      <ul class="py-1">
+                        <li @click="applyFilter('department', null)"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                          ทั้งหมด (แผนก)
+                        </li>
+                        <li v-if="departmentsList.length === 0 && !loadingDepartments"
+                          class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
+                        <li v-if="loadingDepartments" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
+                        <li v-for="dept in departmentsList" :key="dept.id" @click="applyFilter('department', dept.name)"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
+                          {{ dept.name }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <!-- Reset button -->
+                  <button @click="resetFilters" ref="resetButtonRef"
+                    class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg cursor-pointer shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
                       viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                   </button>
-                  <!-- Dropdown List -->
-                  <div v-if="isFilterDropdownOpen"
-                    class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-80 overflow-y-auto">
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
-                    <ul class="pb-1 border-b border-gray-200">
-                      <li @click="applyFilter('status', null)"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                        ทั้งหมด
-                      </li>
-                      <li @click="applyFilter('status', 'open')"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                        ใหม่
-                      </li>
-                      <li @click="applyFilter('status', 'in_progress')"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                        กำลังดำเนินการ
-                      </li>
-                      <li @click="applyFilter('status', 'closed')"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                        เสร็จสิ้น
-                      </li>
-                    </ul>
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
-                    <ul class="py-1">
-                      <li @click="applyFilter('department', null)"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                        ทั้งหมด (แผนก)
-                      </li>
-                      <li v-if="departmentsList.length === 0 && !loadingDepartments"
-                        class="px-4 py-2 text-sm text-gray-400">ไม่มีข้อมูลแผนก</li>
-                      <li v-if="loadingDepartments" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
-                      <li v-for="dept in departmentsList" :key="dept.id" @click="applyFilter('department', dept.name)"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
-                        {{ dept.name }}
-                      </li>
-                    </ul>
-                  </div>
                 </div>
+              </div>
 
-                <!-- Reset button -->
-                <button @click="resetFilters" ref="resetButtonRef"
-                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg cursor-pointer shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
-
+              <!-- Right side: Export and Per Page (hidden on mobile) -->
+              <div class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-3 sm:space-x-3">
                 <!-- Export to Excel button -->
                 <button @click="exportToExcel"
                   class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
@@ -105,19 +121,19 @@
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Export Excel
+                  <span class="hidden xs:inline">Export Excel</span>
+                  <span class="xs:hidden">Export</span>
                 </button>
+
+                <!-- Per Page control (hidden on mobile) -->
+                <div class="hidden sm:flex items-center space-x-2">
+                  <label for="perPageDesktopInput" class="text-sm text-gray-600 whitespace-nowrap">แสดง:</label>
+                  <input id="perPageDesktopInput" type="number" min="1" v-model.number="perPage"
+                    class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                  <span class="text-sm text-gray-600 whitespace-nowrap">รายการต่อหน้า</span>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- ส่วนควบคุมจำนวนรายการต่อหน้า -->
-          <div
-            class="flex items-center space-x-2 mt-4 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
-            <label for="perPageDashboardInput" class="text-sm text-gray-600">แสดง:</label>
-            <input id="perPageDashboardInput" type="number" min="1" v-model.number="perPage"
-              class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
-            <span class="text-sm text-gray-600">รายการต่อหน้า</span>
           </div>
 
           <div class="mt-3 rounded-lg overflow-hidden overflow-x-auto border border-gray-200">
@@ -125,14 +141,25 @@
             <table class="w-full">
               <thead>
                 <tr class="bg-gray-100">
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">เลขอ้างอิง</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">หัวข้อ</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">คำอธิบาย</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">แผนก</th>
-                  <th class="text-center py-3 px-4 font-medium text-gray-700">สถานะ</th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">ผู้แจ้ง</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[80px]">
+                    เลขอ้างอ้างอิง</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[120px]">
+                    หัวข้อ</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell min-w-[150px]">
+                    คำอธิบาย</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell min-w-[100px]">
+                    แผนก</th>
+                  <th
+                    class="text-center py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[150px]">
+                    สถานะ</th>
+                  <th class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[100px]">
+                    ผู้แจ้ง</th>
                   <th @click="toggleSortDirectionDashboard"
-                    class="text-left py-3 px-4 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150">
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150 text-xs sm:text-sm min-w-[100px]">
                     <div class="flex items-center">
                       <span>วันที่สร้าง</span>
                       <svg v-if="sortDirectionDashboard === 'asc'" xmlns="http://www.w3.org/2000/svg"
@@ -151,7 +178,9 @@
                       </svg>
                     </div>
                   </th>
-                  <th class="text-left py-3 px-4 font-medium text-gray-700">ชื่อผู้รับผิดชอบ</th>
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[120px]">
+                    ชื่อผู้รับผิดชอบ</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,12 +188,13 @@
                   class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer"
                   @click="goToTicket(ticket.id)">
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
-                  <td class="py-3 px-4 text-gray-700 font-medium">{{ ticket.title }}</td>
-                  <td class="py-3 px-4 text-gray-600">{{ ticket.description }}</td>
-                  <td class="py-3 px-4 text-gray-700">
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">{{
+                    ticket.description }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words">
                     <span class="uppercase">{{ ticket.department?.name || "-" }}</span>
                   </td>
-                  <td class="py-3 px-4 text-center">
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-center">
                     <div>
                       <span :class="{
                         'bg-blue-100 text-blue-700': ticket.status === 'open',
@@ -179,7 +209,7 @@
                   <td class="py-3 px-4 text-gray-700">
                     {{ ticket.user?.name || "-" }}
                   </td>
-                  <td class="py-3 px-4 text-gray-700">
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 break-words">
                     {{ formatDateDDMMYYYY(ticket.created_at) }}
                   </td>
                   <td class="py-3 px-4 text-gray-700">
@@ -613,3 +643,15 @@ const exportToExcel = async () => { // Changed to async to await Swal
   });
 };
 </script>
+
+<style scoped>
+/* Custom breakpoint for search/filter layout */
+@media (max-width: 1120px) {
+  .search-filter-controls {
+    flex-direction: column;
+    /* Stack items vertically */
+    align-items: flex-start;
+    /* Align items to the start */
+  }
+}
+</style>

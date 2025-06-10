@@ -2,13 +2,13 @@
   <div v-if="visible"
     class="fixed inset-0 backdrop-blur-sm bg-black/60 overflow-y-auto h-full w-full flex justify-center items-center z-50 p-4 transition-opacity duration-300 ease-in-out"
     :class="{ 'opacity-100': visible, 'opacity-0': !visible }">
-    <div class="relative mx-auto border w-full max-w-5xl shadow-xl rounded-xl bg-white transform transition-all duration-300 ease-in-out"
-         :class="{ 'scale-100 opacity-100': visible, 'scale-95 opacity-0': !visible }">
+    <div
+      class="relative mx-auto border w-full max-w-5xl shadow-xl rounded-xl bg-white transform transition-all duration-300 ease-in-out"
+      :class="{ 'scale-100 opacity-100': visible, 'scale-95 opacity-0': !visible }">
       <div class="text-left">
         <div class="flex justify-between items-center bg-gray-100 px-6 py-4 rounded-t-xl border-b border-gray-500/25">
           <h3 class="text-xl leading-6 font-semibold text-gray-800">{{ modalTitle }}</h3>
-          <button @click="$emit('close')"
-            class="text-gray-400 hover:text-gray-600 transition-colors duration-150">
+          <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors duration-150">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24"
               stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -18,23 +18,23 @@
 
         <div class="px-6 py-5">
           <!-- Search and Per Page -->
-          <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
-            <div class="relative w-full sm:w-auto">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
+          <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
+            <div class="relative w-full md:w-auto">
+              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
               <input type="text" v-model="modalSearchQuery"
-                class="w-full sm:w-72 pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                class="w-full md:w-72 pl-10 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 placeholder="ค้นหาในรายการนี้..." />
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 w-full md:w-auto justify-start md:justify-end">
               <label for="modalPerPageInput" class="text-sm text-gray-600">แสดง:</label>
               <input id="modalPerPageInput" type="number" min="1" v-model.number="modalPerPage"
-                class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                class="w-20 md:w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
               <span class="text-sm text-gray-600">รายการ</span>
             </div>
           </div>
@@ -43,7 +43,7 @@
           <div class="rounded-lg overflow-hidden overflow-x-auto border border-gray-200 max-h-[60vh]">
             <table class="w-full min-w-[800px]">
               <thead class="sticky top-0 bg-gray-100 z-10">
-                <tr >
+                <tr>
                   <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">เลขอ้างอิง</th>
                   <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">หัวข้อ</th>
                   <th class="text-left py-3 px-4 font-semibold text-gray-700 text-sm">แผนก</th>
@@ -72,15 +72,19 @@
                     </span>
                   </td>
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ ticket.user?.name || "-" }}</td>
-                  <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ formatDateDDMMYYYY(ticket.created_at) }}</td>
+                  <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ formatDateDDMMYYYY(ticket.created_at) }}
+                  </td>
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ ticket.assignee?.name || "-" }}</td>
                 </tr>
               </tbody>
               <tbody v-else>
                 <tr>
                   <td colspan="7" class="text-center py-10 text-gray-500">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      aria-hidden="true">
+                      <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                     </svg>
                     <h3 class="mt-2 text-sm font-medium text-gray-900">ไม่พบข้อมูล</h3>
                     <p class="mt-1 text-sm text-gray-500">ไม่พบรายการแจ้งปัญหาตามเงื่อนไขที่เลือก</p>
@@ -90,11 +94,13 @@
             </table>
           </div>
           <!-- Pagination -->
-          <div v-if="modalTotalPages > 0 && filteredAndSearchedModalTickets.length > 0" class="mt-5 flex flex-col sm:flex-row justify-between items-center gap-3">
-            <div class="text-sm text-gray-700">
-              แสดง {{ (modalCurrentPage - 1) * modalPerPage + 1 }} ถึง {{ Math.min(modalCurrentPage * modalPerPage, filteredAndSearchedModalTickets.length) }} จากทั้งหมด {{ filteredAndSearchedModalTickets.length }} รายการ
+          <div v-if="modalTotalPages > 0 && filteredAndSearchedModalTickets.length > 0"
+            class="mt-5 flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="text-sm text-gray-700 w-full md:w-auto text-center md:text-left">
+              แสดง {{ (modalCurrentPage - 1) * modalPerPage + 1 }} ถึง {{ Math.min(modalCurrentPage * modalPerPage,
+              filteredAndSearchedModalTickets.length) }} จากทั้งหมด {{ filteredAndSearchedModalTickets.length }} รายการ
             </div>
-            <div class="flex items-center" v-if="modalTotalPages > 1">
+            <div class="flex items-center w-full md:w-auto justify-center" v-if="modalTotalPages > 1">
               <button @click="prevModalPage" :disabled="modalCurrentPage === 1"
                 class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
                 ก่อนหน้า
@@ -113,8 +119,10 @@
         <div class="flex justify-end items-center px-6 py-4 bg-gray-50 rounded-b-xl border-t space-x-3">
           <button @click="exportModalDataToExcel"
             class="px-4 py-2 bg-green-600 text-white text-base font-medium rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
             Export Excel
           </button>
@@ -195,7 +203,7 @@ const exportModalDataToExcel = async () => {
     Swal.fire('ไม่มีข้อมูล', 'ไม่พบข้อมูลสำหรับ Export ใน Modal นี้', 'info');
     return;
   }
-  
+
   const result = await Swal.fire({
     title: 'ยืนยันการ Export?',
     text: `คุณต้องการ Export ข้อมูลตั๋วจำนวน ${filteredAndSearchedModalTickets.value.length} รายการเป็นไฟล์ Excel หรือไม่?`,
@@ -228,7 +236,7 @@ const exportModalDataToExcel = async () => {
 
   const ws = XLSX.utils.json_to_sheet(dataToExport);
   const wb = XLSX.utils.book_new();
-  const sheetName = `Tickets_${props.statusTitle.replace(/[^a-zA-Z0-9]/g, '_')}`.substring(0,30); // Ensure sheet name is valid
+  const sheetName = `Tickets_${props.statusTitle.replace(/[^a-zA-Z0-9]/g, '_')}`.substring(0, 30); // Ensure sheet name is valid
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -247,6 +255,7 @@ const formatDateDDMMYYYY = utilFormatDate;
 .transition-opacity {
   transition-property: opacity;
 }
+
 .transition-transform {
   transition-property: transform;
 }

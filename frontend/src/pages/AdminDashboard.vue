@@ -1,6 +1,6 @@
 <template>
   <div class="p-6 w-full">
-    <div class="grid grid-cols-4 gap-4 mb-6">
+    <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4 mb-6">
       <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100">
         <p class="text-gray-600" @click="filterByStatus('total')">ทั้งหมด</p>
         <p class="text-3xl font-bold">{{ summary.total }}</p>
@@ -19,7 +19,7 @@
       </div>
     </div>
 
-    <div class="w-full grid grid-cols-1 md:grid-cols-2 gap-4  ">
+    <div class="w-full grid xl:grid-cols-2 lg:grid-cols-1 gap-4 overflow-x-auto">
       <div class="bg-white shadow p-6 rounded ">
         <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามแผนก</h3>
         <div class="h-[350px] mb-6">
@@ -32,34 +32,34 @@
         <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged" />
       </div>
 
-      <!-- New Line Chart for Ticket Trends by Category -->
-      <div class="bg-white shadow p-6 rounded md:col-span-2">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามแผนก (รายวัน)</h3>
-        <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-          <div>
-            <label for="departmentTrendStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
-            <input type="date" id="departmentTrendStartDate" v-model="departmentTrendStartDate" @change="updateDepartmentTrendChart" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-          </div>
-          <div>
-            <label for="departmentTrendEndDate" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
-            <input type="date" id="departmentTrendEndDate" v-model="departmentTrendEndDate" @change="updateDepartmentTrendChart" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-          </div>
+    </div>
+    <div class="bg-white shadow p-6 rounded md:col-span-2">
+      <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามแผนก (รายวัน)</h3>
+      <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        <div>
+          <label for="departmentTrendStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
+          <input type="date" id="departmentTrendStartDate" v-model="departmentTrendStartDate"
+            @change="updateDepartmentTrendChart"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
         </div>
-        <div class="h-[400px]">
-      <Bar v-if="processedDepartmentTrendData.labels && processedDepartmentTrendData.labels.length > 0" :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
-          <div v-else class="flex items-center justify-center h-full text-gray-500">
-            {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' : 'กรุณาเลือกช่วงวันที่ หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
-          </div>
+        <div>
+          <label for="departmentTrendEndDate" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
+          <input type="date" id="departmentTrendEndDate" v-model="departmentTrendEndDate"
+            @change="updateDepartmentTrendChart"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+        </div>
+      </div>
+      <div class="h-[400px]">
+        <Bar v-if="processedDepartmentTrendData.labels && processedDepartmentTrendData.labels.length > 0"
+          :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
+        <div v-else class="flex items-center justify-center h-full text-gray-500">
+          {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' :
+          'กรุณาเลือกช่วงวันที่หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
         </div>
       </div>
     </div>
-
-    <TicketSummaryModal
-      :visible="isSummaryModalVisible"
-      :tickets="ticketsForModal"
-      :status-title="modalStatusTitle"
-      @close="closeSummaryModal"
-    />
+    <TicketSummaryModal :visible="isSummaryModalVisible" :tickets="ticketsForModal" :status-title="modalStatusTitle"
+      @close="closeSummaryModal" />
   </div>
 </template>
 
@@ -184,9 +184,9 @@ function filterByStatus(statusToFilter: 'open' | 'in_progress' | 'pending' | 'cl
   } else {
     statusFilter.value = statusToFilter; // Store the selected status
     title = statusToFilter === 'open' ? 'รอดำเนินการ' :
-            statusToFilter === 'in_progress' ? 'กำลังดำเนินการ' :
-            statusToFilter === 'closed' ? 'ดำเนินการเสร็จ' :
-            statusToFilter === 'pending' ? 'รออะไหล่/การอนุมัติ' : ''; // Adjust if 'pending' is not a card status
+      statusToFilter === 'in_progress' ? 'กำลังดำเนินการ' :
+        statusToFilter === 'closed' ? 'ดำเนินการเสร็จ' :
+          statusToFilter === 'pending' ? 'รออะไหล่/การอนุมัติ' : ''; // Adjust if 'pending' is not a card status
     filteredTicketsForModal = allTicketsFromStore.filter(ticket => ticket.status === statusToFilter);
   }
 
@@ -234,19 +234,19 @@ function handleDepartmentChartClick(departmentName: string) {
     const filteredTicketsForModal = allTicketsFromStore.filter(
       ticket => ticket.department?.name === departmentName
     );
-    
+
     // Prepare data for the modal
     // We can reuse modalStatusTitle, or create a new one like modalDepartmentTitle if preferred for clarity
     // For now, reusing modalStatusTitle for simplicity, the modal's title will be "รายการแจ้งปัญหา: [Department Name]"
-    modalStatusTitle.value = departmentName; 
+    modalStatusTitle.value = departmentName;
     ticketsForModal.value = filteredTicketsForModal;
     isSummaryModalVisible.value = true;
   }
 
   // Clear other filters and emit for the main DashboardPage table
-  statusFilter.value = null; 
+  statusFilter.value = null;
   creationDateFilter.value = null; // Clear creation date filter
-  typeFilter.value = null; 
+  typeFilter.value = null;
 
   emit('filter-department-changed', departmentFilter.value);
   emit('filter-creation-date-changed', null); // Notify parent to clear creation date filter
@@ -340,7 +340,7 @@ const processedDepartmentTrendData = computed(() => {
       label: dept.name, // Label is department name
       data: data,
       borderColor: color,
-      backgroundColor: color , // 
+      backgroundColor: color, // 
       tension: 0.1,
       fill: false, // Set to true if you want area chart style
     };
@@ -490,12 +490,12 @@ watch([departmentTrendStartDate, departmentTrendEndDate, () => ticketStore.ticke
 }, { deep: true, immediate: false }); // immediate false to wait for initial fetch
 // Watcher for the first department chart
 watch([() => ticketStore.tickets, departments], () => {
-    if (departments.value.length > 0 && ticketStore.tickets.length > 0) {
-        // console.log("[AdminDashboard] Watcher triggered for department chart. Updating chart.");
-        updateDepartmentChart();
-    } else {
-        // console.log("[AdminDashboard] Watcher triggered for department chart. Conditions not met.");
-    }
+  if (departments.value.length > 0 && ticketStore.tickets.length > 0) {
+    // console.log("[AdminDashboard] Watcher triggered for department chart. Updating chart.");
+    updateDepartmentChart();
+  } else {
+    // console.log("[AdminDashboard] Watcher triggered for department chart. Conditions not met.");
+  }
 }, { deep: true });
 
 onMounted(async () => {

@@ -4,17 +4,17 @@
       <cardcontent>
         <div class="space-y-6">
           <!-- ส่วนหัวกับปุ่มเพิ่ม -->
-          <div class="flex justify-between items-center">
+          <div class="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
             <div class="flex flex-col">
               <cardtitle>หน้าจัดการหมวดหมู่</cardtitle>
               <p class="text-sm text-gray-600 font-medium ml-3">
-                รายการหมวดหมู่ทั้งหมด: 
+                รายการหมวดหมู่ทั้งหมด:
                 <span class="text-blue-600 font-semibold">{{ types.length }}</span>
                 หมวดหมู่
               </p>
             </div>
             <button @click="openAddModal"
-              class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+              class="w-full sm:w-auto px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center justify-center sm:justify-start">
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -26,7 +26,7 @@
           <!-- Modal เพิ่มหมวดหมู่ -->
           <div v-if="isAddModalOpen"
             class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
-            <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
+            <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-lg mx-4 sm:mx-auto border border-gray-200">
               <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor">
@@ -70,7 +70,7 @@
           <!-- Modal แก้ไขหมวดหมู่ -->
           <div v-if="isEditModalOpen"
             class="fixed inset-0 flex items-center justify-center h-screen backdrop-blur-sm bg-black/60 z-50">
-            <div class="bg-white p-6 rounded-xl shadow-xl w-96 border border-gray-200">
+            <div class="bg-white p-6 rounded-xl shadow-xl w-full max-w-lg mx-4 sm:mx-auto border border-gray-200">
               <h3 class="text-lg font-medium text-gray-800 mb-4 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-blue-500" fill="none"
                   viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
