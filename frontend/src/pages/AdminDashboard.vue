@@ -54,7 +54,7 @@
           :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
         <div v-else class="flex items-center justify-center h-full text-gray-500">
           {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' :
-          'กรุณาเลือกช่วงวันที่หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
+            'กรุณาเลือกช่วงวันที่หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
         </div>
       </div>
     </div>
@@ -396,6 +396,11 @@ const primaryColorsPalette = [
   '#10B981', // green-500
   '#8B5CF6', // violet-500
   '#EC4899', // pink-500
+  '#06B6D4', // cyan-500 
+  '#F97316', // orange-500 
+  '#84CC16', // lime-500 
+  '#6366F1', // indigo-500 
+  '#14B8A6', // teal-500 
 ];
 
 // Helper function to darken a hex color for the border
