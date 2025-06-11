@@ -1,7 +1,7 @@
 // stores/auth.ts
 import { defineStore } from 'pinia'
 // import axios from 'axios' // We'll use the api instance for login/refresh
-import api from '@/api/axios-instance' // 👈 Import your configured axios instance
+import api from '@/api/axios-instance' // Import your configured axios instance
 import { config } from '@/config'
 import Swal from 'sweetalert2';
 

@@ -325,7 +325,6 @@ const bandUser = async (id: number) => {
     cancelButtonColor: '#d33',
     confirmButtonText: 'ตกลง',
     cancelButtonText: 'ยกเลิก',
-    reverseButtons: true,
     backdrop: `
       rgba(0,0,0,0.4)
       url("/images/nyan-cat.gif")

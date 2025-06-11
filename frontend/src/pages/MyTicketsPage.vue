@@ -570,55 +570,167 @@ const exportToExcel = async () => {
     return;
   }
 
+  const totalRecords = filteredAndSearchedTickets.value.length;
+
   const result = await Swal.fire({
-    title: 'ยืนยันการ Export?',
-    text: `คุณต้องการ Export ข้อมูลตั๋วจำนวน ${filteredAndSearchedTickets.value.length} รายการเป็นไฟล์ Excel หรือไม่?`,
+    title: 'ระบุช่วงการ Export',
+    html: `
+      <div style="margin-bottom: 1.5em;">
+        <label for="swal-export-all" class="swal2-checkbox" style="display: flex; align-items: center; justify-content: center; margin-bottom: 1em;">
+          <input type="checkbox" id="swal-export-all" style="margin-right: 0.5em;">
+          <span style="font-size: 0.95em;">Export รายการทั้งหมด (${totalRecords} รายการ)</span>
+        </label>
+      </div>
+      <p style="margin-bottom: 0.5em; font-size: 0.9em; color: #545454;">หรือระบุช่วงที่ต้องการ Export:</p>
+      <div style="display: flex; justify-content: space-around; align-items: center; gap: 10px;">
+        <div style="flex: 1; text-align: center;">
+          <label for="swal-input-start" style="display: block; margin-bottom: .25em; font-size: 0.85em;">จากรายการที่:</label>
+          <input id="swal-input-start" type="number" value="1" min="1" max="${totalRecords}" class="swal2-input" style="width: 80px; padding: 0.4em; text-align: center; font-size: 0.9em;">
+        </div>
+        <div style="flex: 1; text-align: center;">
+          <label for="swal-input-end" style="display: block; margin-bottom: .25em; font-size: 0.85em;">ถึงรายการที่:</label>
+          <input id="swal-input-end" type="number" value="${totalRecords}" min="1" max="${totalRecords}" class="swal2-input" style="width: 80px; padding: 0.4em; text-align: center; font-size: 0.9em;">
+        </div>
+      </div>
+    `,
     icon: 'question',
     showCancelButton: true,
     confirmButtonColor: '#3085d6',
     cancelButtonColor: '#d33',
-    confirmButtonText: 'ใช่, Export เลย!',
-    cancelButtonText: 'ยกเลิก'
+    confirmButtonText: 'ดำเนินการ Export',
+    cancelButtonText: 'ยกเลิก',
+    focusConfirm: false,
+    preConfirm: () => {
+      const exportAllEl = document.getElementById('swal-export-all') as HTMLInputElement;
+      const startEl = document.getElementById('swal-input-start') as HTMLInputElement;
+      const endEl = document.getElementById('swal-input-end') as HTMLInputElement;
+
+      if (exportAllEl.checked) {
+        return { exportAll: true, start: 1, end: totalRecords };
+      }
+
+      // Disable range inputs if "Export all" is checked
+      // This logic might be better placed in an onchange event for the checkbox
+      // but for preConfirm, we just validate based on current state.
+      // startEl.disabled = exportAllEl.checked;
+      // endEl.disabled = exportAllEl.checked;
+
+      const start = parseInt(startEl.value);
+      const end = parseInt(endEl.value);
+
+      if (isNaN(start) || isNaN(end)) {
+        Swal.showValidationMessage('กรุณากรอกตัวเลขที่ถูกต้องสำหรับช่วงเริ่มต้นและสิ้นสุด');
+        return false;
+      }
+      if (start < 1 || start > totalRecords) {
+        Swal.showValidationMessage(`'จากรายการที่' ต้องอยู่ระหว่าง 1 และ ${totalRecords}`);
+        return false;
+      }
+      if (end < 1 || end > totalRecords) {
+        Swal.showValidationMessage(`'ถึงรายการที่' ต้องอยู่ระหว่าง 1 และ ${totalRecords}`);
+        return false;
+      }
+      if (start > end) {
+        Swal.showValidationMessage("'จากรายการที่' ต้องไม่มากกว่า 'ถึงรายการที่'");
+        return false;
+      }
+      return { exportAll: false, start, end };
+    },
+    didOpen: () => {
+      const exportAllEl = document.getElementById('swal-export-all') as HTMLInputElement;
+      const startEl = document.getElementById('swal-input-start') as HTMLInputElement;
+      const endEl = document.getElementById('swal-input-end') as HTMLInputElement;
+
+      exportAllEl.onchange = () => {
+        startEl.disabled = exportAllEl.checked;
+        endEl.disabled = exportAllEl.checked;
+        if(exportAllEl.checked) {
+            startEl.value = "1";
+            endEl.value = totalRecords.toString();
+        }
+      };
+    }
   });
 
-  if (!result.isConfirmed) {
-    return; // User cancelled
+  if (!result.isConfirmed || !result.value) {
+    return; // User cancelled or preConfirm returned false
   }
 
-  // Map data to a simpler structure for Excel, customize as needed
-  const dataToExport = filteredAndSearchedTickets.value.map(ticket => ({
-    'เลขอ้างอิง': ticket.reference_number,
-    'หัวข้อ': ticket.title,
-    'รายละเอียด': ticket.description,
-    'แผนก': ticket.department?.name || "-",
-    'หมวดหมู่': ticket.ticket_types?.name || "-",
-    'ความสำคัญ': ticket.priority || "-",
-    'สถานะ': statusName(ticket.status), // Use the existing statusName function
-    'ผู้แจ้ง': ticket.user?.name || "-",
-    'ติดต่อ': ticket.contact || "-",
-    'วันที่สร้าง': formatDateDDMMYYYY(ticket.created_at), // Use the existing formatDate function
-    'ผู้รับผิดชอบ': ticket.assignee?.name || "-",
-    'หมายเหตุ': ticket.comment || "-",
-  }));
-
-  // Create a new workbook and a new worksheet
-  const ws = XLSX.utils.json_to_sheet(dataToExport);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "รายการแจ้งปัญหา"); // "รายการแจ้งปัญหา" is the sheet name
-
-  // Generate a filename (e.g., tickets_YYYY-MM-DD.xlsx)
-  const today = new Date();
-  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const fileName = `my_tickets_export_${dateStr}.xlsx`;
-
-  // Trigger the download
-  XLSX.writeFile(wb, fileName);
-
   Swal.fire({
-    icon: 'success',
-    title: 'Export สำเร็จ!',
-    text: `ไฟล์ ${fileName} ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`,
+    title: 'กำลัง Export ข้อมูล...',
+    text: 'กรุณารอสักครู่ ระบบกำลังสร้างไฟล์ Excel',
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    },
   });
+
+  setTimeout(() => {
+    try {
+      let ticketsToExport: Ticket[];
+      let exportRangeText = "";
+
+      if (result.value?.exportAll) {
+        ticketsToExport = [...filteredAndSearchedTickets.value]; // Export all
+        exportRangeText = `ทั้งหมด (${ticketsToExport.length} รายการ)`;
+      } else {
+        const { start, end } = result.value as { start: number; end: number; exportAll: boolean };
+        ticketsToExport = filteredAndSearchedTickets.value.slice(start - 1, end);
+        exportRangeText = `รายการที่ ${start} ถึง ${end} (จำนวน ${ticketsToExport.length} รายการ)`;
+      }
+
+      if (ticketsToExport.length === 0) {
+        Swal.close();
+        Swal.fire('ไม่พบรายการ', 'ไม่พบรายการในช่วงที่ระบุสำหรับ Export', 'info');
+        return;
+      }
+
+      const dataToExport = ticketsToExport.map(ticket => ({
+        'เลขอ้างอิง': ticket.reference_number,
+        'หัวข้อ': ticket.title,
+        'รายละเอียด': ticket.description,
+        'แผนก': ticket.department?.name || "-",
+        'หมวดหมู่': ticket.ticket_types?.name || "-",
+        'ความสำคัญ': ticket.priority || "-",
+        'สถานะ': statusName(ticket.status),
+        'ผู้แจ้ง': ticket.user?.name || "-",
+        'ติดต่อ': ticket.contact || "-",
+        'วันที่สร้าง': formatDateDDMMYYYY(ticket.created_at),
+        'ผู้รับผิดชอบ': ticket.assignee?.name || "-",
+        'หมายเหตุ': ticket.comment || "-",
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(dataToExport);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "รายการแจ้งปัญหา");
+
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      let fileName = `tickets_export_${dateStr}`;
+      if (result.value?.exportAll) {
+        fileName += `_all.xlsx`;
+      } else {
+        const { start, end } = result.value as { start: number; end: number; exportAll: boolean };
+        fileName += `_range_${start}_to_${end}.xlsx`;
+      }
+
+      XLSX.writeFile(wb, fileName);
+      Swal.close(); // Close loading
+      Swal.fire({
+        icon: 'success',
+        title: 'Export สำเร็จ!',
+        text: `ไฟล์ ${fileName} (${exportRangeText}) ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`,
+      });
+    } catch (error) {
+      Swal.close(); // Close loading
+      Swal.fire({
+        icon: 'error',
+        title: 'Export ไม่สำเร็จ',
+        text: 'เกิดข้อผิดพลาดขณะสร้างไฟล์ Excel กรุณาลองใหม่อีกครั้ง',
+      });
+      console.error("Error exporting to Excel:", error);
+    }
+  }, 50); // Delay for UI update
 };
 </script>
 

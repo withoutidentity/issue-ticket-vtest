@@ -167,6 +167,7 @@ import { config } from '@/config';
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
 import Swal from 'sweetalert2'
+import api from '@/api/axios-instance';
 
 interface ticket_types {
   id: number
@@ -179,7 +180,7 @@ const types = ref<ticket_types[]>([])
 // const selectedRole = ref('USER')
 
 const fetchTypes = async () => {
-  const res = await axios.get(`${config.apiUrl}/api/types`)
+  const res = await api.get(`${config.apiUrl}/api/types`)
   types.value = res.data.data
 }
 
@@ -205,7 +206,6 @@ const confirmDelete = async (id: number) => {
     cancelButtonColor: '#d33',
     confirmButtonText: 'ตกลง',
     cancelButtonText: 'ยกเลิก',
-    reverseButtons: true,
     backdrop: `
       rgba(0,0,0,0.4)
       url("/images/nyan-cat.gif")
@@ -218,7 +218,7 @@ const confirmDelete = async (id: number) => {
     try {
       // เรียก API เพื่อลบข้อมูล
       try {
-        const { data } = await axios.get(`${config.apiUrl}/api/types/check/${id}`);
+        const { data } = await api.get(`${config.apiUrl}/api/types/check/${id}`);
         if (data.isUsed) {
           await Swal.fire(
             'ผิดพลาด!',
@@ -226,7 +226,7 @@ const confirmDelete = async (id: number) => {
             'error'
           )
         } else {
-          axios.delete(`${config.apiUrl}/api/types/delete/${id}`)
+          api.delete(`${config.apiUrl}/api/types/delete/${id}`)
           console.log('delete type id: ', id)
           await Swal.fire(
             'ลบแล้ว!',
@@ -277,7 +277,7 @@ const addType = async () => {
       return;
     }
 
-    const response = await axios.post(`${config.apiUrl}/api/types/create`, newType.value);
+    const response = await api.post(`${config.apiUrl}/api/types/create`, newType.value);
 
     if (response.data.success) {
       fetchTypes(); // ดึงข้อมูลใหม่
@@ -324,7 +324,7 @@ const updateType = async () => {
   }
 
   try {
-    const response = await axios.put(`${config.apiUrl}/api/types/update/${editingTypeData.value.id}`, {
+    const response = await api.put(`${config.apiUrl}/api/types/update/${editingTypeData.value.id}`, {
       name: editingTypeData.value.name,
       description: editingTypeData.value.description,
     });

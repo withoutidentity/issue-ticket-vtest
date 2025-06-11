@@ -268,7 +268,6 @@ const cancelEdit = async () => {
     showCancelButton: true,
     confirmButtonText: 'ใช่, ยกเลิก',
     cancelButtonText: 'ไม่',
-    reverseButtons: true,
   })
 
   if (result.isConfirmed) {

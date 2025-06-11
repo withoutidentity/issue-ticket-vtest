@@ -7,7 +7,7 @@ import { PrismaClient } from '@prisma/client'
 const router = Router();
 const prisma = new PrismaClient()
 //GET /api/departments
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const departments = await prisma.department.findMany({
         select: {
@@ -54,7 +54,7 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
   }
 });
 
-router.delete('/delete/:id', async (req: Request, res: Response) => {
+router.delete('/delete/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id, 10);
 
@@ -81,7 +81,7 @@ router.delete('/delete/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/check/:id', async (req, res) => {
+router.get('/check/:id', authenticateToken, async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     

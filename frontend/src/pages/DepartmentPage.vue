@@ -129,7 +129,6 @@ const confirmDelete = async (id: number) => {
     cancelButtonColor: '#d33',
     cancelButtonText: 'ยกเลิก',
     confirmButtonText: 'ตกลง',
-    reverseButtons: true,
     backdrop: `
       rgba(0,0,0,0.4)
       url("/images/nyan-cat.gif")

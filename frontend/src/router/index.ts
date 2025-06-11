@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
-// ✅ เพิ่ม type ให้ meta รองรับ role guard
+// เพิ่ม type ให้ meta รองรับ role guard
 declare module 'vue-router' {
   interface RouteMeta {
     requiresAuth?: boolean
     roles?: string[]
-    guestOnly?: boolean // ✅ เพิ่ม guestOnly สำหรับ meta
+    guestOnly?: boolean // เพิ่ม guestOnly สำหรับ meta
   }
 }
 
@@ -33,7 +33,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'Login',
     component: () => import('@/pages/LoginPage.vue'),
-    meta: { guestOnly: true } // ✅ ผู้ใช้ที่ล็อกอินแล้วไม่ควรเห็นหน้านี้
+    meta: { guestOnly: true } // ผู้ใช้ที่ล็อกอินแล้วไม่ควรเห็นหน้านี้
   },
   {
     path: '/register',
