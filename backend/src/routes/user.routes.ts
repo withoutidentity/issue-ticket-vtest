@@ -49,20 +49,22 @@ router.get('/',authenticateToken, async (req: Request, res: Response) => {
   try {
     const users = await prisma.user.findMany({
       select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      avatar_url: true,
+      department: {
+        select: {
         id: true,
         name: true,
-        email: true,
-        role: true,
-        avatar_url: true,
-        department: {
-          select: {
-            id: true,
-            name: true,
-          }
-        },
-        is_officer_confirmed: true
-        // เพิ่ม status หรือ createdAt ถ้ามี
+        }
       },
+      is_officer_confirmed: true
+      },
+      orderBy: {
+      id: 'asc' // Order by ID from oldest to newest
+      }
     })
     res.json(users)
   } catch (error) {
@@ -264,9 +266,6 @@ router.put('/me/password', authenticateToken, async (req: AuthenticatedRequest, 
 router.put('/update/:id', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']), async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id, 10)
   const { role } = req.body
-
-  console.log('user: ',userId)
-  console.log('Role: ',role)
 
   if (!['USER', 'OFFICER', 'ADMIN', 'BANNED'].includes(role)) {
     res.status(400).json({ error: 'Invalid role specified' })

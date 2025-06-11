@@ -87,12 +87,8 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
             db_is_read: dbNotification.is_read,
             db_created_at: dbNotification.created_at?.toISOString(),
           });
-        } else {
-        }
-      } else {
-        console.log(shouldSendWebSocket, dbNotification)
-      }
-
+        } 
+      } 
     }
 
     // สำคัญ: ตอบ notify: true ทุกครั้งถ้ามี ticket in_progress (ไม่ว่ามี insert ใหม่หรือไม่)

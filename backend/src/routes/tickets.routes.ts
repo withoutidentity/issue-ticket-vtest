@@ -1,5 +1,5 @@
 import { Ticket } from './../types/index';
-import { Router, Request, Response } from 'express'
+import { Router, Response } from 'express' // Removed Request as it's not directly used
 import { PrismaClient, TicketStatus, LogActionType, User } from '@prisma/client' // Added LogActionType
 import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
 import { uploadUser, uploadAssignee } from '../middleware/upload'
@@ -8,7 +8,7 @@ import { io, connectedUsers } from '../index'; // เพิ่ม import สำ�
 import { sendTelegramMessage } from '../utils/sendTelegram'; // เพิ่ม import สำหรับ Telegram
 import { format, startOfDay, endOfDay } from 'date-fns'; // นำเข้า date-fns
 import fs from 'fs';
-import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController'; 
+import { updateTicket, addAssigneeFilesToTicket } from '@/controllers/ticketController';
 
 const router = Router()
 const prisma = new PrismaClient()
@@ -47,7 +47,7 @@ async function createTicketLogEntry(
 async function logFieldChange(
   prisma: PrismaClient, // Pass prisma instance
   ticket_id: number,
-  performingUser: { id: number; name: string, role: 'USER' | 'ADMIN' | 'OFFICER' | 'BANNED',  }, // Simplified user type with required properties
+  performingUser: { id: number; name: string, role: 'USER' | 'ADMIN' | 'OFFICER' | 'BANNED', }, // Simplified user type with required properties
   field: keyof Ticket | 'type_id' | 'department_id' | 'assignee_id' | 'priority' | 'contact' | 'comment', // Field name being changed
   oldValue: any,
   newValue: any,
@@ -99,12 +99,12 @@ async function logFieldChange(
     oldDisplayValue = statusDisplayValues[oldValue as string] || String(oldValue);
     newDisplayValue = statusDisplayValues[newValue as string] || String(newValue);
   }
-  
+
 
   await createTicketLogEntry(
     ticket_id,
     performingUser.id,
-    performingUser.name, 
+    performingUser.name,
     actionType,
     `เปลี่ยน ${displayFieldName} จาก '${oldDisplayValue}' เป็น '${newDisplayValue}'`,
     field as string,
@@ -122,7 +122,7 @@ router.post(
     try {
       const { title, description, type_id, priority, contact, department_id } =
         req.body
-      const performingUser = req.user; 
+      const performingUser = req.user;
 
       if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
         res.status(401).json({ error: 'User information is missing or invalid for logging.' });
@@ -175,7 +175,7 @@ router.post(
           },
           files: {
             create: files.map((file) => ({
-              filename: file.filename ,
+              filename: file.filename,
               filepath: file.path,
             })),
           },
@@ -199,111 +199,150 @@ router.post(
         `Reference: ${newTicket.reference_number}` // new_value (summary with reference_number)
       );
 
-  // เริ่ม: แจ้งเตือน OFFICER ที่ออนไลน์เมื่อมี Ticket ใหม่ (status: open)
-  if (newTicket.status === TicketStatus.open) {
-    const notificationMessageToOfficer = `ปัญหาใหม่ รหัส ${newTicket.reference_number} (${newTicket.title}) เข้ามาในระบบ`;
-    const eventTypeForOfficer = 'open_ticket_alert';
+      // เริ่ม: แจ้งเตือน OFFICER ที่ออนไลน์เมื่อมี Ticket ใหม่ (status: open)
+      if (newTicket.status === TicketStatus.open) {
+        const notificationMessageToOfficer = `ปัญหาใหม่ รหัส ${newTicket.reference_number} (${newTicket.title}) เข้ามาในระบบ`;
+        const eventTypeForOfficer = 'open_ticket_alert';
 
-    // ดึง ID ของ Officer ทั้งหมดที่ is_officer_confirmed เป็น true
-    const activeOfficers = await prisma.user.findMany({
-      where: {
-        role: 'OFFICER',
-        is_officer_confirmed: true, // พิจารณาว่าต้องการแจ้งเตือนเฉพาะ Officer ที่ confirmed หรือไม่
-      },
-      select: { id: true},
-    });
-
-    for (const officer of activeOfficers) {
-      // สร้าง Notification ใน DB สำหรับ Officer แต่ละคน (ถ้ายังไม่มี)
-      // (ส่วนนี้คล้ายกับใน notification.routes.ts /check-open แต่ทำทันที)
-      let dbNotificationForOfficer = await prisma.notifications.findFirst({
-        where: { user_id: officer.id, ticket_id: newTicket.id, type: eventTypeForOfficer },
-      });
-
-      let wasNotificationNewlyCreated = false; // ตัวแปรใหม่เพื่อติดตามว่า notification ถูกสร้างใหม่หรือไม่
-
-      if (!dbNotificationForOfficer) {
-        const createdDbNotification = await prisma.notifications.create({
-          data: {
-            user_id: officer.id,
-            ticket_id: newTicket.id,
-            message: notificationMessageToOfficer,
-            type: eventTypeForOfficer,
-            is_read: false,
+        // ดึง ID ของ Officer ทั้งหมดที่ is_officer_confirmed เป็น true
+        const activeOfficers = await prisma.user.findMany({
+          where: {
+            role: 'OFFICER',
+            is_officer_confirmed: true, // พิจารณาว่าต้องการแจ้งเตือนเฉพาะ Officer ที่ confirmed หรือไม่
           },
-        });
-        dbNotificationForOfficer = createdDbNotification; // ใช้อันที่เพิ่งสร้าง
-        wasNotificationNewlyCreated = true; // ตั้งค่าเป็น true เมื่อสร้างใหม่
-      }
-
-      const officerSocketId = connectedUsers.get(officer.id);
-      if (officerSocketId && dbNotificationForOfficer) { // ตรวจสอบว่ามี dbNotificationForOfficer ด้วย
-        console.log(`[Ticket Create] Emitting 'notification:new' (open_alert) to OFFICER ${officer.id} (socket ${officerSocketId}) for new ticket ${newTicket.id}`);
-        io.to(officerSocketId).emit('notification:new', {
-          userId: officer.id, // ID ของ Officer ผู้รับ
-          message: notificationMessageToOfficer,
-          ticketId: newTicket.id,
-          ticketCode: newTicket.reference_number,
-          type: eventTypeForOfficer,
-          timestamp: new Date().toISOString(),
-          // เพิ่มข้อมูลจาก DB Notification ที่เกี่ยวข้อง
-          db_notification_id: dbNotificationForOfficer.id,
-          db_is_read: dbNotificationForOfficer.is_read,
-          db_created_at: dbNotificationForOfficer.created_at?.toISOString(),
-        });
-      }
-    } // End of for loop
-
-    // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram ไปยังกลุ่มแผนก IT ตามเงื่อนไข
-    if (newTicket.status === TicketStatus.open && newTicket.department_id) {
-      const itDepartment = await prisma.department.findUnique({
-        where: { name: 'it' }, // หรือใช้ ID ที่แน่นอนหากชื่อ 'it' อาจมีการเปลี่ยนแปลง
-        select: { group_id: true, thread_id: true }
-      });
-
-      if (itDepartment && itDepartment.group_id && itDepartment.thread_id && itDepartment.thread_id.length > 0) {
-        // ดึงข้อมูลแผนกต้นทางของ Ticket ใหม่
-        const sourceDepartment = await prisma.department.findUnique({
-          where: { id: newTicket.department_id },
-          // สมมติว่ามีการเพิ่ม field 'it_target_thread_index' ใน model Department
-          // field นี้จะเก็บ index ของ array thread_id ของแผนก IT ที่จะใช้
-          select: { name: true, it_target_thread_index: true }
+          select: { id: true },
         });
 
-        let targetThreadIdForIT: string | undefined = undefined;
+        for (const officer of activeOfficers) {
+          // สร้าง Notification ใน DB สำหรับ Officer แต่ละคน (ถ้ายังไม่มี)
+          // (ส่วนนี้คล้ายกับใน notification.routes.ts /check-open แต่ทำทันที)
+          let dbNotificationForOfficer = await prisma.notifications.findFirst({
+            where: { user_id: officer.id, ticket_id: newTicket.id, type: eventTypeForOfficer },
+          });
 
-        if (sourceDepartment && sourceDepartment.it_target_thread_index !== null && sourceDepartment.it_target_thread_index !== undefined) {
-          const targetIndex = sourceDepartment.it_target_thread_index;
-          if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
-            targetThreadIdForIT = itDepartment.thread_id[targetIndex];
-            console.log(`[Ticket Create] New ticket from '${sourceDepartment.name}' dept. Notifying IT dept in thread: ${targetThreadIdForIT} (index ${targetIndex})`);
-          } else {
-            console.warn(`[Ticket Create] Configured IT target thread index ${targetIndex} for department '${sourceDepartment.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
+          let wasNotificationNewlyCreated = false; // ตัวแปรใหม่เพื่อติดตามว่า notification ถูกสร้างใหม่หรือไม่
+
+          if (!dbNotificationForOfficer) {
+            const createdDbNotification = await prisma.notifications.create({
+              data: {
+                user_id: officer.id,
+                ticket_id: newTicket.id,
+                message: notificationMessageToOfficer,
+                type: eventTypeForOfficer,
+                is_read: false,
+              },
+            });
+            dbNotificationForOfficer = createdDbNotification; // ใช้อันที่เพิ่งสร้าง
+            wasNotificationNewlyCreated = true; // ตั้งค่าเป็น true เมื่อสร้างใหม่
           }
-        } else if (sourceDepartment) {
-          console.log(`[Ticket Create] Department '${sourceDepartment.name}' does not have IT notification target thread index configured.`);
-        } else {
-          console.warn(`[Ticket Create] Could not find source department with ID ${newTicket.department_id} for IT notification routing.`);
-        }
 
-        if (targetThreadIdForIT) { // ส่งเมื่อมี targetThreadId ที่ตรงเงื่อนไขเท่านั้น
-          await sendTelegramMessage(itDepartment.group_id, notificationMessageToOfficer, targetThreadIdForIT);
+          const officerSocketId = connectedUsers.get(officer.id);
+          if (officerSocketId && dbNotificationForOfficer) { // ตรวจสอบว่ามี dbNotificationForOfficer ด้วย
+            console.log(`[Ticket Create] Emitting 'notification:new' (open_alert) to OFFICER ${officer.id} (socket ${officerSocketId}) for new ticket ${newTicket.id}`);
+            io.to(officerSocketId).emit('notification:new', {
+              userId: officer.id, // ID ของ Officer ผู้รับ
+              message: notificationMessageToOfficer,
+              ticketId: newTicket.id,
+              ticketCode: newTicket.reference_number,
+              type: eventTypeForOfficer,
+              timestamp: new Date().toISOString(),
+              // เพิ่มข้อมูลจาก DB Notification ที่เกี่ยวข้อง
+              db_notification_id: dbNotificationForOfficer.id,
+              db_is_read: dbNotificationForOfficer.is_read,
+              db_created_at: dbNotificationForOfficer.created_at?.toISOString(),
+            });
+          }
+        } // End of for loop
+
+        // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram ไปยังกลุ่มแผนก IT ตามเงื่อนไข
+        if (newTicket.status === TicketStatus.open && newTicket.department_id) {
+          const itDepartment = await prisma.department.findUnique({
+            where: { name: 'it' }, // หรือใช้ ID ที่แน่นอนหากชื่อ 'it' อาจมีการเปลี่ยนแปลง
+            select: { group_id: true, thread_id: true }
+          });
+
+          if (itDepartment && itDepartment.group_id && itDepartment.thread_id && itDepartment.thread_id.length > 0) {
+            // ดึงข้อมูลแผนกต้นทางของ Ticket ใหม่
+            const sourceDepartment = await prisma.department.findUnique({
+              where: { id: newTicket.department_id },
+              // สมมติว่ามีการเพิ่ม field 'it_target_thread_index' ใน model Department
+              // field นี้จะเก็บ index ของ array thread_id ของแผนก IT ที่จะใช้
+              select: { name: true, it_target_thread_index: true }
+            });
+
+            let targetThreadIdForIT: string | undefined = undefined;
+
+            if (sourceDepartment && sourceDepartment.it_target_thread_index !== null && sourceDepartment.it_target_thread_index !== undefined) {
+              const targetIndex = sourceDepartment.it_target_thread_index;
+              if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
+                targetThreadIdForIT = itDepartment.thread_id[targetIndex];
+                console.log(`[Ticket Create] New ticket from '${sourceDepartment.name}' dept. Notifying IT dept in thread: ${targetThreadIdForIT} (index ${targetIndex})`);
+              } else {
+                console.warn(`[Ticket Create] Configured IT target thread index ${targetIndex} for department '${sourceDepartment.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
+              }
+            } else if (sourceDepartment) {
+              console.log(`[Ticket Create] Department '${sourceDepartment.name}' does not have IT notification target thread index configured.`);
+            } else {
+              console.warn(`[Ticket Create] Could not find source department with ID ${newTicket.department_id} for IT notification routing.`);
+            }
+
+            if (targetThreadIdForIT) { // ส่งเมื่อมี targetThreadId ที่ตรงเงื่อนไขเท่านั้น
+              await sendTelegramMessage(itDepartment.group_id, notificationMessageToOfficer, targetThreadIdForIT);
+            }
+          }
+        }
+        // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
+      }
+      // สิ้นสุด: แจ้งเตือน OFFICER
+
+      // START: Notify all ADMINs about the new ticket
+      if (newTicket.status === TicketStatus.open) { // Ensure we notify for open tickets, adjust if needed for other initial statuses
+        const admins = await prisma.user.findMany({
+          where: { role: 'ADMIN' },
+          select: { id: true },
+        });
+
+        const adminNotificationMessage = `Ticket ใหม่ ${newTicket.reference_number} (${newTicket.title}) จากแผนก ${newTicket.department?.name || 'ไม่ระบุ'} ถูกสร้าง`;
+        const adminNotificationType = 'ADMIN_TICKET_CREATED';
+
+        for (const admin of admins) {
+          let dbNotificationForAdmin = await prisma.notifications.findFirst({
+            where: { user_id: admin.id, ticket_id: newTicket.id, type: adminNotificationType },
+          });
+
+          if (!dbNotificationForAdmin) {
+            dbNotificationForAdmin = await prisma.notifications.create({
+              data: {
+                user_id: admin.id,
+                ticket_id: newTicket.id,
+                message: adminNotificationMessage,
+                type: adminNotificationType,
+                is_read: false,
+              },
+            });
+          }
+
+          const adminSocketId = connectedUsers.get(admin.id);
+          if (adminSocketId && dbNotificationForAdmin) {
+            io.to(adminSocketId).emit('notification:new', {
+              userId: admin.id, message: adminNotificationMessage, ticketId: newTicket.id,
+              ticketCode: newTicket.reference_number, type: adminNotificationType, timestamp: new Date().toISOString(),
+              db_notification_id: dbNotificationForAdmin.id, db_is_read: dbNotificationForAdmin.is_read, db_created_at: dbNotificationForAdmin.created_at?.toISOString(),
+            });
+            console.log(`[Ticket Create] Emitting '${adminNotificationType}' to ADMIN ${admin.id} for new ticket ${newTicket.id}`);
+          }
         }
       }
-    }
-    // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
-  }
-  // สิ้นสุด: แจ้งเตือน OFFICER
-
+      // END: Notify all ADMINs
       res.status(201).json(newTicket)
     } catch (error: any) {
       if (error.code === 'P2002' && error.meta?.target?.includes('reference_number')) {
         res.status(409).json({ // 409 Conflict
-            success: false,
-            message: 'Failed to create ticket due to a reference number conflict. Please try again.',
-            error: 'Reference number conflict'
+          success: false,
+          message: 'Failed to create ticket due to a reference number conflict. Please try again.',
+          error: 'Reference number conflict'
         });
-        return 
+        return
       }
       console.error('Error creating ticket:', error);
       res.status(500).json({ error: 'Failed to create ticket' });
@@ -360,9 +399,9 @@ router.get('/:id', authenticateToken, async (req: AuthenticatedRequest, res: Res
       include: {
         user: { select: { id: true, name: true, email: true } },
         ticket_types: { select: { name: true } },
-        files: { select: { id: true, ticket_id: true, filename: true}},
-        assigneeFiles: { select: { id: true, ticket_id: true, filename: true}},
-        department: { select: { id:true, name: true}},
+        files: { select: { id: true, ticket_id: true, filename: true } },
+        assigneeFiles: { select: { id: true, ticket_id: true, filename: true } },
+        department: { select: { id: true, name: true } },
         assignee: {
           select: {
             id: true,
@@ -402,9 +441,9 @@ router.put(
     // console.log('[DEBUG] Performing User:', JSON.stringify(performingUser, null, 2)); // Log performing user
 
     if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
-        // console.error('[DEBUG] User information is missing or invalid for logging.');
-        res.status(401).json({ error: 'User information is missing or invalid for logging.' });
-        return 
+      // console.error('[DEBUG] User information is missing or invalid for logging.');
+      res.status(401).json({ error: 'User information is missing or invalid for logging.' });
+      return
     }
 
     // 5. Parse IDs และจัดการค่าที่อาจเป็น null/undefined
@@ -443,12 +482,12 @@ router.put(
 
     let parsedDeletedFileIds: number[] | undefined = undefined;
     if (deletedFileIds && Array.isArray(deletedFileIds)) {
-        parsedDeletedFileIds = deletedFileIds.map(id => parseInt(String(id), 10)).filter(id => !isNaN(id));
+      parsedDeletedFileIds = deletedFileIds.map(id => parseInt(String(id), 10)).filter(id => !isNaN(id));
     } else if (typeof deletedFileIds === 'string' && deletedFileIds.length > 0) {
-        // Handle comma-separated string or single ID string if needed
-        parsedDeletedFileIds = deletedFileIds.split(',').map(id => id.trim()).filter(idStr => idStr.length > 0).map(idStr => parseInt(idStr, 10)).filter(id => !isNaN(id));
+      // Handle comma-separated string or single ID string if needed
+      parsedDeletedFileIds = deletedFileIds.split(',').map(id => id.trim()).filter(idStr => idStr.length > 0).map(idStr => parseInt(idStr, 10)).filter(id => !isNaN(id));
     } else if (deletedFileIds && typeof deletedFileIds === 'number' && !isNaN(deletedFileIds)) { // Handle single number
-        parsedDeletedFileIds = [deletedFileIds];
+      parsedDeletedFileIds = [deletedFileIds];
     }
 
     try {
@@ -467,7 +506,7 @@ router.put(
       if (!oldTicket) {
         // console.error('[DEBUG] Old ticket not found for logging.');
         res.status(404).json({ success: false, message: 'Ticket not found for logging.' });
-        return 
+        return
       }
 
       const result = await updateTicket(id, { // This is a call to your controller
@@ -490,49 +529,49 @@ router.put(
         const updatedTicketData = result.data; // Use result.data directly as the ticket object
 
         // Log changes for each field
-        if (title !== undefined) { 
+        if (title !== undefined) {
           // console.log(`[DEBUG] Checking title: OLD='${oldTicket.title}', NEW='${title}'`);
-          await logFieldChange(prisma, id, performingUser, 'title', oldTicket.title, title, LogActionType.TITLE_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'title', oldTicket.title, title, LogActionType.TITLE_UPDATED, oldTicket);
         }
 
-        if (description !== undefined) { 
+        if (description !== undefined) {
           // console.log(`[DEBUG] Checking description: OLD='${oldTicket.description}', NEW='${description}'`); 
-          await logFieldChange(prisma, id, performingUser, 'description', oldTicket.description, description, LogActionType.DESCRIPTION_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'description', oldTicket.description, description, LogActionType.DESCRIPTION_UPDATED, oldTicket);
         }
 
-        if (type_id_parsed !== undefined) { 
+        if (type_id_parsed !== undefined) {
           // console.log(`[DEBUG] Checking type_id: OLD='${oldTicket.type_id}', NEW='${type_id_parsed}'`); 
-          await logFieldChange(prisma, id, performingUser, 'type_id', oldTicket.type_id, type_id_parsed, LogActionType.TYPE_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'type_id', oldTicket.type_id, type_id_parsed, LogActionType.TYPE_UPDATED, oldTicket);
         }
-      
-        if (priority !== undefined && oldTicket.priority !== priority) { 
+
+        if (priority !== undefined && oldTicket.priority !== priority) {
           // console.log(`[DEBUG] Checking priority: OLD='${oldTicket.priority}', NEW='${priority}'`); 
-          await logFieldChange(prisma, id, performingUser, 'priority', oldTicket.priority, priority, LogActionType.PRIORITY_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'priority', oldTicket.priority, priority, LogActionType.PRIORITY_UPDATED, oldTicket);
         }
-      
-        if (contact !== undefined) { 
+
+        if (contact !== undefined) {
           // console.log(`[DEBUG] Checking contact: OLD='${oldTicket.contact}', NEW='${contact}'`); 
-          await logFieldChange(prisma, id, performingUser, 'contact', oldTicket.contact, contact, LogActionType.CONTACT_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'contact', oldTicket.contact, contact, LogActionType.CONTACT_UPDATED, oldTicket);
         }
 
-        if (department_id_parsed !== undefined) { 
+        if (department_id_parsed !== undefined) {
           // console.log(`[DEBUG] Checking department_id: OLD='${oldTicket.department_id}', NEW='${department_id_parsed}'`); 
-          await logFieldChange(prisma, id, performingUser, 'department_id', oldTicket.department_id, department_id_parsed, LogActionType.DEPARTMENT_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'department_id', oldTicket.department_id, department_id_parsed, LogActionType.DEPARTMENT_UPDATED, oldTicket);
         }
 
-        if (assignee_id_parsed !== undefined) { 
+        if (assignee_id_parsed !== undefined) {
           // console.log(`[DEBUG] Checking assignee_id: OLD='${oldTicket.assignee_id}', NEW='${assignee_id_parsed}'`); 
-          await logFieldChange(prisma, id, performingUser, 'assignee_id', oldTicket.assignee_id, assignee_id_parsed, LogActionType.ASSIGNEE_CHANGED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'assignee_id', oldTicket.assignee_id, assignee_id_parsed, LogActionType.ASSIGNEE_CHANGED, oldTicket);
         }
 
-        if (comment !== undefined && oldTicket.comment !== comment) { 
+        if (comment !== undefined && oldTicket.comment !== comment) {
           // console.log(`[DEBUG] Checking comment: OLD='${oldTicket.comment}', NEW='${comment}'`); 
-          await logFieldChange(prisma, id, performingUser, 'comment', oldTicket.comment, comment, LogActionType.COMMENT_UPDATED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'comment', oldTicket.comment, comment, LogActionType.COMMENT_UPDATED, oldTicket);
         }
 
-        if (status !== undefined) { 
+        if (status !== undefined) {
           // console.log(`[DEBUG] Checking status: OLD='${oldTicket.status}', NEW='${status}'`); 
-          await logFieldChange(prisma, id, performingUser, 'status', oldTicket.status, status, LogActionType.STATUS_CHANGED, oldTicket); 
+          await logFieldChange(prisma, id, performingUser, 'status', oldTicket.status, status, LogActionType.STATUS_CHANGED, oldTicket);
         }
 
         // --- Logging for Requester File Changes ---
@@ -560,144 +599,184 @@ router.put(
             );
           }
         }
-      } 
-        // เริ่ม: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ (ย้ายมาจาก updateStatus)
-        // ตรวจสอบว่ามีการเปลี่ยนแปลงสถานะหรือไม่ และสถานะใหม่เป็นค่าที่ต้องการแจ้งเตือน
-        if (status !== undefined && oldTicket.status !== status) {
-          const ticketDetailsForNotification = await prisma.ticket.findUnique({
-            where: { id },
-            select: { user_id: true, reference_number: true, title: true }
-          });
+      }
+      // เริ่ม: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ (ย้ายมาจาก updateStatus)
+      // ตรวจสอบว่ามีการเปลี่ยนแปลงสถานะหรือไม่ และสถานะใหม่เป็นค่าที่ต้องการแจ้งเตือน
+      if (status !== undefined && oldTicket.status !== status) {
+        const ticketDetailsForNotification = await prisma.ticket.findUnique({
+          where: { id: id }, // Use the parsed id
+          select: { user_id: true, reference_number: true, title: true }
+        });
 
-          if (ticketDetailsForNotification && ticketDetailsForNotification.user_id) {
-            const ownerUserId = ticketDetailsForNotification.user_id;
-            let eventType: 'in_progress_alert' | 'done_alert' | null = null;
-            let dynamicMessage = "";
+        if (ticketDetailsForNotification && ticketDetailsForNotification.user_id) {
+          const ownerUserId = ticketDetailsForNotification.user_id;
+          let eventType: 'in_progress_alert' | 'done_alert' | null = null;
+          let dynamicMessage = "";
+          const statusDisplayMap: Record<string, string> = {
+            open: "รอดำเนินการ",
+            in_progress: "กำลังดำเนินการ",
+            pending: "รอการแก้ไข",
+            closed: "ปิดงาน",
+            // Add other statuses if any
+          };
 
-            if (status === TicketStatus.in_progress) {
-              eventType = 'in_progress_alert';
-              dynamicMessage = `เจ้าหน้าที่กำลังดำเนินการกับ tickets รหัส ${ticketDetailsForNotification.reference_number}`;
-            } else if (status === TicketStatus.closed) {
-              eventType = 'done_alert';
-              dynamicMessage = `เจ้าหน้าที่ดำเนินการเสร็จสิ้นแล้วสำหรับ Ticket รหัส ${ticketDetailsForNotification.reference_number}`;
-            }
+          if (status === TicketStatus.in_progress) {
+            eventType = 'in_progress_alert';
+            dynamicMessage = `Ticket ${ticketDetailsForNotification.reference_number} กำลังดำเนินการ`;
+          } else if (status === TicketStatus.closed) {
+            eventType = 'done_alert';
+            dynamicMessage = `Ticket ${ticketDetailsForNotification.reference_number} ดำเนินการเสร็จสิ้นแล้ว`;
+          }
 
-            if (eventType) {
-              let dbNotification = await prisma.notifications.findFirst({
-                where: {
+          if (eventType) {
+            let dbNotification = await prisma.notifications.findFirst({
+              where: {
+                user_id: ownerUserId,
+                ticket_id: id,
+                type: eventType,
+              },
+            });
+
+            let shouldSendWebSocket = false;
+            let shouldSendTelegram = false;
+
+            if (!dbNotification) {
+              const newNotification = await prisma.notifications.create({
+                data: {
                   user_id: ownerUserId,
                   ticket_id: id,
+                  message: dynamicMessage,
                   type: eventType,
+                  is_read: false,
                 },
               });
+              dbNotification = newNotification;
+              shouldSendWebSocket = true;
+              shouldSendTelegram = true;
+            } else if (!dbNotification.is_read) {
+              shouldSendWebSocket = true;
+            }
 
-              let shouldSendWebSocket = false;
-              let shouldSendTelegram = false;
-
-              if (!dbNotification) {
-                const newNotification = await prisma.notifications.create({
-                  data: {
-                    user_id: ownerUserId,
-                    ticket_id: id,
-                    message: dynamicMessage,
-                    type: eventType,
-                    is_read: false,
-                  },
+            if (shouldSendWebSocket && dbNotification) {
+              const socketId = connectedUsers.get(ownerUserId);
+              if (socketId) {
+                io.to(socketId).emit('notification:new', {
+                  userId: ownerUserId, message: dynamicMessage, ticketId: id,
+                  ticketCode: ticketDetailsForNotification.reference_number, type: eventType,
+                  timestamp: new Date().toISOString(), db_notification_id: dbNotification.id,
+                  db_is_read: dbNotification.is_read, db_created_at: dbNotification.created_at?.toISOString(),
                 });
-                dbNotification = newNotification;
-                shouldSendWebSocket = true;
-                shouldSendTelegram = true;
-              } else if (!dbNotification.is_read) {
-                shouldSendWebSocket = true;
-              }
-
-              if (shouldSendWebSocket && dbNotification) {
-                const socketId = connectedUsers.get(ownerUserId);
-                if (socketId) {
-                  io.to(socketId).emit('notification:new', {
-                    userId: ownerUserId, message: dynamicMessage, ticketId: id,
-                    ticketCode: ticketDetailsForNotification.reference_number, type: eventType,
-                    timestamp: new Date().toISOString(), db_notification_id: dbNotification.id,
-                    db_is_read: dbNotification.is_read, db_created_at: dbNotification.created_at?.toISOString(),
-                  });
-                  console.log(`[Ticket Update] Emitted 'notification:new' to USER ${ownerUserId} (socket ${socketId}) for ticket ${id}, status ${status}`);
-                }
-              }
-              if (shouldSendTelegram) {
-                // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram เมื่อสถานะ Ticket เปลี่ยน
-                const ticketDepartmentId = oldTicket.department_id; // department_id ของ Ticket ที่กำลังอัปเดต
-
-                // แจ้งเตือนไปยังกลุ่มของแผนกเจ้าของ Ticket
-                if (ticketDepartmentId) {
-                  const ticketOwnerDepartment = await prisma.department.findUnique({
-                    where: { id: ticketDepartmentId },
-                    select: { name: true, group_id: true, thread_id: true }
-                  });
-
-                  if (ticketOwnerDepartment?.group_id && ticketOwnerDepartment.thread_id) {
-                    let targetThreadIdForOwnerDept: string | undefined = undefined;
-                    if (status === TicketStatus.in_progress && ticketOwnerDepartment.thread_id.length >= 1) {
-                      targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[0];
-                    } else if (status === TicketStatus.closed && ticketOwnerDepartment.thread_id.length >= 2) {
-                      targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[1];
-                    }
-
-                    if (targetThreadIdForOwnerDept) {
-                      const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
-                      await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
-                      console.log(`[Ticket Update] Telegram sent to TICKET OWNER DEPARTMENT (${ticketOwnerDepartment.name}) group for ticket ${id}, status ${status}.`);
-                    }
-                  }
-                }
-
-                // แจ้งเตือนไปยังแผนก IT (เพิ่มเติม)
-                const itDepartment = await prisma.department.findUnique({
-                  where: { name: 'it' },
-                  select: { group_id: true, thread_id: true }
-                });
-
-                // ตรวจสอบว่ามีแผนก IT, group_id, thread_id และ ticketDepartmentId (ID ของแผนกที่ Ticket สังกัด) ก่อนดำเนินการ
-                if (itDepartment?.group_id && itDepartment.thread_id?.length > 0 && ticketDepartmentId) {
-                  // ดึงข้อมูลแผนกต้นทางของ Ticket (แผนกที่ Ticket สังกัด) เพื่อใช้ it_target_thread_index
-                  const sourceDepartmentForITRouting = await prisma.department.findUnique({
-                    where: { id: ticketDepartmentId },
-                    select: { name: true, it_target_thread_index: true }
-                  });
-
-                  let targetThreadIdForIT: string | undefined = undefined;
-                  let originalTicketDeptName = "ไม่ทราบแผนก";
-
-                  if (sourceDepartmentForITRouting && sourceDepartmentForITRouting.it_target_thread_index !== null && sourceDepartmentForITRouting.it_target_thread_index !== undefined) {
-                    originalTicketDeptName = sourceDepartmentForITRouting.name;
-                    const targetIndex = sourceDepartmentForITRouting.it_target_thread_index;
-                    if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
-                      targetThreadIdForIT = itDepartment.thread_id[targetIndex];
-                      console.log(`[Ticket Update] Ticket from '${sourceDepartmentForITRouting.name}' dept. Notifying IT dept in thread: ${targetThreadIdForIT} (index ${targetIndex}) for status ${status}`);
-                    } else {
-                      console.warn(`[Ticket Update] Configured IT target thread index ${targetIndex} for department '${sourceDepartmentForITRouting.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
-                    }
-                  } else if (sourceDepartmentForITRouting) { // แผนกต้นทางมีอยู่ แต่ไม่ได้กำหนด it_target_thread_index
-                    originalTicketDeptName = sourceDepartmentForITRouting.name; // ยังคงใช้ชื่อแผนกสำหรับข้อความได้
-                    console.log(`[Ticket Update] Department '${sourceDepartmentForITRouting.name}' does not have IT notification target thread index configured for status ${status}.`);
-                  } else { // ไม่พบแผนกต้นทางด้วย ID ที่ระบุ
-                    console.warn(`[Ticket Update] Could not find source department with ID ${ticketDepartmentId} for IT notification routing for status ${status}.`);
-                  }
-
-                  if (targetThreadIdForIT) {
-                    const messageToIT = `Ticket รหัส ${ticketDetailsForNotification.reference_number} (แผนก: ${originalTicketDeptName}) ข้อความ: ${dynamicMessage}`;
-                    await sendTelegramMessage(itDepartment.group_id, messageToIT, targetThreadIdForIT);
-                    console.log(`[Ticket Update] Telegram sent to IT DEPARTMENT group for ticket ${id} (orig dept: ${originalTicketDeptName}), status ${status}, using thread ${targetThreadIdForIT}.`);
-                  }
-                } else if (itDepartment?.group_id && !ticketDepartmentId) { // กรณีมีแผนก IT แต่ Ticket ไม่มี department_id
-                  console.warn(`[Ticket Update] Cannot route IT notification for ticket ${id} because its department ID is missing.`);
-                }
-                // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
               }
             }
+            if (shouldSendTelegram) {
+              // เริ่ม: Logic ใหม่สำหรับการส่ง Telegram เมื่อสถานะ Ticket เปลี่ยน
+              const ticketDepartmentId = oldTicket.department_id; // department_id ของ Ticket ที่กำลังอัปเดต
+
+              // แจ้งเตือนไปยังกลุ่มของแผนกเจ้าของ Ticket
+              if (ticketDepartmentId) {
+                const ticketOwnerDepartment = await prisma.department.findUnique({
+                  where: { id: ticketDepartmentId },
+                  select: { name: true, group_id: true, thread_id: true }
+                });
+
+                if (ticketOwnerDepartment?.group_id && ticketOwnerDepartment.thread_id) {
+                  let targetThreadIdForOwnerDept: string | undefined = undefined;
+                  if (status === TicketStatus.in_progress && ticketOwnerDepartment.thread_id.length >= 1) {
+                    targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[0];
+                  } else if (status === TicketStatus.closed && ticketOwnerDepartment.thread_id.length >= 2) {
+                    targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[1];
+                  }
+
+                  if (targetThreadIdForOwnerDept) {
+                    const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
+                    await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
+                  }
+                }
+              }
+
+              // แจ้งเตือนไปยังแผนก IT (เพิ่มเติม)
+              const itDepartment = await prisma.department.findUnique({
+                where: { name: 'it' },
+                select: { group_id: true, thread_id: true }
+              });
+
+              // ตรวจสอบว่ามีแผนก IT, group_id, thread_id และ ticketDepartmentId (ID ของแผนกที่ Ticket สังกัด) ก่อนดำเนินการ
+              if (itDepartment?.group_id && itDepartment.thread_id?.length > 0 && ticketDepartmentId) {
+                // ดึงข้อมูลแผนกต้นทางของ Ticket (แผนกที่ Ticket สังกัด) เพื่อใช้ it_target_thread_index
+                const sourceDepartmentForITRouting = await prisma.department.findUnique({
+                  where: { id: ticketDepartmentId },
+                  select: { name: true, it_target_thread_index: true }
+                });
+
+                let targetThreadIdForIT: string | undefined = undefined;
+                let originalTicketDeptName = "ไม่ทราบแผนก";
+
+                if (sourceDepartmentForITRouting && sourceDepartmentForITRouting.it_target_thread_index !== null && sourceDepartmentForITRouting.it_target_thread_index !== undefined) {
+                  originalTicketDeptName = sourceDepartmentForITRouting.name;
+                  const targetIndex = sourceDepartmentForITRouting.it_target_thread_index;
+                  if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
+                    targetThreadIdForIT = itDepartment.thread_id[targetIndex];
+                  } else {
+                    console.warn(`[Ticket Update] Configured IT target thread index ${targetIndex} for department '${sourceDepartmentForITRouting.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
+                  }
+                } else if (sourceDepartmentForITRouting) { // แผนกต้นทางมีอยู่ แต่ไม่ได้กำหนด it_target_thread_index
+                  originalTicketDeptName = sourceDepartmentForITRouting.name; // ยังคงใช้ชื่อแผนกสำหรับข้อความได้
+                } else { // ไม่พบแผนกต้นทางด้วย ID ที่ระบุ
+                  console.warn(`[Ticket Update] Could not find source department with ID ${ticketDepartmentId} for IT notification routing for status ${status}.`);
+                }
+
+                if (targetThreadIdForIT) {
+                  const messageToIT = `Ticket รหัส ${ticketDetailsForNotification.reference_number} (แผนก: ${originalTicketDeptName}) ข้อความ: ${dynamicMessage}`;
+                  await sendTelegramMessage(itDepartment.group_id, messageToIT, targetThreadIdForIT);
+                }
+              } else if (itDepartment?.group_id && !ticketDepartmentId) { // กรณีมีแผนก IT แต่ Ticket ไม่มี department_id
+                console.warn(`[Ticket Update] Cannot route IT notification for ticket ${id} because its department ID is missing.`);
+              }
+              // สิ้นสุด: Logic ใหม่สำหรับการส่ง Telegram
+            }
+
+            // START: Notify all ADMINs about the status change
+            const adminsForStatusUpdate = await prisma.user.findMany({
+              where: { role: 'ADMIN' },
+              select: { id: true },
+            });
+
+            const ticketDepartmentName = oldTicket.department?.name || 'ไม่ระบุแผนก';
+            const statusChangeMessageForAdmin = `Ticket ${ticketDetailsForNotification.reference_number} (แผนก: ${ticketDepartmentName}) สถานะเปลี่ยนเป็น ${statusDisplayMap[status as string] || status} โดย ${performingUser.name}`;
+            const adminStatusChangeType = 'ADMIN_STATUS_CHANGED';
+
+            for (const admin of adminsForStatusUpdate) {
+              let dbNotificationForAdminStatus = await prisma.notifications.findFirst({
+                // Consider if message should be part of uniqueness for re-notification logic
+                where: { user_id: admin.id, ticket_id: id, type: adminStatusChangeType },
+              });
+
+              // Create new or update if message changed (e.g. different performing user for same status)
+              // For simplicity, we'll create if not exists, or if exists but message is different.
+              // Or, always create a new one if you want a log of each change for admins.
+              // Current logic: create if not exists.
+              if (!dbNotificationForAdminStatus) {
+                dbNotificationForAdminStatus = await prisma.notifications.create({
+                  data: {
+                    user_id: admin.id, ticket_id: id, message: statusChangeMessageForAdmin,
+                    type: adminStatusChangeType, is_read: false,
+                  },
+                });
+              }
+
+              const adminSocketId = connectedUsers.get(admin.id);
+              if (adminSocketId && dbNotificationForAdminStatus) {
+                io.to(adminSocketId).emit('notification:new', {
+                  userId: admin.id, message: statusChangeMessageForAdmin, ticketId: id,
+                  ticketCode: ticketDetailsForNotification.reference_number, type: adminStatusChangeType, timestamp: new Date().toISOString(),
+                  db_notification_id: dbNotificationForAdminStatus.id, db_is_read: dbNotificationForAdminStatus.is_read, db_created_at: dbNotificationForAdminStatus.created_at?.toISOString(),
+                });
+              }
+            }
+            // END: Notify all ADMINs about status change
           }
-        
+        }
         // สิ้นสุด: ส่วนการแจ้งเตือนและ Log การเปลี่ยนสถานะ
-        console.warn('[DEBUG] Update was not successful OR ticket data missing in result, skipping log creation.');
       }
 
       res.status(result.success ? 200 : 500).json({ data: result });
@@ -721,27 +800,27 @@ router.post(
   async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     const ticketId = parseInt(req.params.id, 10);
     const files = req.files as Express.Multer.File[] | undefined;
-    const performingUser = req.user; 
+    const performingUser = req.user;
 
     if (!performingUser || typeof performingUser.id !== 'number' || typeof performingUser.name !== 'string') {
-        res.status(401).json({ error: 'User information is missing or invalid for logging.' });
-        return;
+      res.status(401).json({ error: 'User information is missing or invalid for logging.' });
+      return;
     }
 
     if (isNaN(ticketId)) {
       res.status(400).json({ success: false, message: 'Invalid ticket ID.' });
-      return 
+      return
     }
 
     if (!files || files.length === 0) {
       res.status(400).json({ success: false, message: 'No files uploaded.' });
-      return 
+      return
     }
 
     if (!performingUser.id) {
       // ควรไม่เกิดขึ้นถ้า authenticateToken ทำงานถูกต้อง
       res.status(401).json({ success: false, message: 'User not authenticated for logging.' });
-      return 
+      return
     }
 
     try {
@@ -752,7 +831,7 @@ router.post(
 
       if (!ticket) {
         res.status(404).json({ success: false, message: `Ticket with ID ${ticketId} not found.` });
-        return 
+        return
       }
 
       // Authorization: ตรวจสอบว่าผู้ใช้ที่ล็อกอินเป็น assignee ของ ticket นี้ หรือเป็น ADMIN/OFFICER
@@ -762,7 +841,7 @@ router.post(
 
       if (!(isAssignee || isAdminOrOfficer)) {
         res.status(403).json({ success: false, message: 'Forbidden. You do not have permission to attach files to this ticket as an assignee.' });
-        return 
+        return
       }
 
       const result = await addAssigneeFilesToTicket(ticketId, files, performingUser.id);
@@ -770,24 +849,24 @@ router.post(
       // Log each file addition
       if (result.success && files) {
         for (const file of files) {
-            await createTicketLogEntry(
-                ticketId,
-                performingUser.id,
-                performingUser.name,
-                LogActionType.ASSIGNEE_FILE_ADDED,
-                `เพิ่มไฟล์ '${file.filename}' (ผู้รับผิดชอบ)`,
-                'assignee_files', // field_changed
-                null, // old_value
-                file.filename // new_value
-            );
+          await createTicketLogEntry(
+            ticketId,
+            performingUser.id,
+            performingUser.name,
+            LogActionType.ASSIGNEE_FILE_ADDED,
+            `เพิ่มไฟล์ '${file.filename}' (ผู้รับผิดชอบ)`,
+            'assignee_files', // field_changed
+            null, // old_value
+            file.filename // new_value
+          );
         }
       }
 
       if (result.success) {
         // ดึงข้อมูล Ticket ล่าสุดพร้อมไฟล์ทั้งหมด (ทั้ง TicketFile และ AssigneeFile)
         const updatedTicketWithAllFiles = await prisma.ticket.findUnique({
-            where: { id: ticketId },
-            include: { files: true, assigneeFiles: true } // files คือ TicketFile, assigneeFiles คือ AssigneeFile
+          where: { id: ticketId },
+          include: { files: true, assigneeFiles: true } // files คือ TicketFile, assigneeFiles คือ AssigneeFile
         });
         res.status(201).json({ success: true, message: result.message, data: updatedTicketWithAllFiles });
       } else {
@@ -813,14 +892,14 @@ router.delete(
     const performingUser = req.user;
 
     if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
-        res.status(401).json({ error: 'User information is missing or invalid for logging.' });
-        return;
+      res.status(401).json({ error: 'User information is missing or invalid for logging.' });
+      return;
     }
 
 
     if (isNaN(fileId)) {
       res.status(400).json({ success: false, message: 'Invalid file ID.' });
-      return 
+      return
     }
 
     try {
@@ -831,7 +910,7 @@ router.delete(
 
       if (!assigneeFile) {
         res.status(404).json({ success: false, message: 'Assignee file not found.' });
-        return 
+        return
       }
 
       // Authorization:
@@ -843,7 +922,7 @@ router.delete(
 
       if (!(isAdminOrOfficer || isTicketAssignee || isUploader)) {
         res.status(403).json({ success: false, message: 'Forbidden. You do not have permission to delete this file.' });
-        return 
+        return
       }
 
       // Delete file from filesystem
@@ -934,11 +1013,11 @@ router.put('/assign/:id', authenticateToken, async (req: AuthenticatedRequest, r
     // Check if new assignee exists if an ID is provided
     let newAssignee: User | null = null;
     if (newAssigneeId !== null) {
-        newAssignee = await prisma.user.findUnique({ where: { id: newAssigneeId }});
-        if (!newAssignee) {
-            res.status(404).json({ error: `Assignee user with ID ${newAssigneeId} not found.` });
-            return;
-        }
+      newAssignee = await prisma.user.findUnique({ where: { id: newAssigneeId } });
+      if (!newAssignee) {
+        res.status(404).json({ error: `Assignee user with ID ${newAssigneeId} not found.` });
+        return;
+      }
     }
 
     const updatedTicket = await prisma.ticket.update({
@@ -953,21 +1032,21 @@ router.put('/assign/:id', authenticateToken, async (req: AuthenticatedRequest, r
 
     res.json(updatedTicket);
 
-     // Log the assignment change
+    // Log the assignment change
     const oldAssigneeName = oldTicket.assignee?.name || "ไม่ได้มอบหมาย";
     const newAssigneeName = updatedTicket.assignee?.name || (newAssigneeId === null ? "ยกเลิกการมอบหมาย" : "ไม่ได้มอบหมาย");
 
     if (oldTicket.assignee_id !== updatedTicket.assignee_id) {
-        await createTicketLogEntry(
-            ticketId,
-            performingUser.id,
-            performingUser.name,
-            LogActionType.ASSIGNEE_CHANGED,
-            `เปลี่ยนผู้รับผิดชอบจาก '${oldAssigneeName}' เป็น '${newAssigneeName}'`,
-            'assignee_id',
-            oldAssigneeName, // Store name for readability
-            newAssigneeName  // Store name for readability
-        );
+      await createTicketLogEntry(
+        ticketId,
+        performingUser.id,
+        performingUser.name,
+        LogActionType.ASSIGNEE_CHANGED,
+        `เปลี่ยนผู้รับผิดชอบจาก '${oldAssigneeName}' เป็น '${newAssigneeName}'`,
+        'assignee_id',
+        oldAssigneeName, // Store name for readability
+        newAssigneeName  // Store name for readability
+      );
     }
   } catch (error) {
     res.status(500).json({ error: `Failed to assign ticket: ${error instanceof Error ? error.message : String(error)}` });
@@ -985,18 +1064,18 @@ router.delete(
 
     if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
       res.status(401).json({ error: 'User information is missing or invalid for logging.' });
-      return 
+      return
     }
 
     if (isNaN(ticketId)) {
       res.status(400).json({ success: false, message: 'Invalid ticket ID.' });
-      return 
+      return
     }
 
     // Basic filename validation (similar to file.routes.ts)
     if (!filename || typeof filename !== 'string' || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       res.status(400).json({ error: 'Invalid filename format.' });
-      return 
+      return
     }
 
     try {
@@ -1005,26 +1084,26 @@ router.delete(
           ticket_id: ticketId,
           filename: filename,
         },
-        include: { 
-            ticket: { select: { user_id: true, assignee_id: true }}
+        include: {
+          ticket: { select: { user_id: true, assignee_id: true } }
         }
       });
 
       if (!fileRecord) {
         res.status(404).json({ success: false, message: 'File not found for this ticket.' });
-        return 
+        return
       }
 
       // Authorization check (Example: only ticket owner, or admin/officer can delete)
       // You might want to refine this based on your exact requirements
       const canDelete = performingUser.role === 'ADMIN' ||
-                        performingUser.role === 'OFFICER' ||
-                        fileRecord.ticket?.user_id === performingUser.id;
-                        // Add assignee check if needed: || fileRecord.ticket?.assignee_id === performingUser.id;
+        performingUser.role === 'OFFICER' ||
+        fileRecord.ticket?.user_id === performingUser.id;
+      // Add assignee check if needed: || fileRecord.ticket?.assignee_id === performingUser.id;
 
       if (!canDelete) {
         res.status(403).json({ success: false, message: 'Forbidden. You do not have permission to delete this file.' });
-        return 
+        return
       }
 
       // Delete file from filesystem (filepath is stored in fileRecord)
@@ -1050,7 +1129,7 @@ router.delete(
         filename,          // old_value
         null               // new_value
       );
-      
+
       res.status(200).json({ success: true, message: 'Requester file deleted successfully and logged.' });
 
     } catch (error) {

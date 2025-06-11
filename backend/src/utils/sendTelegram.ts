@@ -24,7 +24,6 @@ export async function sendTelegramMessage(chatId: string, message: string, messa
 
   try {
     await axios.post(url, payload);
-    console.log(`ส่ง Telegram ถึง ${chatId}${message_thread_id ? ` (Thread: ${message_thread_id})` : ''}: ${message}`);
   } catch (error) {
     console.error('Telegram Error:', error)
   }

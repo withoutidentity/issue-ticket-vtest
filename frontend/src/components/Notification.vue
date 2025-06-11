@@ -93,7 +93,7 @@ import api from '@/api/axios-instance';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // import { useToast } from "vue-toastification"
-import { useAuthStore } from '@/stores/auth'; // 🟢 Import auth store
+import { useAuthStore } from '@/stores/auth'; // Import auth store
 import { useRouter } from 'vue-router';
 
 import { io, Socket } from 'socket.io-client';
@@ -108,7 +108,7 @@ const notifications = ref([])
 const unreadCount = ref(0)
 const dropdownRef = ref(null)
 
-const auth = useAuthStore(); // 🟢 Initialize auth store
+const auth = useAuthStore(); // Initialize auth store
 const currentUserId = computed(() => auth.user?.id);
 const currentUserRole = computed(() => auth.user?.role);
 
@@ -191,23 +191,6 @@ async function fetchNotifications() {
   }
 }
 
-async function markUnreadAsRead() {
-  const unread = notifications.value.filter(n => !n.read)
- if (unread.length === 0) return; // แก้ไข: ใช้ unread.length
- // เราจะ Mark all unread notifications as read
-  // Backend อาจจะมี endpoint สำหรับ mark-all-as-read หรือเราจะวน loop เรียก mark-read/:id
-  // ในที่นี้จะใช้วิธีวน loop เรียก mark-read/:id เหมือนเดิม
-  for (const noti of unread) { // แก้ไข: ใช้ unread
-    try {
-      await api.post(`/notifications/mark-read/${noti.id}`)
-      noti.read = true
-    } catch (err) {
-      console.error(`Mark as read failed for notification ${noti.id}:`, err)
-    }
-  }
-  // อัปเดต unreadCount หลังจาก mark ทั้งหมดแล้ว
-  unreadCount.value = calculateUnreadCountForBadge(notifications.value);
-}
 
 async function checkDoneNotifications() {
   if (!currentUserId.value) {
@@ -217,7 +200,7 @@ async function checkDoneNotifications() {
   try {
     const res = await api.get(`/notifications/check-done/${currentUserId.value}`)
     if (res.data.notify) {
-      await fetchNotifications(); // 🟢 เรียก fetchNotifications เพื่ออัปเดต list เต็ม
+      await fetchNotifications(); // เรียก fetchNotifications เพื่ออัปเดต list เต็ม
     }
   } catch (err) {
     console.error('ตรวจสอบแจ้งเตือน done ไม่สำเร็จ:', err)
@@ -232,7 +215,7 @@ async function checkInProgressNotifications() {
   try {
     const res = await api.get(`/notifications/check-inprogress/${currentUserId.value}`)
     if (res.data.notify) {
-      await fetchNotifications(); // 🟢 เรียก fetchNotifications เพื่ออัปเดต list เต็ม
+      await fetchNotifications(); // เรียก fetchNotifications เพื่ออัปเดต list เต็ม
     }
   } catch (err) {
     console.error('ตรวจสอบแจ้งเตือน in_progress ไม่สำเร็จ:', err)
@@ -243,9 +226,12 @@ async function checkInProgressNotifications() {
 async function checkOpenNotifications(){
   try{
     const res = await api.get(`/notifications/check-open`)
-    if (res.data.notify) {
-      await fetchNotifications(); // 🟢 เรียก fetchNotifications เพื่ออัปเดต list เต็ม
-    }
+    // The /check-open for OFFICER/ADMIN now returns the notifications directly
+    // if (res.data.notify && res.data.notifications && res.data.notifications.length > 0) {
+    //   // Process res.data.notifications and merge them into the local notifications.value
+    //   // This part might need more sophisticated merging logic if called frequently
+    // }
+    await fetchNotifications(); // Or simply refetch all for simplicity after check
   }catch (err) {
     console.error('ตรวจสอบเเจ้งเตือน open ไม่สำเร็จ:', err)
   }
@@ -255,6 +241,8 @@ function getIcon(type) {
   switch (type) {
     case 'in_progress_alert': return 'build'
     case 'done_alert': return 'check_circle'
+    case 'ADMIN_TICKET_CREATED': return 'fiber_new'
+    case 'ADMIN_STATUS_CHANGED': return 'sync_alt'
     default: return 'info'
   }
 }
@@ -263,6 +251,8 @@ function getIconColor(type) {
   switch (type) {
     case 'in_progress_alert': return 'text-yellow-500'
     case 'done_alert': return 'text-green-500'
+    case 'ADMIN_TICKET_CREATED': return 'text-blue-500'
+    case 'ADMIN_STATUS_CHANGED': return 'text-purple-500'
     default: return 'text-blue-500'
   }
 }
@@ -315,14 +305,14 @@ function handleClickOutside(event) {
   }
 }
 
-onMounted(async () => { // 🟢 ทำให้ onMounted เป็น async
+onMounted(async () => { // ทำให้ onMounted เป็น async
   document.addEventListener('click', handleClickOutside);
 
   // ฟัง event จาก WebSocket
   socket.on('connect', () => {
-    console.log('🟢 WebSocket connected:', socket.id);
+    console.log('WebSocket connected:', socket.id);
     if (currentUserId.value) {
-      socket.emit('register', currentUserId.value); // 🟢 ใช้ 'register' และ userId จาก store
+      socket.emit('register', currentUserId.value); // ใช้ 'register' และ userId จาก store
     } else {
       // ถ้า currentUserId ยังไม่พร้อม (เช่น auth store กำลังโหลด) ให้ watch
       const unwatchUserId = watch(currentUserId, (newVal) => {
@@ -334,7 +324,7 @@ onMounted(async () => { // 🟢 ทำให้ onMounted เป็น async
     }
   });
 
-  // 🟢 Watch for auth state and currentUserId to be ready before fetching initial data and starting polling
+  // Watch for auth state and currentUserId to be ready before fetching initial data and starting polling
   const unwatchAuthAndUser = watch(
     [() => auth.isAuthenticated, currentUserId], // Watch an array of sources
     async ([isAuth, userId]) => {
@@ -397,9 +387,10 @@ onMounted(async () => { // 🟢 ทำให้ onMounted เป็น async
       }
     } else if (currentUserRole.value === 'ADMIN') {
       // ADMIN อาจจะเห็นการแจ้งเตือนหลายประเภท
-      if (newNotiData.type === 'open_ticket_alert' ||
-          newNotiData.type === 'in_progress_alert' ||
-          newNotiData.type === 'done_alert') {
+      if (newNotiData.type === 'ADMIN_TICKET_CREATED' || // แจ้งเตือน Ticket ใหม่สำหรับ Admin
+          newNotiData.type === 'ADMIN_STATUS_CHANGED' || // แจ้งเตือนการเปลี่ยนสถานะสำหรับ Admin
+          newNotiData.type === 'open_ticket_alert' || // ยังคงรับ open_ticket_alert (ถ้ามีกรณีที่ส่งมา)
+          newNotiData.type === 'in_progress_alert' || newNotiData.type === 'done_alert') { // และการแจ้งเตือนสถานะทั่วไป
         shouldDisplay = true;
         reason = "ADMIN role, type matches allowed types.";
       } else {
