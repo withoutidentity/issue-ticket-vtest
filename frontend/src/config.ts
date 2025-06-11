@@ -1,3 +1,3 @@
 export const config = {
-    apiUrl: 'http://localhost:3000',
+    apiUrl: 'https://a013-110-77-171-213.ngrok-free.app',
 }

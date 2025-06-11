@@ -2,7 +2,7 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // เปลี่ยนตาม backend ของคุณ
+  baseURL: 'https://a013-110-77-171-213.ngrok-free.app/api', // เปลี่ยนตาม backend ของคุณ
 })
 
 let isRefreshing = false
