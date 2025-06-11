@@ -89,14 +89,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
-import api from '@/api/axios-instance'
+import api from '@/api/axios-instance';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 // import { useToast } from "vue-toastification"
-import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'; // 🟢 Import auth store
+import { useRouter } from 'vue-router';
 
-import {io,Socket } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client';
 
 
 

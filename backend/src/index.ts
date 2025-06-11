@@ -13,6 +13,7 @@ import departmentRoutes from '@/routes/department.routes'
 import logRoutes from './routes/log.routes';
 import notificationRoutes from './routes/notification.routes'
 import path from 'path'
+import history from 'connect-history-api-fallback'
 
 dotenv.config()
 
@@ -54,7 +55,7 @@ io.on('connection', (socket) => {
   });
 });
 
-app.get("/", (req, res) => {
+app.get("/test", (req, res) => {
   res.send("Hello Issue")
 })
 
@@ -96,9 +97,18 @@ app.use('/api/logs', logRoutes)
 //notification
 app.use('/api/notifications', notificationRoutes);
 
+app.use(history({
+  rewrites: [
+    { from: /^\/api\/.*$/, to: (context) => context.parsedUrl.pathname || '/' }, // ยกเว้น API path
+    { from: /^\/uploads\/.*$/, to: (context) => context.parsedUrl.pathname || '/' }, // ยกเว้น uploads
+  ]
+}))
+
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+
 // 🟢 Export WebSocket instance ให้ routes ใช้
 export { io, connectedUsers };
 
-server.listen(PORT, () => { // 👈 แก้ไขตรงนี้
+server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)
 })

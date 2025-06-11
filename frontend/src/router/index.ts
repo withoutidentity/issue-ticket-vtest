@@ -104,7 +104,7 @@ const router = createRouter({
   routes,
 })
 
-// ✅ Auth & Role-based Global Guard
+// Auth & Role-based Global Guard
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
   const isAuthenticated = !!auth.accessToken; // ตรวจสอบสถานะการล็อกอิน

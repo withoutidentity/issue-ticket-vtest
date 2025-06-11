@@ -581,6 +581,9 @@ const exportToExcel = async () => {
     cancelButtonText: 'ยกเลิก'
   });
 
+  if (!result.isConfirmed) {
+    return; // User cancelled
+  }
 
   // Map data to a simpler structure for Excel, customize as needed
   const dataToExport = filteredAndSearchedTickets.value.map(ticket => ({

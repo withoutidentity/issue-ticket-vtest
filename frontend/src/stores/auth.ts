@@ -57,6 +57,7 @@ export const useAuthStore = defineStore('auth', {
         return this.user;
       } catch (error: any) {
         console.error('Login failed:', error);
+        console.error('Login failed:', error);
         if (error.response) {
           const status = error.response.status;
           const backendErrorMessage = error.response.data?.error;

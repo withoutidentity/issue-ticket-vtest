@@ -11,35 +11,34 @@
                     class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 bg-white flex flex-col">
                     <div class="p-3 hover:bg-gray-50 transition-colors duration-200 flex-grow ">
                         <!-- ส่วนแสดงไฟล์ -->
-                            <a :href="getAssigneeFileUrl(file.filename)" target="_blank"
-                                rel="noopener noreferrer" class="flex items-start group">
-                                <div class="mr-2 text-blue-500 flex-shrink-0">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                         viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round"
-                                              stroke-width="2"
-                                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                    </svg>
-                                </div>
-                                <div class="min-w-0">
-                                    <p
-                                        class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all">
-                                        {{ file.filename }}
-                                    </p>
-                                </div>
-                            </a>
+                        <a :href="getAssigneeFileUrl(file.filename)" target="_blank" rel="noopener noreferrer"
+                            class="flex items-start group">
+                            <div class="mr-2 text-blue-500 flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p
+                                    class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all">
+                                    {{ file.filename }}
+                                </p>
+                            </div>
+                        </a>
                     </div>
 
                     <!-- ปุ่มลบ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
                     <div v-if="!props.disabled" class="border-t border-gray-100 p-2 bg-gray-50">
                         <button @click.stop="confirmDeleteExistingAssigneeFile(file.id, file.filename)" type="button"
-                                class="w-full py-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 transition-colors duration-200 flex items-center justify-center text-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor">
+                            class="w-full py-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 transition-colors duration-200 flex items-center justify-center text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
-                                ลบ
+                            ลบ
                         </button>
                     </div>
                 </div>
@@ -79,7 +78,7 @@
             <p class="font-medium">เกิดข้อผิดพลาด:</p>
             <p>{{ uploadError }}</p>
         </div>
-        <div v-if="uploadSuccessMessage" class="mb-3 p-3 text-sm text-green-700 bg-green-100 rounded-md">
+        <div v-if="uploadSuccessMessage" class="text-green-700 mb-3 p-3 text-sm bg-green-100 rounded-md">
             {{ uploadSuccessMessage }}
         </div>
     </div>

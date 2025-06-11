@@ -71,6 +71,13 @@ async function logFieldChange(
     comment: "ความคิดเห็น",
     status: "สถานะ",
   };
+  const statusDisplayValues: Record<string, string> = {
+    open: "รอดำเนินการ",
+    in_progress: "กำลังดำเนินการ",
+    assignee_id: "ผู้รับผิดชอบ",
+    comment: "ความคิดเห็น",
+    status: "สถานะ",
+  };
   const displayFieldName = fieldDisplayNames[field as string] || field;
 
   if (field === 'type_id' && oldTicketFull.ticket_types) {
@@ -88,7 +95,11 @@ async function logFieldChange(
       const newAssignee = await prisma.user.findUnique({ where: { id: newValue as number } });
       newDisplayValue = newAssignee?.name ?? String(newValue);
     }
+  } else if (field === 'status') {
+    oldDisplayValue = statusDisplayValues[oldValue as string] || String(oldValue);
+    newDisplayValue = statusDisplayValues[newValue as string] || String(newValue);
   }
+  
 
   await createTicketLogEntry(
     ticket_id,
@@ -632,7 +643,7 @@ router.put(
                     }
 
                     if (targetThreadIdForOwnerDept) {
-                      const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} เปลี่ยนสถานะเป็น: ${status}. ข้อความ: ${dynamicMessage}`;
+                      const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
                       await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
                       console.log(`[Ticket Update] Telegram sent to TICKET OWNER DEPARTMENT (${ticketOwnerDepartment.name}) group for ticket ${id}, status ${status}.`);
                     }
@@ -673,7 +684,7 @@ router.put(
                   }
 
                   if (targetThreadIdForIT) {
-                    const messageToIT = `Ticket รหัส ${ticketDetailsForNotification.reference_number} (แผนก: ${originalTicketDeptName}) เปลี่ยนสถานะเป็น: ${status}. ข้อความ: ${dynamicMessage}`;
+                    const messageToIT = `Ticket รหัส ${ticketDetailsForNotification.reference_number} (แผนก: ${originalTicketDeptName}) ข้อความ: ${dynamicMessage}`;
                     await sendTelegramMessage(itDepartment.group_id, messageToIT, targetThreadIdForIT);
                     console.log(`[Ticket Update] Telegram sent to IT DEPARTMENT group for ticket ${id} (orig dept: ${originalTicketDeptName}), status ${status}, using thread ${targetThreadIdForIT}.`);
                   }
@@ -881,66 +892,6 @@ router.delete(
   }
 );
 
-
-// PUT /api/tickets/updateStatus/:id
-router.put('/updateStatus/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  const ticketId = parseInt(req.params.id, 10)
-  const { status } = req.body
-
-  const performingUser = req.user;
-
-  if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
-    res.status(401).json({ error: 'User information is missing or invalid for logging.' });
-    return;
-  }
-
-  if (!['open', 'in_progress', 'pending', 'closed'].includes(status)) {
-    res.status(400).json({ error: 'Invalid status specified' })
-    return;
-  }
-  
-  try {
-    const oldTicket = await prisma.ticket.findUnique({
-      where: { id: ticketId },
-      select: { status: true }
-    });
-
-    if (!oldTicket) {
-      res.status(404).json({ error: 'Ticket not found for status update.' });
-      return;
-    }
-
-    const updatedTicketStatus = await prisma.ticket.update({
-      where: { id: ticketId },
-      data: { status: status as TicketStatus },
-    });
-
-    if (oldTicket.status !== updatedTicketStatus.status) {
-      await createTicketLogEntry(
-        ticketId,
-        performingUser.id,
-        performingUser.name,
-        LogActionType.STATUS_CHANGED,
-        `เปลี่ยนสถานะจาก '${oldTicket.status}' เป็น '${updatedTicketStatus.status}'`,
-        'status',
-        oldTicket.status,
-        updatedTicketStatus.status
-      );
-    }
-
-    res.status(200).json({
-      message: 'Status updated successfully',
-      data: updatedTicketStatus,
-    });
-    return;
-  } catch (error) {
-    console.error('Error updating status:', error);
-    res.status(500).json({
-      message: 'Failed to update status',
-      error,
-    });
-  }
-})
 
 // PUT /api/tickets/assign/:id
 router.put('/assign/:id', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
