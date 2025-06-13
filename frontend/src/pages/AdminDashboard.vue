@@ -1,8 +1,8 @@
 <template>
   <div class="p-6 w-full">
     <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4 mb-6">
-      <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100">
-        <p class="text-gray-600" @click="filterByStatus('total')">ทั้งหมด</p>
+      <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100" @click="filterByStatus('total')">
+        <p class="text-gray-600">ทั้งหมด</p>
         <p class="text-3xl font-bold">{{ summary.total }}</p>
       </div>
       <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100" @click="filterByStatus('open')">
@@ -19,8 +19,8 @@
       </div>
     </div>
 
-    <div class="w-full grid xl:grid-cols-2 lg:grid-cols-1 gap-4 overflow-x-auto">
-      <div class="bg-white shadow p-6 rounded ">
+    <div class="w-full shadow p-6 rounded grid xl:grid-cols-2 lg:grid-cols-1 gap-4 overflow-x-auto">
+      <div class="bg-white shadow p-6 rounded">
         <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามแผนก</h3>
         <div class="h-[350px] mb-6">
           <!-- กราฟกลุ่มตามเดือน -->
@@ -33,8 +33,11 @@
       </div>
 
     </div>
-    <div class="bg-white shadow p-6 rounded md:col-span-2">
-      <h3 class="text-xl font-semibold mb-4 text-gray-700">แนวโน้ม Ticket ตามแผนก (รายวัน)</h3>
+    <div class="bg-white shadow p-4 sm:p-6 mt-3 rounded md:col-span-2">
+      <div class="text-lg sm:text-xl font-semibold mb-4 text-gray-700 break-all">
+        <span class="hidden sm:inline">แนวโน้ม Ticket ตามแผนก (รายวัน)</span>
+        <span class="sm:hidden">แนวโน้ม Ticket ตามแผนก</span>
+      </div>
       <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
         <div>
           <label for="departmentTrendStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>

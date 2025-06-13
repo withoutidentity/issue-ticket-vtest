@@ -114,17 +114,51 @@
               <!-- Right side: Export and Per Page (hidden on mobile) -->
               <div class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-3 sm:space-x-3">
                 <!-- Export to Excel button -->
-                <button @click="exportToExcel"
-                  class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  <span class="hidden xs:inline">Export Excel</span>
-                  <span class="xs:hidden">Export</span>
-                </button>
-
+                <div v-if="!isSelectionModeActive" class="flex justify-start">
+                  <button @click="toggleSelectionMode"
+                    class="h-10 px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-green-600" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    <span class="hidden xs:inline">เลือกรายการเพื่อ Export</span>
+                      <span class="xs:hidden">เลือก Export</span>
+                  </button>
+                </div>
+                <div v-if="isSelectionModeActive" class="flex flex-wrap gap-2">
+                  <button @click="exportSelectedToExcel" :disabled="countSelected === 0"
+                    class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
+                    :class="countSelected > 0 ? 'bg-green-500 hover:bg-green-600 border-green-500 focus:ring-green-500' : 'bg-gray-400 border-gray-400 cursor-not-allowed'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export ที่เลือก ({{ countSelected }})
+                  </button>
+                  <button @click="selectAllFilteredTickets" :disabled="filteredTableTickets.length === 0"
+                    class="h-10 px-3 sm:px-4 flex items-center justify-center border border-blue-500 rounded-lg shadow-sm text-blue-500 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
+                    :class="filteredTableTickets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    เลือกทั้งหมด ({{ filteredTableTickets.length }})
+                  </button>
+                  <button @click="deselectAllTickets" :disabled="countSelected === 0"
+                    class="h-10 px-3 sm:px-4 flex items-center justify-center border border-yellow-500 rounded-lg shadow-sm text-yellow-600 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
+                    :class="countSelected === 0 ? 'opacity-50 cursor-not-allowed' : ''">
+                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                      </svg>
+                    ยกเลิกเลือกทั้งหมด
+                  </button>
+                  <button @click="toggleSelectionMode"
+                    class="h-10 px-3 sm:px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-red-300 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>ยกเลิก</span>
+                  </button>
+                </div>
                 <!-- Per Page control (hidden on mobile) -->
                 <div class="hidden sm:flex items-center space-x-2">
                   <label for="perPageDesktopInput" class="text-sm text-gray-600 whitespace-nowrap">แสดง:</label>
@@ -141,6 +175,13 @@
             <table class="w-full">
               <thead>
                 <tr class="bg-gray-100">
+                  <th v-if="isSelectionModeActive"
+                    class="py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm w-10 text-center">
+                    <input type="checkbox"
+                           @change="toggleSelectAllOnPage"
+                           :checked="isAllSelectedOnCurrentPage && paginatedTickets.length > 0"
+                           class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                  </th>
                   <th
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[80px]">
                     เลขอ้างอ้างอิง</th>
@@ -185,8 +226,14 @@
               </thead>
               <tbody>
                 <tr v-for="ticket in paginatedTickets" :key="ticket.id"
-                  class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50 cursor-pointer"
-                  @click="goToTicket(ticket.id)">
+                  class="text-sm border-gray-700/25 border-b align-top hover:bg-gray-50"
+                  :class="{ 'cursor-pointer': !isSelectionModeActive, 'bg-blue-50 hover:bg-blue-100': isSelectionModeActive && selectedTicketIds.has(ticket.id) }"
+                  @click="handleRowClick(ticket)">
+                  <td v-if="isSelectionModeActive" class="py-3 px-4 text-center">
+                    <input type="checkbox"
+                           :checked="selectedTicketIds.has(ticket.id)"
+                           @click.stop="toggleTicketSelection(ticket.id)" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out cursor-pointer" />
+                  </td>
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">{{
@@ -292,11 +339,14 @@ const statusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' |
 const typeFilterForTable = ref<string | null>(null);
 const departmentFilterForTable = ref<string | null>(null);
 const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
-const sortDirectionDashboard = ref<'asc' | 'desc' | null>(null); // For DashboardPage sorting
+const sortDirectionDashboard = ref<'asc' | 'desc' | null>('desc'); // For DashboardPage sorting
 
 const isFilterDropdownOpen = ref(false);
 const filterDropdownRef = ref<HTMLElement | null>(null); // Ref for the dropdown element
 const resetButtonRef = ref<HTMLButtonElement | null>(null); // Ref for the reset button
+// --- State for selection ---
+const selectedTicketIds = ref<Set<number>>(new Set());
+const isSelectionModeActive = ref(false);
 
 interface Department {
   id: number;
@@ -345,27 +395,6 @@ const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilte
 const filteredTableTickets = computed((): ticket[] => { // กำหนด type การคืนค่าให้ชัดเจน
   // เริ่มต้นด้วย type UtilTicket[] จาก store
   let processingTickets: UtilTicket[] = [...ticketStore.tickets];
-
-  // 1. REMOVED: Officer's department filter. Now ADMIN and OFFICER see all tickets by default,
-  //    subject to filters from AdminDashboard component.
-  // if (auth.user?.role === 'OFFICER') {
-  //   const officerDepartmentId = auth.user?.department?.id;
-  //   if (officerDepartmentId !== undefined && officerDepartmentId !== null) {
-  //     processingTickets = processingTickets.filter(ticket => ticket.department?.id === officerDepartmentId);
-  //   } else {
-  //     processingTickets = []; // If officer has no department, they see no tickets.
-  //   }
-  // }
-
-  // 2. Apply active filter from AdminDashboard or OfficerDashboard events
-  //    The handle... functions ensure that only one of these high-level filters is active at a time
-  //    by clearing others. For example, handleTypeFilterChange clears statusFilterForTable.
-  // processingTickets ยังคงเป็น UtilTicket[] ตลอดการกรองเหล่านี้
-
-  // Filters from AdminDashboard (now used by both ADMIN and OFFICER)
-  // Note: statusFilterForTable is also v-model for the local dropdown.
-  // If typeFilter, departmentFilter, or creationDateFilter are set by AdminDashboard,
-  // their respective handle... functions will clear statusFilterForTable.
 
   if (typeFilterForTable.value) {
     processingTickets = processingTickets.filter(t => t.ticket_types?.name === typeFilterForTable.value);
@@ -581,6 +610,57 @@ const toggleSortDirectionDashboard = () => {
   }
 };
 
+// --- Selection Logic ---
+const toggleSelectionMode = () => {
+  isSelectionModeActive.value = !isSelectionModeActive.value;
+  if (!isSelectionModeActive.value) {
+    selectedTicketIds.value.clear(); // Clear selection when exiting mode
+  }
+};
+
+const toggleTicketSelection = (ticketId: number) => {
+  if (selectedTicketIds.value.has(ticketId)) {
+    selectedTicketIds.value.delete(ticketId);
+  } else {
+    selectedTicketIds.value.add(ticketId);
+  }
+};
+
+const toggleSelectAllOnPage = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  paginatedTickets.value.forEach(ticket => {
+    if (target.checked) {
+      selectedTicketIds.value.add(ticket.id);
+    } else {
+      selectedTicketIds.value.delete(ticket.id);
+    }
+  });
+};
+
+const isAllSelectedOnCurrentPage = computed(() => {
+  if (paginatedTickets.value.length === 0) return false;
+  return paginatedTickets.value.every(ticket => selectedTicketIds.value.has(ticket.id));
+});
+
+const countSelected = computed(() => selectedTicketIds.value.size);
+
+const handleRowClick = (ticket: ticket) => {
+  if (isSelectionModeActive.value) {
+    toggleTicketSelection(ticket.id);
+  } else {
+    goToTicket(ticket.id);
+  }
+};
+
+const selectAllFilteredTickets = () => {
+  filteredTableTickets.value.forEach(ticket => {
+    selectedTicketIds.value.add(ticket.id);
+  });
+};
+
+const deselectAllTickets = () => {
+  selectedTicketIds.value.clear();
+};
 
 const exportToExcel = async () => { // Changed to async to await Swal
   if (!filteredTableTickets.value || filteredTableTickets.value.length === 0) {
@@ -592,95 +672,45 @@ const exportToExcel = async () => { // Changed to async to await Swal
     return;
   }
 
-  const totalRecords = filteredTableTickets.value.length;
+  // This function is now for initiating selection mode or exporting selected.
+  // The old Swal logic for range selection is removed.
+  // If we are already in selection mode and have items selected, then export.
+  // Otherwise, enter selection mode.
 
-  const result = await Swal.fire({
-    title: 'ระบุช่วงการ Export',
-    html: `
-      <div style="margin-bottom: 1.5em;">
-        <label for="swal-export-all" class="swal2-checkbox" style="display: flex; align-items: center; justify-content: center; margin-bottom: 1em;">
-          <input type="checkbox" id="swal-export-all" style="margin-right: 0.5em;">
-          <span style="font-size: 0.95em;">Export รายการทั้งหมด (${totalRecords} รายการ)</span>
-        </label>
-      </div>
-      <p style="margin-bottom: 0.5em; font-size: 0.9em; color: #545454;">หรือระบุช่วงที่ต้องการ Export:</p>
-      <div style="display: flex; justify-content: space-around; align-items: center; gap: 10px;">
-        <div style="flex: 1; text-align: center;">
-          <label for="swal-input-start" style="display: block; margin-bottom: .25em; font-size: 0.85em;">จากรายการที่:</label>
-          <input id="swal-input-start" type="number" value="1" min="1" max="${totalRecords}" class="swal2-input" style="width: 80px; padding: 0.4em; text-align: center; font-size: 0.9em;">
-        </div>
-        <div style="flex: 1; text-align: center;">
-          <label for="swal-input-end" style="display: block; margin-bottom: .25em; font-size: 0.85em;">ถึงรายการที่:</label>
-          <input id="swal-input-end" type="number" value="${totalRecords}" min="1" max="${totalRecords}" class="swal2-input" style="width: 80px; padding: 0.4em; text-align: center; font-size: 0.9em;">
-        </div>
-      </div>
-    `,
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonColor: '#3085d6',
-    cancelButtonColor: '#d33',
-    confirmButtonText: 'ดำเนินการ Export',
-    cancelButtonText: 'ยกเลิก',
-    focusConfirm: false,
-    preConfirm: () => {
-      const exportAllEl = document.getElementById('swal-export-all') as HTMLInputElement;
-      const startEl = document.getElementById('swal-input-start') as HTMLInputElement;
-      const endEl = document.getElementById('swal-input-end') as HTMLInputElement;
+  // This function will be split. One to toggle mode, another to do the actual export.
+  // For now, let's assume this button's role changes.
+  // The actual export logic will be in a new function `exportSelectedToExcel`
 
-      if (exportAllEl.checked) {
-        return { exportAll: true, start: 1, end: totalRecords };
-      }
+  // If not in selection mode, enter it.
+  if (!isSelectionModeActive.value) {
+    toggleSelectionMode();
+    return;
+  }
 
-      // Disable range inputs if "Export all" is checked
-      // This logic might be better placed in an onchange event for the checkbox
-      // but for preConfirm, we just validate based on current state.
-      // startEl.disabled = exportAllEl.checked;
-      // endEl.disabled = exportAllEl.checked;
+  // If in selection mode, but nothing selected, show message.
+  if (isSelectionModeActive.value && countSelected.value === 0) {
+     Swal.fire({
+      icon: 'info',
+      title: 'ไม่ได้เลือกรายการ',
+      text: 'กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อ Export',
+    });
+    return;
+  }
 
-      const start = parseInt(startEl.value);
-      const end = parseInt(endEl.value);
+  // If in selection mode and items are selected, proceed to export.
+  // Call the new export function
+  await exportSelectedToExcel();
+};
 
-      if (isNaN(start) || isNaN(end)) {
-        Swal.showValidationMessage('กรุณากรอกตัวเลขที่ถูกต้องสำหรับช่วงเริ่มต้นและสิ้นสุด');
-        return false;
-      }
-      if (start < 1 || start > totalRecords) {
-        Swal.showValidationMessage(`'จากรายการที่' ต้องอยู่ระหว่าง 1 และ ${totalRecords}`);
-        return false;
-      }
-      if (end < 1 || end > totalRecords) {
-        Swal.showValidationMessage(`'ถึงรายการที่' ต้องอยู่ระหว่าง 1 และ ${totalRecords}`);
-        return false;
-      }
-      if (start > end) {
-        Swal.showValidationMessage("'จากรายการที่' ต้องไม่มากกว่า 'ถึงรายการที่'");
-        return false;
-      }
-      return { exportAll: false, start, end };
-    },
-    didOpen: () => {
-      const exportAllEl = document.getElementById('swal-export-all') as HTMLInputElement;
-      const startEl = document.getElementById('swal-input-start') as HTMLInputElement;
-      const endEl = document.getElementById('swal-input-end') as HTMLInputElement;
-
-      exportAllEl.onchange = () => {
-        startEl.disabled = exportAllEl.checked;
-        endEl.disabled = exportAllEl.checked;
-        if(exportAllEl.checked) {
-            startEl.value = "1";
-            endEl.value = totalRecords.toString();
-        }
-      };
-    }
-  });
-
-  if (!result.isConfirmed || !result.value) {
-    return; // User cancelled or preConfirm returned false
+const exportSelectedToExcel = async () => {
+  if (countSelected.value === 0) {
+    // This case should be handled by the calling button's disabled state or an earlier check.
+    return;
   }
 
   Swal.fire({
     title: 'กำลัง Export ข้อมูล...',
-    text: 'กรุณารอสักครู่ ระบบกำลังสร้างไฟล์ Excel',
+    text: `กำลังสร้างไฟล์ Excel สำหรับ ${countSelected.value} รายการที่เลือก...`,
     allowOutsideClick: false,
     didOpen: () => {
       Swal.showLoading();
@@ -689,17 +719,9 @@ const exportToExcel = async () => { // Changed to async to await Swal
 
   setTimeout(() => {
     try {
-      let ticketsToExport: ticket[];
-      let exportRangeText = "";
-
-      if (result.value?.exportAll) {
-        ticketsToExport = [...filteredTableTickets.value]; // Export all
-        exportRangeText = `ทั้งหมด (${ticketsToExport.length} รายการ)`;
-      } else {
-        const { start, end } = result.value as { start: number; end: number; exportAll: boolean };
-        ticketsToExport = filteredTableTickets.value.slice(start - 1, end);
-        exportRangeText = `รายการที่ ${start} ถึง ${end} (จำนวน ${ticketsToExport.length} รายการ)`;
-      }
+       const ticketsToExport = filteredTableTickets.value.filter(
+        (ticket) => selectedTicketIds.value.has(ticket.id)
+      );
 
       if (ticketsToExport.length === 0) {
         Swal.close();
@@ -724,25 +746,22 @@ const exportToExcel = async () => { // Changed to async to await Swal
 
       const ws = XLSX.utils.json_to_sheet(dataToExport);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "รายการแจ้งปัญหา");
+      XLSX.utils.book_append_sheet(wb, ws, "รายการแจ้งปัญหาที่เลือก");
 
       const today = new Date();
       const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      let fileName = `tickets_export_${dateStr}`;
-      if (result.value?.exportAll) {
-        fileName += `_all.xlsx`;
-      } else {
-        const { start, end } = result.value as { start: number; end: number; exportAll: boolean };
-        fileName += `_range_${start}_to_${end}.xlsx`;
-      }
+      const fileName = `selected_tickets_export_${dateStr}.xlsx`;
 
       XLSX.writeFile(wb, fileName);
       Swal.close(); // Close loading
       Swal.fire({
         icon: 'success',
         title: 'Export สำเร็จ!',
-        text: `ไฟล์ ${fileName} (${exportRangeText}) ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`,
+        text: `ไฟล์ ${fileName} (จำนวน ${ticketsToExport.length} รายการ) ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`,
       });
+      // Reset selection after successful export
+      selectedTicketIds.value.clear();
+      isSelectionModeActive.value = false;
     } catch (error) {
       Swal.close(); // Close loading
       Swal.fire({

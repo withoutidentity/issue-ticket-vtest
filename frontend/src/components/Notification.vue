@@ -23,7 +23,7 @@
     <transition name="fade-slide">
       <div
         v-if="showDropdown"
-        class="absolute right-0 mt-2 w-72 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg p-3 z-50"
+        class="absolute mt-2 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg p-3 z-50 w-[calc(100vw-2rem)] max-w-sm right-1/2 mr-10 sm:mr-12 md:mr-0 translate-x-1/2 md:w-72 md:max-w-none md:right-0 md:translate-x-0"
       >
         <h3 class="text-sm font-semibold mb-2">การแจ้งเตือน</h3>
 
@@ -100,7 +100,7 @@ import { io, Socket } from 'socket.io-client';
 
 
 
-const socket = io('https://a013-110-77-171-213.ngrok-free.app'); // ใช้ URL server จริงตอน deploy
+const socket = io('http://localhost:3000'); // ใช้ URL server จริงตอน deploy
 
 // const toast = useToast()
 const showDropdown = ref(false)

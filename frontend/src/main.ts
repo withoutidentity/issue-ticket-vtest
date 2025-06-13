@@ -10,7 +10,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import './assets/main.css'
 import './assets/base.css'
 
-axios.defaults.baseURL = 'https://a013-110-77-171-213.ngrok-free.app/api'
+axios.defaults.baseURL = 'http://localhost:3000/api'
 const app = createApp(App)
 const pinia = createPinia()
 

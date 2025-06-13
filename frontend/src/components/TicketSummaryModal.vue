@@ -236,11 +236,11 @@ const exportModalDataToExcel = async () => {
 
   const ws = XLSX.utils.json_to_sheet(dataToExport);
   const wb = XLSX.utils.book_new();
-  const sheetName = `Tickets_${props.statusTitle.replace(/[^a-zA-Z0-9]/g, '_')}`.substring(0, 30); // Ensure sheet name is valid
+  const sheetName = `Tickets_${props.statusTitle}`.substring(0, 30); // Ensure sheet name is valid
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
   const today = new Date();
   const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  const fileName = `tickets_summary_${props.statusTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${dateStr}.xlsx`;
+  const fileName = `tickets_summary_${props.statusTitle}_${dateStr}.xlsx`;
   XLSX.writeFile(wb, fileName);
   Swal.fire('Export สำเร็จ!', `ไฟล์ ${fileName} ได้ถูกดาวน์โหลดเรียบร้อยแล้ว`, 'success');
 };

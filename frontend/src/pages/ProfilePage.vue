@@ -72,7 +72,7 @@
             </div>
           </div>
           <!-- Actions -->
-          <div class="flex justify-center sm:justify-end pt-4 border-t">
+          <div class="flex justify-center sm:justify-end pt-4 border-t border-gray-700/25">
             <button
               class="w-full sm:w-auto flex items-center justify-center gap-1 sm:gap-2 text-xs sm:text-sm bg-yellow-100 text-yellow-800 px-3 py-1.5 sm:px-3 sm:py-2 rounded-lg hover:bg-yellow-200 transition-all"
               @click="onChangePassword">

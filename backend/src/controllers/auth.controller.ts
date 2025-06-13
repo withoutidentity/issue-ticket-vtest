@@ -87,7 +87,7 @@ export const login = async (req: Request, res: Response) => {
     avatar_url: user.avatar_url,
   }
 
-  const accessToken = jwt.sign(userPayloadForToken, accessSecret, { expiresIn: '1h' }) // Increased expiry for convenience
+  const accessToken = jwt.sign(userPayloadForToken, accessSecret, { expiresIn: '2m' }) // Increased expiry for convenience
   const refreshToken = jwt.sign({ id: user.id }, refreshSecret, { expiresIn: '7d' })
 
   await prisma.user.update({ where: { id: user.id }, data: { refreshToken } })
