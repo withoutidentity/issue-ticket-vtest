@@ -11,34 +11,34 @@
             </svg>
         </button>
 
-        <router-link :to="isAdmin || isOfficer ? '/dashboard' : '/home'" class="border-b-2 border-[#333333] w-full">
+        <router-link :to="isAdmin || isOfficer ? '/tickets' : '/MyTickets'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>
                 <h2 class="text-[#6C6B6B]">ระบบแจ้งปัญหา</h2>
             </div>
         </router-link>
         <nav class="space-y-4 p-4" v-if="isAdmin">
+            <button @click="navigateTo('/tickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการแจ้งปัญหา</button>
             <button @click="navigateTo('/dashboard')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="navigateTo('/users')" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
             <button @click="navigateTo('/types')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
             <button @click="navigateTo('/departments')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
-            <button @click="navigateTo('/profile')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isOfficer">
-            <button @click="navigateTo('/home')" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
-            <button @click="navigateTo('/MyTickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">My Ticket</button>
+            <button @click="navigateTo('/home')" class="w-full text-center hover:bg-gray-800 p-2 rounded">แจ้งปัญหา</button>
+            <button @click="navigateTo('/tickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการแจ้งปัญหา</button>
+            <button @click="navigateTo('/MyTickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการของฉัน</button>
             <button @click="navigateTo('/dashboard')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
             <button @click="navigateTo('/users')" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
             <button @click="navigateTo('/types')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
             <button @click="navigateTo('/departments')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
-            <button @click="navigateTo('/profile')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
-            <button @click="navigateTo('/home')" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
-            <button @click="navigateTo('/MyTickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">My Ticket</button>
-            <button @click="navigateTo('/profile')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
+            <button @click="navigateTo('/home')" class="w-full text-center hover:bg-gray-800 p-2 rounded">แจ้งปัญหา</button>
+            <button @click="navigateTo('/MyTickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการของฉัน</button>
+            <button @click="navigateTo('/profile')" class="w-full text-center hover:bg-gray-800 p-2 rounded">โปรไฟล์</button>
         </nav>
 
         <div class="mt-auto p-4">

@@ -2,18 +2,6 @@
   <AppLayout>
     <card>
       <cardcontent>
-        <!-- <cardtitle>Dashboard</cardtitle> -->
-        <div class="space-y-6 overflow-y-auto truncate">
-          <AdminDashboard v-if="auth.user.role === 'ADMIN' || auth.user.role === 'OFFICER'"
-            @filter-status-changed="handleStatusFilterChange" @filter-type-changed="handleTypeFilterChange"
-            @filter-creation-date-changed="handleCreationDateFilterChange"
-            @filter-department-changed="handleDepartmentFilterChange" />
-        </div>
-      </cardcontent>
-    </card>
-
-    <card>
-      <cardcontent>
         <div class="space-y-6">
           <div class="flex flex-col space-y-4 mb-4">
             <!-- Title Row -->
@@ -264,9 +252,8 @@
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-center">
                     <div>
                       <span :class="{
-                        'bg-blue-100 text-blue-700': ticket.status === 'open',
-                        'bg-orange-100 text-orange-700': ticket.status === 'in_progress',
-                        'bg-purple-100 text-purple-700': ticket.status === 'pending',
+                        'bg-red-100 text-red-700': ticket.status === 'open',
+                        'bg-yellow-100 text-yellow-700': ticket.status === 'in_progress',
                         'bg-green-100 text-green-700': ticket.status === 'closed',
                       }" class="px-3 py-1 rounded-full text-sm">
                         {{ statusName(ticket.status) }}
@@ -531,24 +518,11 @@ const paginatedTickets = computed(() => {
 onMounted(async () => {
   // console.log("DashboardPage: Component mounted.");
   // Ensure tickets are fetched via the store if not already loaded.
-  // The store should handle the logic of not re-fetching if data is fresh.
-  if (!ticketStore.tickets || ticketStore.tickets.length === 0) {
-    ticketStore.fetchTickets();
-  }
+  await ticketStore.fetchTickets();
   fetchDepartmentsList();
   // Add event listener for clicks outside the status filter dropdown
   document.addEventListener('click', handleClickOutsideFilterDropdown);
 });
-
-// Watch for route changes to refetch tickets
-watch(
-  () => route.fullPath,
-  async (newPath, oldPath) => {
-    if (newPath !== oldPath && newPath.includes('/dashboard')) { // ตรวจสอบว่าเป็นหน้า dashboard จริงๆ
-      await ticketStore.fetchTickets();
-    }
-  }
-);
 
 onUnmounted(() => {
   // Remove event listener when component is unmounted
@@ -654,7 +628,7 @@ const updateStatus = async () => {
 const statusName = (status: string) => {
   switch (status) {
     case "open":
-      return "รอดำเนินการ";
+      return "ใหม่";
     case "in_progress":
       return "กำลังดำเนินการ";
     case "pending":

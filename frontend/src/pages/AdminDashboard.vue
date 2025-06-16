@@ -1,72 +1,91 @@
 <template>
-  <div class="p-6 w-full">
-    <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4 mb-6">
-      <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100" @click="filterByStatus('total')">
-        <p class="text-gray-600">ทั้งหมด</p>
-        <p class="text-3xl font-bold">{{ summary.total }}</p>
-      </div>
-      <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100" @click="filterByStatus('open')">
-        <p class="text-gray-600">รอดำเนินการ</p>
-        <p class="text-3xl font-bold">{{ summary.open }}</p>
-      </div>
-      <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100" @click="filterByStatus('in_progress')">
-        <p class="text-gray-600">กำลังดำเนินการ</p>
-        <p class="text-3xl font-bold">{{ summary.in_progress }}</p>
-      </div>
-      <div class="bg-white shadow p-4 rounded cursor-pointer hover:bg-gray-100" @click="filterByStatus('closed')">
-        <p class="text-gray-600">ดำเนินการเสร็จ</p>
-        <p class="text-3xl font-bold">{{ summary.closed }}</p>
-      </div>
-    </div>
+  <AppLayout>
+    <card>
+      <cardcontent>
+        <cardtitle>Dashboard</cardtitle>
+        <div class="space-y-6 overflow-y-auto truncate">
+          <div class="p-6 w-full">
+            <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4 mb-6">
+              <div class="bg-gray-100 shadow p-4 rounded cursor-pointer hover:bg-gray-300"
+                @click="filterByStatus('total')">
+                <p class="text-gray-600">ทั้งหมด</p>
+                <p class="text-3xl font-bold">{{ summary.total }}</p>
+              </div>
+              <div class="bg-red-100 shadow p-4 rounded cursor-pointer hover:bg-red-300"
+                @click="filterByStatus('open')">
+                <p class="text-gray-600">ใหม่</p>
+                <p class="text-3xl font-bold">{{ summary.open }}</p>
+              </div>
+              <div class="bg-yellow-100 shadow p-4 rounded cursor-pointer hover:bg-yellow-200"
+                @click="filterByStatus('in_progress')">
+                <p class="text-gray-600">กำลังดำเนินการ</p>
+                <p class="text-3xl font-bold">{{ summary.in_progress }}</p>
+              </div>
+              <div class="bg-green-100 shadow p-4 rounded cursor-pointer hover:bg-green-300"
+                @click="filterByStatus('closed')">
+                <p class="text-gray-600">ดำเนินการเสร็จ</p>
+                <p class="text-3xl font-bold">{{ summary.closed }}</p>
+              </div>
+            </div>
 
-    <div class="w-full shadow p-6 rounded grid xl:grid-cols-2 lg:grid-cols-1 gap-4 overflow-x-auto">
-      <div class="bg-white shadow p-6 rounded">
-        <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามแผนก</h3>
-        <div class="h-[350px] mb-6">
-          <!-- กราฟกลุ่มตามเดือน -->
-          <Bar :data="departmentChartData" :options="departmentChartOptions" :key="departmentChartKey" />
-        </div>
-      </div>
-      <!-- New Ticket Creation Trend Chart -->
-      <div class="bg-white shadow p-6 rounded">
-        <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged" />
-      </div>
+            <div class="w-full shadow p-6 rounded grid xl:grid-cols-2 lg:grid-cols-1 gap-4 overflow-x-auto">
+              <div class="bg-white shadow p-6 rounded">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700">Ticket ตามแผนก</h3>
+                <div class="h-[350px] mb-6">
+                  <!-- กราฟกลุ่มตามเดือน -->
+                  <Bar :data="departmentChartData" :options="departmentChartOptions" :key="departmentChartKey" />
+                </div>
+              </div>
+              <!-- New Ticket Creation Trend Chart -->
+              <div class="bg-white shadow p-6 rounded">
+                <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged" />
+              </div>
 
-    </div>
-    <div class="bg-white shadow p-4 sm:p-6 mt-3 rounded overflow-x-auto">
-      <div class="text-lg sm:text-xl font-semibold mb-4 text-gray-700 break-all">
-        <span class="hidden sm:inline">แนวโน้ม Ticket ตามแผนก (รายวัน)</span>
-        <span class="sm:hidden">แนวโน้ม Ticket ตามแผนก</span>
-      </div>
-      <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-        <div>
-          <label for="departmentTrendStartDate" class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
-          <input type="date" id="departmentTrendStartDate" v-model="departmentTrendStartDate"
-            @change="updateDepartmentTrendChart"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+            </div>
+            <div class="bg-white shadow p-4 sm:p-6 mt-3 rounded overflow-x-auto">
+              <div class="text-lg sm:text-xl font-semibold mb-4 text-gray-700 break-all">
+                <span class="hidden sm:inline">แนวโน้ม Ticket ตามแผนก (รายวัน)</span>
+                <span class="sm:hidden">แนวโน้ม Ticket ตามแผนก</span>
+              </div>
+              <div class="mb-4 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                <div>
+                  <label for="departmentTrendStartDate"
+                    class="block text-sm font-medium text-gray-700">วันที่เริ่มต้น:</label>
+                  <input type="date" id="departmentTrendStartDate" v-model="departmentTrendStartDate"
+                    @change="updateDepartmentTrendChart"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                <div>
+                  <label for="departmentTrendEndDate"
+                    class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
+                  <input type="date" id="departmentTrendEndDate" v-model="departmentTrendEndDate"
+                    @change="updateDepartmentTrendChart"
+                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+              </div>
+              <div class="h-[400px] min-w-[700px]">
+                <Bar v-if="processedDepartmentTrendData.labels && processedDepartmentTrendData.labels.length > 0"
+                  :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
+                <div v-else class="flex items-center justify-center h-full text-gray-500">
+                  {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' :
+                    'กรุณาเลือกช่วงวันที่หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
+                </div>
+              </div>
+            </div>
+            <TicketSummaryModal :visible="isSummaryModalVisible" :tickets="ticketsForModal"
+              :status-title="modalStatusTitle" @close="closeSummaryModal" />
+          </div>
         </div>
-        <div>
-          <label for="departmentTrendEndDate" class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด:</label>
-          <input type="date" id="departmentTrendEndDate" v-model="departmentTrendEndDate"
-            @change="updateDepartmentTrendChart"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-        </div>
-      </div>
-      <div class="h-[400px] min-w-[700px]">
-        <Bar v-if="processedDepartmentTrendData.labels && processedDepartmentTrendData.labels.length > 0"
-          :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
-        <div v-else class="flex items-center justify-center h-full text-gray-500">
-          {{ (ticketStore.loading && !ticketStore.tickets.length) ? 'กำลังโหลดข้อมูล...' :
-            'กรุณาเลือกช่วงวันที่หรือไม่พบข้อมูลสำหรับช่วงที่เลือก' }}
-        </div>
-      </div>
-    </div>
-    <TicketSummaryModal :visible="isSummaryModalVisible" :tickets="ticketsForModal" :status-title="modalStatusTitle"
-      @close="closeSummaryModal" />
-  </div>
+      </cardcontent>
+    </card>
+  </AppLayout>
 </template>
 
 <script setup lang="ts">
+import AppLayout from "@/layouts/AppLayout.vue";
+import cardtitle from '@/ui/cardtitle.vue';
+import card from '@/ui/card.vue';
+import cardcontent from '@/ui/cardcontent.vue';
 import { ref, onMounted, computed, defineEmits, watch } from 'vue'
 import { config } from '@/config';
 import api from '@/api/axios-instance'

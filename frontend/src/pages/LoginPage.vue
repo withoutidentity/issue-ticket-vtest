@@ -37,10 +37,12 @@ const onLogin = async () => {
 
     const role = auth.user?.role
 
-    if (role === 'ADMIN' || role === 'OFFICER') {
+    if (role === 'ADMIN') {
       router.push('/dashboard')
     } else if (role ==='USER') {
-      router.push('/home')
+      router.push('/MyTickets')
+    } else if (role ==='OFFICER') {
+      router.push('/tickets')
     }
   } catch (err: any) {
     alert(err?.response?.data?.error || 'เข้าสู่ระบบไม่สำเร็จ')

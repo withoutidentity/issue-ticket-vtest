@@ -47,9 +47,15 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/ForbiddenPage.vue'),
   },
   {
+    path: '/tickets',
+    name: 'Tickets',
+    component: () => import('@/pages/TicketsPage.vue'),
+    meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
-    component: () => import('@/pages/DashboardPage.vue'),
+    component: () => import('@/pages/AdminDashboard.vue'),
     meta: { requiresAuth: true, roles: ['ADMIN', 'OFFICER'] },
   },
   {
