@@ -45,7 +45,17 @@
                   <!-- Dropdown List -->
                   <div v-if="isFilterDropdownOpenMyTickets"
                     class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 left-0 sm:right-0 sm:left-auto max-h-80 overflow-y-auto">
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามความสำคัญ</div>
+                    <ul class="py-1 border-b border-gray-200">
+                      <li @click="applyMyTicketsFilter('priority', null)"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                        ทั้งหมด (ความสำคัญ)
+                      </li>
+                      <li @click="applyMyTicketsFilter('priority', 'high')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">สูง</li>
+                      <li @click="applyMyTicketsFilter('priority', 'medium')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">กลาง</li>
+                      <li @click="applyMyTicketsFilter('priority', 'low')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">ต่ำ</li>
+                    </ul>
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามสถานะ</div>
                     <ul class="pb-1 border-b border-gray-200">
                       <li @click="applyMyTicketsFilter('status', 'total')"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
@@ -70,7 +80,7 @@
                   </li> -->
                     </ul>
                     <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
-                    <ul class="py-1">
+                    <ul class="py-1 border-b border-gray-200">
                       <li @click="applyMyTicketsFilter('department', null)"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                         ทั้งหมด (แผนก)
@@ -184,9 +194,19 @@
                   <th
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[120px]">
                     หัวข้อ</th>
-                  <th
-                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell min-w-[150px]">
-                    คำอธิบาย</th>
+                  <th @click="toggleSortPriorityMyTickets"
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell min-w-[150px] cursor-pointer hover:bg-gray-200 transition-colors duration-150">
+                    <div class="flex items-center">
+                      <span>ความสำคัญ</span>
+                      <svg v-if="sortPriorityMyTickets === 'asc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                      <svg v-if="sortPriorityMyTickets === 'desc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                      <svg v-if="!sortPriorityMyTickets" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                    </div>
+                  </th>
                   <th
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell min-w-[100px]">
                     แผนก</th>
@@ -230,8 +250,9 @@
                   </td>
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
-                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">{{
-                    ticket.description }}</td>
+                  <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">
+                    {{ utilpriorityName(ticket.priority) }}
+                  </td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words"><span
                       class="uppercase">{{ ticket.department?.name || "-"
                       }}</span></td>
@@ -279,7 +300,7 @@ import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from 'vue-router';
 import api from '@/api/axios-instance'; //Your configured axios instance
-import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket } from '@/utils/ticketUtils';
+import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket , priorityName as utilpriorityName } from '@/utils/ticketUtils';
 import Swal from 'sweetalert2'; // Import SweetAlert2
 import * as XLSX from 'xlsx'; // Import the xlsx library
 
@@ -331,6 +352,8 @@ const searchQuery = ref(''); // เพิ่ม ref สำหรับคำค�
 const perPage = ref(10);
 const currentPage = ref(1);
 const statusFilter = ref<'total' | 'open' | 'in_progress' | 'pending' | 'closed'>('total');
+const sortPriorityMyTickets = ref<'asc' | 'desc' | null>(null); // Added this line
+const priorityFilterMyTickets = ref<'high' | 'medium' | 'low' | null>(null);
 const departmentFilterMyTickets = ref<number | null>(null); 
 const sortDirection = ref<'asc' | 'desc' | null>('desc'); // null: unsorted, 'asc': oldest first, 'desc': newest first
 
@@ -386,36 +409,53 @@ const filteredAndSearchedTickets = computed(() => {
     tickets = tickets.filter(ticket => ticket.status === statusFilter.value);
   }
 
+   if (priorityFilterMyTickets.value !== null) {
+    tickets = tickets.filter(ticket => ticket.priority === priorityFilterMyTickets.value);
+  }
+
   // Apply department filter
   if (departmentFilterMyTickets.value !== null) {
     tickets = tickets.filter(ticket => ticket.department?.id === departmentFilterMyTickets.value);
   }
 
   // Apply sorting
-  if (sortDirection.value) {
-    // สร้างสำเนาของ array tickets ก่อนทำการเรียงลำดับ
-    // เพื่อป้องกันการแก้ไข array เดิมโดยไม่ตั้งใจ และเพื่อให้การทำงานชัดเจนขึ้น
-    const ticketsToSort = [...tickets];
+  const priorityOrderValue = { high: 3, medium: 2, low: 1 };
+  let ticketsToSort = [...tickets]; // Create a copy to sort
 
+  // Only sort if at least one sort criteria is active
+  if (sortPriorityMyTickets.value || sortDirection.value) {
     ticketsToSort.sort((a, b) => {
-      const dateA = new Date(a.created_at);
-      const dateB = new Date(b.created_at);
+      let comparison = 0;
 
-      const timeA = dateA.getTime();
-      const timeB = dateB.getTime();
+      // 1. Primary Sort: Priority (if active)
+      if (sortPriorityMyTickets.value) {
+        const priorityA = priorityOrderValue[a.priority] || 0;
+        const priorityB = priorityOrderValue[b.priority] || 0;
+        const priorityComparison = sortPriorityMyTickets.value === 'asc' ? priorityA - priorityB : priorityB - priorityA;
+        
+        if (priorityComparison !== 0) {
+          comparison = priorityComparison;
+        }
+      }
 
-      // จัดการกรณีที่วันที่อาจจะไม่ถูกต้อง (ทำให้ getTime() คืนค่า NaN)
-      if (isNaN(timeA) && isNaN(timeB)) return 0; // ถ้าทั้งคู่ไม่ถูกต้อง ให้ถือว่าเท่ากัน
-      if (isNaN(timeA)) return 1;  // ถ้า dateA ไม่ถูกต้อง ให้ไปอยู่ท้าย (สำหรับ 'asc' หมายถึง มากกว่า)
-      if (isNaN(timeB)) return -1; // ถ้า dateB ไม่ถูกต้อง ให้ไปอยู่ท้าย (สำหรับ 'asc' หมายถึง น้อยกว่า)
+      // 2. Secondary Sort: Date (if active, or if it's the only active sort)
+      if (comparison === 0 && sortDirection.value) {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
 
-      return sortDirection.value === 'asc' ? timeA - timeB : timeB - timeA;
+        // Handle invalid dates - put them at the end
+        if (isNaN(dateA) && isNaN(dateB)) return 0;
+        if (isNaN(dateA)) return isNaN(dateB) ? 0 : 1; // Put NaN A after valid B
+        if (isNaN(dateB)) return -1; // Put valid A before NaN B
+        
+      return sortDirection.value === 'asc' ? dateA - dateB : dateB - dateA;
+    }
+    return comparison; // คืนค่า array ที่เรียงลำดับแล้ว (สำเนา)
     });
-    return ticketsToSort; // คืนค่า array ที่เรียงลำดับแล้ว (สำเนา)
   }
 
   // ถ้าไม่ได้กำหนด sortDirection ให้คืนค่า tickets ที่ผ่านการกรองอื่นๆ มาแล้ว
-  return tickets;
+  return ticketsToSort as Ticket[];
 });
 
 const totalPages = computed(() => {
@@ -484,7 +524,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutsideFilterDropdownMyTickets);
 });
 
-watch([searchQuery, perPage, statusFilter, departmentFilterMyTickets, sortDirection], () => {
+watch([searchQuery, perPage, statusFilter, priorityFilterMyTickets, departmentFilterMyTickets, sortDirection, sortPriorityMyTickets], () => {
   currentPage.value = 1;
 });
 
@@ -549,11 +589,25 @@ const toggleFilterDropdownMyTickets = () => {
   isFilterDropdownOpenMyTickets.value = !isFilterDropdownOpenMyTickets.value;
 };
 
-const applyMyTicketsFilter = (filterType: 'status' | 'department', value: 'total' | 'open' | 'in_progress' | 'pending' | 'closed' | number | null) => {
+const applyMyTicketsFilter = (filterType: 'status' | 'department' | 'priority', value: 'total' | 'open' | 'in_progress' | 'pending' | 'closed' | number | null | 'high' | 'medium' | 'low') => {
+
   if (filterType === 'status') {
     statusFilter.value = value as 'total' | 'open' | 'in_progress' | 'pending' | 'closed';
     // Clear department filter when a status is selected from this dropdown
     if (value !== 'total') { // or some other indicator that a specific status was chosen
+      departmentFilterMyTickets.value = null;
+      priorityFilterMyTickets.value = null;
+    }
+  } else if (filterType === 'priority') {
+    priorityFilterMyTickets.value = value as 'high' | 'medium' | 'low' | null;
+    // Clear status filter when a priority is selected from this dropdown
+    if (value !== null) {
+      statusFilter.value = 'total'; // Reset status filter to 'all'
+      departmentFilterMyTickets.value = null;
+    }
+  } else if (filterType === 'department') {
+    departmentFilterMyTickets.value = value as number | null;
+    if (value !== null) {
       departmentFilterMyTickets.value = null;
     }
   } else if (filterType === 'department') {
@@ -575,6 +629,7 @@ const handleClickOutsideFilterDropdownMyTickets = (event: MouseEvent) => {
 const resetFilters = () => {
   searchQuery.value = '' // ล้างการค้นหา
   statusFilter.value = 'total' // กลับไปแสดงทั้งหมด
+  priorityFilterMyTickets.value = null; // ล้าง filter ความสำคัญ
   departmentFilterMyTickets.value = null; // ล้าง filter แผนก
   perPage.value = 10 // รีเซ็ตเป็นค่าเริ่มต้น
 
@@ -591,6 +646,18 @@ const toggleSortDirection = () => {
   } else {
     sortDirection.value = null; // Then unsorted (or back to default API order)
   }
+    // Keep priority sort state
+};
+
+const toggleSortPriorityMyTickets = () => {
+  if (sortPriorityMyTickets.value === null) {
+    sortPriorityMyTickets.value = 'desc'; // Default to High to Low
+  } else if (sortPriorityMyTickets.value === 'desc') {
+    sortPriorityMyTickets.value = 'asc'; // Low to High
+  } else {
+    sortPriorityMyTickets.value = null;
+  }
+  // Keep date sort state
 };
 
 const statusName = (status: string) => {

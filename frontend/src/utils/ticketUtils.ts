@@ -42,7 +42,7 @@ export function statusName(status: TicketStatus | string | undefined): string {
   if (!status) return '';
   switch (status) {
     case "open":
-      return "เปิด";
+      return "ใหม่";
     case "in_progress":
       return "กำลังดำเนินการ";
     case "pending":
@@ -53,6 +53,20 @@ export function statusName(status: TicketStatus | string | undefined): string {
       return status;
   }
 }
+
+export const priorityName = (priority: string) => {
+  if (!priority) return '';
+  switch (priority) {
+    case "low":
+      return "ต่ำ";
+    case "medium":
+      return "กลาง";
+    case "high":
+      return "สูง";
+    default:
+      return priority;
+  }
+};
 
 /**
  * ฟอร์แมตวันที่เป็นรูปแบบ DD/MM/YYYY

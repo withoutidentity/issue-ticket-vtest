@@ -687,10 +687,10 @@ router.put(
                     targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[1];
                   }
 
-                  if (targetThreadIdForOwnerDept) {
-                    const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
-                    await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
-                  }
+                  // if (targetThreadIdForOwnerDept) {
+                  //   const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
+                  //   await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
+                  // }
                 }
               }
 

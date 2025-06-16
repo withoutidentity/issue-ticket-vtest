@@ -1,6 +1,6 @@
 // stores/auth.ts
 import { defineStore } from 'pinia'
-// import axios from 'axios' // We'll use the api instance for login/refresh
+import axios from 'axios' // We'll use the api instance for login/refresh
 import api from '@/api/axios-instance' // Import your configured axios instance
 import { config } from '@/config'
 import Swal from 'sweetalert2';
@@ -46,7 +46,7 @@ export const useAuthStore = defineStore('auth', {
     },
     async login(email: string, password: string) {
       try {
-        const res = await api.post(`/auth/login`, { email, password }); // 👈 Use api instance
+        const res = await axios.post(`${config.apiUrl}/api/auth/login`, { email, password }); // 👈 Use api instance
         this.accessToken = res.data.accessToken;
         this.refreshToken = res.data.refreshToken;
         this.user = res.data.user;

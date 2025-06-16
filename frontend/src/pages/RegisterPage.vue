@@ -100,19 +100,19 @@ const passwordErrorOnSubmit = ref('');
 
 const router = useRouter()
 
-const fetchDepartments = async () => {
-  try {
-    const response = await axios.get(`${config.apiUrl}/api/departments`); // สมมติ API endpoint นี้
-    departments.value = response.data.data || response.data; // ปรับตามโครงสร้าง response จริง
-  } catch (error) {
-    console.error('Failed to fetch departments:', error)
-    Swal.fire({
-      icon: 'error',
-      title: 'เกิดข้อผิดพลาด',
-      text: 'ไม่สามารถโหลดรายชื่อแผนกได้',
-    })
-  }
-}
+// const fetchDepartments = async () => {
+//   try {
+//     const response = await axios.get(`${config.apiUrl}/api/departments`); // สมมติ API endpoint นี้
+//     departments.value = response.data.data || response.data; // ปรับตามโครงสร้าง response จริง
+//   } catch (error) {
+//     console.error('Failed to fetch departments:', error)
+//     Swal.fire({
+//       icon: 'error',
+//       title: 'เกิดข้อผิดพลาด',
+//       text: 'ไม่สามารถโหลดรายชื่อแผนกได้',
+//     })
+//   }
+// }
 
 const isValidEmailFormat = (emailToValidate: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -244,9 +244,9 @@ const onRegister = async () => {
   }
 }
 
-onMounted(() => {
-  fetchDepartments();
-});
+// onMounted(() => {
+//   fetchDepartments();
+// });
 </script>
 
 <style scoped>

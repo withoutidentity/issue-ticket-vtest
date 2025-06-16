@@ -40,7 +40,7 @@
           </div>
 
           <!-- Ticket Table -->
-          <div class="rounded-lg overflow-hidden overflow-x-auto border border-gray-200 max-h-[60vh]">
+          <div class="rounded-lg overflow-hidden overflow-y-auto overflow-x-auto border border-gray-200 max-h-[60vh]">
             <table class="w-full min-w-[800px]">
               <thead class="sticky top-0 bg-gray-100 z-10">
                 <tr>
@@ -55,7 +55,8 @@
               </thead>
               <tbody v-if="paginatedModalTickets.length > 0" class="bg-white">
                 <tr v-for="ticket in paginatedModalTickets" :key="ticket.id"
-                  class="text-sm border-b align-top hover:bg-gray-50">
+                  class="text-sm border-b align-top hover:bg-gray-50"
+                  @click="goToTicket(ticket.id)" style="cursor: pointer;" >
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ ticket.reference_number }}</td>
                   <td class="py-2.5 px-4 text-gray-700 font-medium max-w-xs truncate">{{ ticket.title }}</td>
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">
@@ -141,6 +142,9 @@ import { ref, computed, watch, PropType } from 'vue';
 import { Ticket as UtilTicket, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, searchTickets } from '@/utils/ticketUtils';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const props = defineProps({
   visible: Boolean,
@@ -159,14 +163,25 @@ const emit = defineEmits(['close']);
 const modalSearchQuery = ref('');
 const modalPerPage = ref(10);
 const modalCurrentPage = ref(1);
+const sortDirection = ref<'asc' | 'desc' | null>('desc'); 
 
 const modalTitle = computed(() => `รายการแจ้งปัญหา: ${props.statusTitle}`);
+
+const goToTicket = (id: number) => {
+  router.push(`/tickets/${id}`);
+};
 
 const filteredAndSearchedModalTickets = computed(() => {
   let processed = [...props.tickets];
   if (modalSearchQuery.value && modalSearchQuery.value.trim() !== '') {
     processed = searchTickets(processed, modalSearchQuery.value);
   }
+  // เพิ่มการเรียงลำดับตามวันที่
+  processed.sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime();
+    const dateB = new Date(b.created_at).getTime();
+    return dateB - dateA; // เรียงจากใหม่ไปเก่า
+  });
   return processed;
 });
 

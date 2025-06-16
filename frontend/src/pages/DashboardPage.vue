@@ -63,6 +63,16 @@
                     <!-- Dropdown List -->
                     <div v-if="isFilterDropdownOpen"
                       class="absolute z-10 mt-1 w-56 bg-white rounded-md shadow-lg border border-gray-200 left-0 sm:right-0 sm:left-auto max-h-80 overflow-y-auto">
+                      <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามความสำคัญ</div>
+                      <ul class="py-1  border-b border-gray-200">
+                        <li @click="applyFilter('priority', null)"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
+                          ทั้งหมด (ความสำคัญ)
+                        </li>
+                        <li @click="applyFilter('priority', 'high')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">สูง</li>
+                        <li @click="applyFilter('priority', 'medium')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">กลาง</li>
+                        <li @click="applyFilter('priority', 'low')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">ต่ำ</li>
+                      </ul>
                       <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
                       <ul class="pb-1 border-b border-gray-200">
                         <li @click="applyFilter('status', null)"
@@ -83,7 +93,7 @@
                         </li>
                       </ul>
                       <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">กรองตามแผนก</div>
-                      <ul class="py-1">
+                      <ul class="py-1  border-b border-gray-200">
                         <li @click="applyFilter('department', null)"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                           ทั้งหมด (แผนก)
@@ -188,9 +198,19 @@
                   <th
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[120px]">
                     หัวข้อ</th>
-                  <th
-                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell min-w-[150px]">
-                    คำอธิบาย</th>
+                  <th @click="toggleSortPriorityDashboard"
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden sm:table-cell min-w-[150px] cursor-pointer hover:bg-gray-200 transition-colors duration-150">
+                    <div class="flex items-center">
+                      <span>ความสำคัญ</span>
+                      <svg v-if="sortPriorityDashboard === 'asc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                      <svg v-if="sortPriorityDashboard === 'desc'" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                      <svg v-if="!sortPriorityDashboard" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                    </div>
+                  </th>
                   <th
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm hidden md:table-cell min-w-[100px]">
                     แผนก</th>
@@ -237,7 +257,7 @@
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">{{
-                    ticket.description }}</td>
+                    priorityName(ticket.priority) }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words">
                     <span class="uppercase">{{ ticket.department?.name || "-" }}</span>
                   </td>
@@ -248,7 +268,7 @@
                         'bg-orange-100 text-orange-700': ticket.status === 'in_progress',
                         'bg-purple-100 text-purple-700': ticket.status === 'pending',
                         'bg-green-100 text-green-700': ticket.status === 'closed',
-                      }" class="px-3 py-1 rounded-full text-sm ">
+                      }" class="px-3 py-1 rounded-full text-sm">
                         {{ statusName(ticket.status) }}
                       </span>
                     </div>
@@ -299,11 +319,12 @@ import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 import { useTicketStore } from "@/stores/ticketStore"; // Import ticket store
 import { config } from "@/config";
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import * as XLSX from 'xlsx'; // Import the xlsx library
 import Swal from 'sweetalert2'; // Import SweetAlert2
 import api from '@/api/axios-instance'
 
+const route = useRoute(); // เพิ่ม useRoute
 const router = useRouter()
 function goToTicket(id: number) {
   router.push(`/tickets/${id}`)
@@ -339,7 +360,8 @@ const statusFilterForTable = ref<'open' | 'in_progress' | 'pending' | 'closed' |
 const typeFilterForTable = ref<string | null>(null);
 const departmentFilterForTable = ref<string | null>(null);
 const creationDateFilterForTable = ref<CreationDateFilter | null>(null);
-const sortDirectionDashboard = ref<'asc' | 'desc' | null>('desc'); // For DashboardPage sorting
+const sortDirectionDashboard = ref<'asc' | 'desc' | null>('desc'); // For Date sorting
+const sortPriorityDashboard = ref<'asc' | 'desc' | null>(null); // For Priority sorting
 
 const isFilterDropdownOpen = ref(false);
 const filterDropdownRef = ref<HTMLElement | null>(null); // Ref for the dropdown element
@@ -354,6 +376,7 @@ interface Department {
 }
 const departmentsList = ref<Department[]>([]);
 const loadingDepartments = ref(false);
+const priorityFilterForTable = ref<'high' | 'medium' | 'low' | null>(null);
 
 const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
   statusFilterForTable.value = newStatus;
@@ -362,6 +385,7 @@ const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' 
     typeFilterForTable.value = null;
     departmentFilterForTable.value = null;
     creationDateFilterForTable.value = null;
+    priorityFilterForTable.value = null;
   }
 };
 
@@ -371,6 +395,7 @@ const handleTypeFilterChange = (newType: string | null) => {
     statusFilterForTable.value = null;
     departmentFilterForTable.value = null;
     creationDateFilterForTable.value = null;
+    priorityFilterForTable.value = null;
   }
 };
 
@@ -380,6 +405,7 @@ const handleDepartmentFilterChange = (newDepartment: string | null) => {
     statusFilterForTable.value = null;
     typeFilterForTable.value = null;
     creationDateFilterForTable.value = null;
+    priorityFilterForTable.value = null;
   }
 };
 
@@ -389,6 +415,17 @@ const handleCreationDateFilterChange = (newCreationDateFilter: CreationDateFilte
     statusFilterForTable.value = null;
     typeFilterForTable.value = null;
     departmentFilterForTable.value = null;
+    priorityFilterForTable.value = null;
+  }
+};
+
+const handlePriorityFilterChange = (newPriority: 'high' | 'medium' | 'low' | null) => {
+  priorityFilterForTable.value = newPriority;
+  if (newPriority !== null) {
+    statusFilterForTable.value = null;
+    typeFilterForTable.value = null;
+    departmentFilterForTable.value = null;
+    creationDateFilterForTable.value = null;
   }
 };
 
@@ -420,6 +457,9 @@ const filteredTableTickets = computed((): ticket[] => { // กำหนด type 
   else if (statusFilterForTable.value) {
     processingTickets = processingTickets.filter(t => t.status === statusFilterForTable.value);
   }
+  else if (priorityFilterForTable.value) {
+    processingTickets = processingTickets.filter(t => t.priority === priorityFilterForTable.value);
+  }
 
   // 3. Apply local searchQuery (from DashboardPage's own input)
   // searchedResult จะเป็น UtilTicket[]
@@ -430,18 +470,50 @@ const filteredTableTickets = computed((): ticket[] => { // กำหนด type 
   }
 
   // 4. Apply sorting
-  if (sortDirectionDashboard.value) {
-    searchedResult.sort((a, b) => {
-      const dateA = new Date(a.created_at).getTime();
-      const dateB = new Date(b.created_at).getTime();
-      return sortDirectionDashboard.value === 'asc' ? dateA - dateB : dateB - dateA;
+  const priorityOrderValue = { high: 3, medium: 2, low: 1 };
+  let processedTickets = [...searchedResult];
+
+  // Only sort if at least one sort criteria is active
+  if (sortPriorityDashboard.value || sortDirectionDashboard.value) {
+    processedTickets.sort((a, b) => {
+      let comparison = 0;
+
+      // 1. Primary Sort: Priority (if active)
+      if (sortPriorityDashboard.value) {
+        const priorityA = priorityOrderValue[a.priority] || 0;
+        const priorityB = priorityOrderValue[b.priority] || 0;
+        const priorityComparison = sortPriorityDashboard.value === 'asc' ? priorityA - priorityB : priorityB - priorityA;
+
+        // If priorities are different, use this comparison result
+        if (priorityComparison !== 0) {
+          comparison = priorityComparison;
+        }
+        // If priorities are the same, comparison is 0, proceed to secondary sort
+      }
+
+      // 2. Secondary Sort: Date (if active, or if it's the only active sort)
+      // This runs if priority sort was not active OR if priorities were the same (comparison === 0)
+      if (comparison === 0 && sortDirectionDashboard.value) {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+
+        // Handle invalid dates - put them at the end
+        if (isNaN(dateA) && isNaN(dateB)) return 0;
+        if (isNaN(dateA)) return isNaN(dateB) ? 0 : 1; // Put NaN A after valid B
+        if (isNaN(dateB)) return -1; // Put valid A before NaN B
+
+        return sortDirectionDashboard.value === 'asc' ? dateA - dateB : dateB - dateA;
+      }
+      // If neither sort is active, or if both are active but items are equal by both criteria,
+      // maintain original relative order (sort stability is not guaranteed, but 0 is the standard return).
+      return comparison; // Return the result from primary sort if different, otherwise 0
     });
   }
 
   // เนื่องจาก interface ticket extends UtilTicket และควรจะเข้ากันได้
   // การ cast (as ticket[]) ตรงนี้จะปลอดภัย
   // และทำให้ type ที่คืนค่าตรงกับที่ระบุไว้สำหรับ computed property
-  return searchedResult as ticket[];
+  return processedTickets as ticket[];
 });
 
 const totalPages = computed(() => {
@@ -468,6 +540,16 @@ onMounted(async () => {
   document.addEventListener('click', handleClickOutsideFilterDropdown);
 });
 
+// Watch for route changes to refetch tickets
+watch(
+  () => route.fullPath,
+  async (newPath, oldPath) => {
+    if (newPath !== oldPath && newPath.includes('/dashboard')) { // ตรวจสอบว่าเป็นหน้า dashboard จริงๆ
+      await ticketStore.fetchTickets();
+    }
+  }
+);
+
 onUnmounted(() => {
   // Remove event listener when component is unmounted
   document.removeEventListener('click', handleClickOutsideFilterDropdown);
@@ -490,23 +572,34 @@ const toggleFilterDropdown = () => {
   isFilterDropdownOpen.value = !isFilterDropdownOpen.value;
 };
 
-const applyFilter = (filterType: 'status' | 'department', value: string | null) => {
+const applyFilter = (filterType: 'status' | 'department' | 'priority', value: string | null) => {
   if (filterType === 'status') {
     // Directly call handleStatusFilterChange to ensure consistent logic
     // (like clearing other AdminDashboard filters if a status is explicitly chosen here)
     handleStatusFilterChange(value as 'open' | 'in_progress' | 'pending' | 'closed' | null);
     // If a status is chosen from this dropdown, ensure department filter from AdminDashboard is cleared
     // This might be redundant if handleStatusFilterChange already does this, but good for clarity
-    if (value !== null) {
-      departmentFilterForTable.value = null;
-    }
+    // Redundant due to handleStatusFilterChange already clearing others
+    // if (value !== null) {
+    //   departmentFilterForTable.value = null;
+    //   priorityFilterForTable.value = null;
+    // }
   } else if (filterType === 'department') {
     // Directly call handleDepartmentFilterChange
     handleDepartmentFilterChange(value);
     // If a department is chosen from this dropdown, ensure status filter from AdminDashboard is cleared
-    if (value !== null) {
-      statusFilterForTable.value = null;
-    }
+    // Redundant due to handleDepartmentFilterChange
+    // if (value !== null) {
+    //   statusFilterForTable.value = null;
+    //   priorityFilterForTable.value = null;
+    // }
+  } else if (filterType === 'priority') {
+    handlePriorityFilterChange(value as 'high' | 'medium' | 'low' | null);
+    // Redundant due to handlePriorityFilterChange
+    // if (value !== null) {
+    //   statusFilterForTable.value = null;
+    //   departmentFilterForTable.value = null;
+    // }
   }
   isFilterDropdownOpen.value = false;
 };
@@ -517,7 +610,7 @@ const handleClickOutsideFilterDropdown = (event: MouseEvent) => {
   }
 };
 
-watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, sortDirectionDashboard], () => {
+watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, priorityFilterForTable, sortDirectionDashboard, sortPriorityDashboard], () => {
   currentPage.value = 1;
 });
 
@@ -573,6 +666,19 @@ const statusName = (status: string) => {
   }
 };
 
+const priorityName = (priority: string) => {
+  switch (priority) {
+    case "low":
+      return "ต่ำ";
+    case "medium":
+      return "กลาง";
+    case "high":
+      return "สูง";
+    default:
+      return priority;
+  }
+};
+
 const formatDateDDMMYYYY = (dateString: string | Date): string => {
   const date = new Date(dateString);
   const day = String(date.getDate()).padStart(2, '0');
@@ -592,6 +698,7 @@ const resetFilters = () => {
   typeFilterForTable.value = null;
   departmentFilterForTable.value = null;
   creationDateFilterForTable.value = null;
+    priorityFilterForTable.value = null;
 
   // Note: The handle... functions already clear other related filters when one is set.
   // This reset ensures everything goes back to default.
@@ -606,8 +713,20 @@ const toggleSortDirectionDashboard = () => {
   } else if (sortDirectionDashboard.value === 'desc') {
     sortDirectionDashboard.value = 'asc'; // Then oldest first
   } else {
-    sortDirectionDashboard.value = null; // Then unsorted
+    sortDirectionDashboard.value = null;
   }
+  // sortPriorityDashboard.value = null; // Clear priority sort
+};
+
+const toggleSortPriorityDashboard = () => {
+  if (sortPriorityDashboard.value === null) {
+    sortPriorityDashboard.value = 'desc'; // Default to High to Low
+  } else if (sortPriorityDashboard.value === 'desc') {
+    sortPriorityDashboard.value = 'asc'; // Low to High
+  } else {
+    sortPriorityDashboard.value = null;
+  }
+  // sortDirectionDashboard.value = null; // Clear date sort
 };
 
 // --- Selection Logic ---
@@ -771,7 +890,7 @@ const exportSelectedToExcel = async () => {
       });
       console.error("Error exporting to Excel:", error);
     }
-  }, 50); // Delay for UI update
+  }, 3000); // Delay for UI update
 };
 </script>
 

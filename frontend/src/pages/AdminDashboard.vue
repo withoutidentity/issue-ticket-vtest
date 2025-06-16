@@ -33,7 +33,7 @@
       </div>
 
     </div>
-    <div class="bg-white shadow p-4 sm:p-6 mt-3 rounded md:col-span-2">
+    <div class="bg-white shadow p-4 sm:p-6 mt-3 rounded overflow-x-auto">
       <div class="text-lg sm:text-xl font-semibold mb-4 text-gray-700 break-all">
         <span class="hidden sm:inline">แนวโน้ม Ticket ตามแผนก (รายวัน)</span>
         <span class="sm:hidden">แนวโน้ม Ticket ตามแผนก</span>
@@ -52,7 +52,7 @@
             class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
         </div>
       </div>
-      <div class="h-[400px]">
+      <div class="h-[400px] min-w-[700px]">
         <Bar v-if="processedDepartmentTrendData.labels && processedDepartmentTrendData.labels.length > 0"
           :data="processedDepartmentTrendData" :options="departmentTrendOptions" />
         <div v-else class="flex items-center justify-center h-full text-gray-500">

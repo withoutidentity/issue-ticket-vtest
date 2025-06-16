@@ -16,7 +16,7 @@
               alt="User Avatar"
               class="w-8 h-8 rounded-full object-cover border border-gray-300"
             />
-            <span>{{ auth.user?.name || 'User' }}</span> <!-- เพิ่ม optional chaining และ fallback name -->
+            <span class="cursor-pointer" @click="goToProfile">{{ auth.user?.name || 'User' }}</span> <!-- เพิ่ม optional chaining และ fallback name -->
         </div>
     </header>
 </template>
@@ -25,9 +25,15 @@ import { useAuthStore } from '@/stores/auth'
 import { ref, computed, onMounted, onUnmounted, getCurrentInstance, watch } from 'vue'
 import Notification from '@/components/Notification.vue'
 import { config } from '@/config'; // Import config for API base URL
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
 
 const defaultAvatarSrc = 'https://www.gravatar.com/avatar/?d=mp&f=y'; // Default avatar
 
+const goToProfile  = () => {
+  router.push(`/profile`);
+};
 
 defineEmits(['toggle-sidebar-mobile'])
 const auth = useAuthStore()

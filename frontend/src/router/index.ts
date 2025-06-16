@@ -88,8 +88,8 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/MyTicketsPage.vue'),
     meta: { requiresAuth: true, roles: ['OFFICER','USER'] } // ป้องกันการเข้าถึงสำหรับ Role อื่น
   },
-  { path: '/forgot-password', component: import('@/pages/ForgotPasswordPage.vue') }, // เพิ่ม route
-  { path: '/reset-password', component: import('@/pages/ResetPasswordPage.vue') },
+  { path: '/forgot-password',name: 'ForgotPassword', component:() => import('@/pages/ForgotPasswordPage.vue'), meta: { guestOnly: true }  }, // เพิ่ม route
+  { path: '/reset-password',name: 'ResetPassword', component:() => import('@/pages/ResetPasswordPage.vue'), meta: { guestOnly: true } },
   {
       path: '/change-password', // New route path
       name: 'ChangePassword',

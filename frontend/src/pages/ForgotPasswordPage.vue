@@ -38,6 +38,7 @@ import { ref, computed, onUnmounted } from 'vue';
 import axios from 'axios';
 import { config } from '@/config';
 import Swal from 'sweetalert2';
+import api from '@/api/axios-instance';
 
 const email = ref('');
 const emailError = ref('');
@@ -92,7 +93,7 @@ const onRequestReset = async () => {
   isSubmitting.value = true;
 
   try {
-    await axios.post(`${config.apiUrl}/api/auth/forgot-password`, { email: email.value });
+    await api.post(`/auth/forgot-password`, { email: email.value });
 
     if (requestPhase.value === 'initial') {
       Swal.fire({
