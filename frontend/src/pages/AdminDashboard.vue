@@ -6,22 +6,22 @@
         <div class="space-y-6 overflow-y-auto truncate">
           <div class="p-6 w-full">
             <div class="grid lg:grid-cols-4 sm:grid-cols-2 gap-4 mb-6">
-              <div class="bg-gray-100 shadow p-4 rounded cursor-pointer hover:bg-gray-300"
+              <div class="bg-gray-100 shadow p-4 rounded cursor-pointer hover:bg-gray-400"
                 @click="filterByStatus('total')">
                 <p class="text-gray-600">ทั้งหมด</p>
                 <p class="text-3xl font-bold">{{ summary.total }}</p>
               </div>
-              <div class="bg-red-100 shadow p-4 rounded cursor-pointer hover:bg-red-300"
+              <div class="bg-red-100 shadow p-4 rounded cursor-pointer hover:bg-red-400"
                 @click="filterByStatus('open')">
                 <p class="text-gray-600">ใหม่</p>
                 <p class="text-3xl font-bold">{{ summary.open }}</p>
               </div>
-              <div class="bg-yellow-100 shadow p-4 rounded cursor-pointer hover:bg-yellow-200"
+              <div class="bg-yellow-100 shadow p-4 rounded cursor-pointer hover:bg-yellow-400"
                 @click="filterByStatus('in_progress')">
                 <p class="text-gray-600">กำลังดำเนินการ</p>
                 <p class="text-3xl font-bold">{{ summary.in_progress }}</p>
               </div>
-              <div class="bg-green-100 shadow p-4 rounded cursor-pointer hover:bg-green-300"
+              <div class="bg-green-100 shadow p-4 rounded cursor-pointer hover:bg-green-400"
                 @click="filterByStatus('closed')">
                 <p class="text-gray-600">ดำเนินการเสร็จ</p>
                 <p class="text-3xl font-bold">{{ summary.closed }}</p>
@@ -181,6 +181,9 @@ import {
   TimeScale,
   TimeSeriesScale,
 } from 'chart.js'
+import type { ChartEvent, ActiveElement, Chart } from 'chart.js'; // Added for stronger typing
+
+
 import 'chartjs-adapter-date-fns';
 import { th } from 'date-fns/locale'; // For Thai date formatting if needed by adapter
 
@@ -463,11 +466,26 @@ const departmentTrendOptions = computed(() => ({
     legend: { position: 'top' as const },
     tooltip: { mode: 'index' as const, intersect: false },
   },
-  onClick: (event: unknown, elements: { index: number, datasetIndex: number }[], chart: any) => {
-    if (elements.length > 0) {
-      const element = elements[0];
-      const dataIndex = element.index;      // Index of the data point (date)
-      handleDepartmentTrendChartClick(dataIndex); // Pass only dataIndex
+  onClick: (event: ChartEvent, initialElements: ActiveElement[], chart: Chart) => {
+    let targetElements: ActiveElement[] = initialElements;
+
+    // If the initial click didn't hit a specific bar (intersect: true behavior for clicks)
+    // try to find elements as if intersect was false for the 'index' mode.
+    // This makes clicking anywhere in the "column" of a day work.
+    if (initialElements.length === 0) {
+      targetElements = chart.getElementsAtEventForMode(event.native, 'index', { intersect: false }, true);
+    }
+
+    if (targetElements.length > 0) {
+      const dataIndex = targetElements[0].index;
+
+      // Validate dataIndex before calling handler
+      if (typeof dataIndex === 'number' &&
+          dataIndex >= 0 &&
+          dataIndex < rawDepartmentTrendDateLabels.value.length &&
+          rawDepartmentTrendDateLabels.value[dataIndex]) {
+        handleDepartmentTrendChartClick(dataIndex);
+      }
     }
   }
 }));
