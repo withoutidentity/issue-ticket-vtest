@@ -51,7 +51,7 @@ import 'chartjs-adapter-date-fns'; // Import date adapter
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, TimeScale, TimeSeriesScale)
 
-const emit = defineEmits(['filter-by-creation-date']);
+const emit = defineEmits(['filter-by-creation-date', 'bar-clicked']); // Add 'bar-clicked' event
 
 const auth = useAuthStore();
 
@@ -202,8 +202,10 @@ const processedChartData = computed(() => {
 
 const chartData = computed(() => processedChartData.value);
 
-const handleBarClick = (originalKey: string | null) => {
+const handleBarClick = (originalKey: string | null, elementIndex: number) => {
   if (!originalKey) return;
+
+  const displayLabel = processedChartData.value.labels[elementIndex];
 
   if (selectedBarOriginalKey.value === originalKey) {
     selectedBarOriginalKey.value = null; // Toggle off
@@ -212,7 +214,12 @@ const handleBarClick = (originalKey: string | null) => {
     selectedBarOriginalKey.value = originalKey;
     emit('filter-by-creation-date', {
       period: selectedPeriod.value,
+      value: originalKey, // YYYY-MM-DD, YYYY-MM, or YYYY
+      });
+    emit('bar-clicked', { // Emit the new event
       value: originalKey,
+      period: selectedPeriod.value,
+      displayLabel: displayLabel, // The formatted label shown on the chart
     });
   }
   chartKey.value++; // Force re-render to update colors
@@ -227,7 +234,7 @@ const chartOptions = computed(() => ({
       // Use originalKeys from processedChartData which are not formatted for display
       const originalKey = processedChartData.value.originalKeys[elementIndex];
       if (originalKey) {
-        handleBarClick(originalKey);
+        handleBarClick(originalKey, elementIndex);
       }
     }
   },

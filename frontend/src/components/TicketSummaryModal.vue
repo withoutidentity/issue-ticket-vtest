@@ -55,7 +55,7 @@
               </thead>
               <tbody v-if="paginatedModalTickets.length > 0" class="bg-white">
                 <tr v-for="ticket in paginatedModalTickets" :key="ticket.id"
-                  class="text-sm border-b align-top hover:bg-gray-50"
+                  class="text-sm border-b border-gray-700/25 align-top hover:bg-gray-50"
                   @click="goToTicket(ticket.id)" style="cursor: pointer;" >
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ ticket.reference_number }}</td>
                   <td class="py-2.5 px-4 text-gray-700 font-medium max-w-xs truncate">{{ ticket.title }}</td>

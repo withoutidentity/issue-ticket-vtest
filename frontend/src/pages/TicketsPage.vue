@@ -7,20 +7,18 @@
             <!-- Title Row -->
             <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
               <cardtitle class="text-lg font-semibold mb-3 sm:mb-0">รายการแจ้งปัญหา</cardtitle>
-
-              <!-- Per Page Control - Show on mobile after title -->
-              <div class="flex items-center space-x-2 sm:hidden">
-                <label for="perPageMobileInput" class="text-sm text-gray-600">แสดง:</label>
-                <input id="perPageMobileInput" type="number" min="1" v-model.number="perPage"
-                  class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
-                <span class="text-sm text-gray-600">รายการต่อหน้า</span>
-              </div>
+              <p class="text-sm text-gray-600 font-medium ml-3 sm:text-xs sm:mb-0">
+                ปัญหาทั้งหมด:
+                <span class="text-blue-600 font-semibold">{{ filteredTableTickets.length }}</span>
+              </p>
             </div>
 
             <!-- Controls Row -->
-            <div class="flex flex-col space-y-3 sm:flex-wrap sm:justify-between sm:gap-y-3 sm:space-y-0 md:flex-wrap md:gap-y-3">
+            <div
+              class="flex flex-col space-y-3 sm:flex-wrap sm:justify-between sm:gap-y-3 sm:space-y-0 md:flex-wrap md:gap-y-3">
               <!-- Left side: Search, Filter, Reset -->
-              <div class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+              <div
+                class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
                 <!-- Search box -->
                 <div class="relative w-full sm:w-auto">
                   <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -37,6 +35,13 @@
 
                 <!-- Filter and Reset buttons container -->
                 <div class="flex space-x-3">
+                  <!-- Per Page Control - Show on mobile after title -->
+                  <div class="flex items-center space-x-2 sm:hidden">
+                    <label for="perPageMobileInput" class="text-sm text-gray-600">แสดง:</label>
+                    <input id="perPageMobileInput" type="number" min="1" v-model.number="perPage"
+                      class="w-16 px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                    <span class="text-sm text-gray-600">รายการต่อหน้า</span>
+                  </div>
                   <!-- Filter button -->
                   <div class="relative" ref="filterDropdownRef">
                     <button @click="toggleFilterDropdown"
@@ -57,9 +62,12 @@
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
                           ทั้งหมด (ความสำคัญ)
                         </li>
-                        <li @click="applyFilter('priority', 'high')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">สูง</li>
-                        <li @click="applyFilter('priority', 'medium')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">กลาง</li>
-                        <li @click="applyFilter('priority', 'low')" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">ต่ำ</li>
+                        <li @click="applyFilter('priority', 'high')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">สูง</li>
+                        <li @click="applyFilter('priority', 'medium')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">กลาง</li>
+                        <li @click="applyFilter('priority', 'low')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">ต่ำ</li>
                       </ul>
                       <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase">กรองตามสถานะ</div>
                       <ul class="pb-1 border-b border-gray-200">
@@ -110,7 +118,8 @@
               </div>
 
               <!-- Right side: Export and Per Page (hidden on mobile) -->
-              <div class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-3 sm:space-x-3">
+              <div
+                class="flex flex-col justify-between space-y-3 sm:flex-row sm:items-center sm:space-y-3 sm:space-x-3">
                 <!-- Export to Excel button -->
                 <div v-if="!isSelectionModeActive" class="flex justify-start">
                   <button @click="toggleSelectionMode"
@@ -121,37 +130,44 @@
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     <span class="hidden xs:inline">เลือกรายการเพื่อ Export</span>
-                      <span class="xs:hidden">เลือก Export</span>
+                    <span class="xs:hidden">เลือก Export</span>
                   </button>
                 </div>
                 <div v-if="isSelectionModeActive" class="flex flex-wrap gap-2">
                   <button @click="exportSelectedToExcel" :disabled="countSelected === 0"
                     class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
                     :class="countSelected > 0 ? 'bg-green-500 hover:bg-green-600 border-green-500 focus:ring-green-500' : 'bg-gray-400 border-gray-400 cursor-not-allowed'">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
                     Export ที่เลือก ({{ countSelected }})
                   </button>
                   <button @click="selectAllFilteredTickets" :disabled="filteredTableTickets.length === 0"
                     class="h-10 px-3 sm:px-4 flex items-center justify-center border border-blue-500 rounded-lg shadow-sm text-blue-500 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
                     :class="filteredTableTickets.length === 0 ? 'opacity-50 cursor-not-allowed' : ''">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     เลือกทั้งหมด ({{ filteredTableTickets.length }})
                   </button>
                   <button @click="deselectAllTickets" :disabled="countSelected === 0"
                     class="h-10 px-3 sm:px-4 flex items-center justify-center border border-yellow-500 rounded-lg shadow-sm text-yellow-600 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
                     :class="countSelected === 0 ? 'opacity-50 cursor-not-allowed' : ''">
-                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                      </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1 sm:mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
                     ยกเลิกเลือกทั้งหมด
                   </button>
                   <button @click="toggleSelectionMode"
                     class="h-10 px-3 sm:px-4 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 bg-red-300 hover:bg-red-500 hover:text-white hover:shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <span>ยกเลิก</span>
@@ -175,10 +191,9 @@
                 <tr class="bg-gray-100">
                   <th v-if="isSelectionModeActive"
                     class="py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm w-10 text-center">
-                    <input type="checkbox"
-                           @change="toggleSelectAllOnPage"
-                           :checked="isAllSelectedOnCurrentPage && paginatedTickets.length > 0"
-                           class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
+                    <input type="checkbox" @change="toggleSelectAllOnPage"
+                      :checked="isAllSelectedOnCurrentPage && paginatedTickets.length > 0"
+                      class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out" />
                   </th>
                   <th
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[80px]">
@@ -192,11 +207,18 @@
                       <span>ความสำคัญ</span>
                       <svg v-if="sortPriorityDashboard === 'asc'" xmlns="http://www.w3.org/2000/svg"
                         class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      </svg>
                       <svg v-if="sortPriorityDashboard === 'desc'" xmlns="http://www.w3.org/2000/svg"
                         class="h-4 w-4 ml-1 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                      <svg v-if="!sortPriorityDashboard" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4" /></svg>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                      <svg v-if="!sortPriorityDashboard" xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 ml-1 text-gray-400 opacity-50" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+                      </svg>
                     </div>
                   </th>
                   <th
@@ -205,7 +227,8 @@
                   <th
                     class="text-center py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[150px]">
                     สถานะ</th>
-                  <th class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[100px]">
+                  <th
+                    class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 text-xs sm:text-sm min-w-[100px]">
                     ผู้แจ้ง</th>
                   <th @click="toggleSortDirectionDashboard"
                     class="text-left py-2 px-2 sm:py-3 sm:px-3 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 transition-colors duration-150 text-xs sm:text-sm min-w-[100px]">
@@ -238,9 +261,9 @@
                   :class="{ 'cursor-pointer': !isSelectionModeActive, 'bg-blue-50 hover:bg-blue-100': isSelectionModeActive && selectedTicketIds.has(ticket.id) }"
                   @click="handleRowClick(ticket)">
                   <td v-if="isSelectionModeActive" class="py-3 px-4 text-center">
-                    <input type="checkbox"
-                           :checked="selectedTicketIds.has(ticket.id)"
-                           @click.stop="toggleTicketSelection(ticket.id)" class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out cursor-pointer" />
+                    <input type="checkbox" :checked="selectedTicketIds.has(ticket.id)"
+                      @click.stop="toggleTicketSelection(ticket.id)"
+                      class="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out cursor-pointer" />
                   </td>
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
@@ -672,7 +695,7 @@ const resetFilters = () => {
   typeFilterForTable.value = null;
   departmentFilterForTable.value = null;
   creationDateFilterForTable.value = null;
-    priorityFilterForTable.value = null;
+  priorityFilterForTable.value = null;
 
   // Note: The handle... functions already clear other related filters when one is set.
   // This reset ensures everything goes back to default.
@@ -782,7 +805,7 @@ const exportToExcel = async () => { // Changed to async to await Swal
 
   // If in selection mode, but nothing selected, show message.
   if (isSelectionModeActive.value && countSelected.value === 0) {
-     Swal.fire({
+    Swal.fire({
       icon: 'info',
       title: 'ไม่ได้เลือกรายการ',
       text: 'กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อ Export',
@@ -812,7 +835,7 @@ const exportSelectedToExcel = async () => {
 
   setTimeout(() => {
     try {
-       const ticketsToExport = filteredTableTickets.value.filter(
+      const ticketsToExport = filteredTableTickets.value.filter(
         (ticket) => selectedTicketIds.value.has(ticket.id)
       );
 

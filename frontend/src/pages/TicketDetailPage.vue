@@ -377,7 +377,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { config } from '@/config'
 import api from '@/api/axios-instance'
@@ -869,6 +869,24 @@ onMounted(() => {
     fetchTypes()
     fetchDepartments()
     loadOfficer()
+})
+
+watch(() => route.params.id, (newId, oldId) => {
+    if (newId && newId !== oldId) {
+        fetchTicket(); // เรียก fetchTicket เพื่อโหลดข้อมูลของ ticket ใหม่
+        // รีเซ็ตสถานะการแก้ไขและไฟล์ต่างๆ
+        isEditing.value = false;
+        isEditingAssignee.value = false;
+        newFiles.value = [];
+        if (assigneeFileUploadRef.value && typeof assigneeFileUploadRef.value.resetSelectedFiles === 'function') {
+            assigneeFileUploadRef.value.resetSelectedFiles();
+        }
+        ticketLogs.value = []; // เคลียร์ logs ของ ticket เก่า
+        // selectedUserId จะถูกอัปเดตภายใน fetchTicket()
+
+        // Scroll to top of page
+        window.scrollTo(0, 0);
+    }
 })
 </script>
 

@@ -38,7 +38,10 @@
               </div>
               <!-- New Ticket Creation Trend Chart -->
               <div class="bg-white shadow p-6 rounded">
-                <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged" />
+                <TicketCreationTrendChart
+                  @filter-by-creation-date="handleCreationDateFilterChanged"
+                  @bar-clicked="handleTicketCreationTrendBarClick"
+                />
               </div>
 
             </div>
@@ -276,6 +279,8 @@ function handleDepartmentChartClick(departmentName: string) {
   emit('filter-type-changed', null);
 }
 const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
+  // This function is kept for its original purpose of filtering the main list.
+  // The modal display for this chart will be handled by handleTicketCreationTrendBarClick.
   creationDateFilter.value = filter;
   if (filter) {
     statusFilter.value = null;
@@ -291,12 +296,47 @@ const handleCreationDateFilterChanged = (filter: CreationDateFilter | null) => {
   // because its internal selectedBarOriginalKey changes, triggering a re-render.
   // If other charts needed to clear their selection, they'd need similar logic or props.
 };
+function handleTicketCreationTrendBarClick(payload: { period: Period, value: string, displayLabel: string }) {
+  const { period, value, displayLabel } = payload;
+  const allTicketsFromStore = ticketStore.tickets as Ticket[];
+
+  const filteredTicketsForModal = allTicketsFromStore.filter(ticket => {
+    const createdAt = new Date(ticket.created_at);
+    if (period === 'day') { // value is YYYY-MM-DD
+      const ticketDateStr = createdAt.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+      return ticketDateStr === value;
+    } else if (period === 'month') { // value is YYYY-MM
+      const ticketMonthStr = `${createdAt.getFullYear()}-${String(createdAt.getMonth() + 1).padStart(2, '0')}`;
+      return ticketMonthStr === value;
+    } else if (period === 'year') { // value is YYYY
+      const ticketYearStr = `${createdAt.getFullYear()}`;
+      return ticketYearStr === value;
+    }
+    return false;
+  });
+
+  modalStatusTitle.value = `รายการแจ้งปัญหาที่สร้าง (${period}): ${displayLabel}`;
+  ticketsForModal.value = filteredTicketsForModal;
+  isSummaryModalVisible.value = true;
+
+  // Update global filters to match behavior of other chart clicks
+  creationDateFilter.value = { period, value };
+  statusFilter.value = null;
+  typeFilter.value = null;
+  departmentFilter.value = null;
+
+  emit('filter-creation-date-changed', creationDateFilter.value);
+  emit('filter-status-changed', null);
+  emit('filter-type-changed', null);
+  emit('filter-department-changed', null);
+}
 
 const closeSummaryModal = () => {
   isSummaryModalVisible.value = false;
 };
 
 // --- Bar Chart for Ticket Trends by Department (Daily) ---
+const rawDepartmentTrendDateLabels = ref<string[]>([]); // Store YYYY-MM-DD labels
 const departmentTrendStartDate = ref<string>('');
 const departmentTrendEndDate = ref<string>('');
 // const departmentTrendKey = ref(0); // Not needed if departmentTrendData is computed
@@ -333,18 +373,18 @@ const processedDepartmentTrendData = computed(() => {
   // Generate all dates in the range for the X-axis
   const start = new Date(startStr + 'T00:00:00'); // Create Date object for iteration (local time)
   const end = new Date(endStr + 'T00:00:00');   // Create Date object for iteration (local time)
-  const dateLabels: string[] = [];
+  const _dateLabels: string[] = []; // Renamed to avoid conflict if dateLabels is used elsewhere
   let currentDate = new Date(start); // Start from the beginning of the start date
   while (currentDate <= end) { // Loop until the beginning of the day *after* the end date
-    dateLabels.push(currentDate.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })); // YYYY-MM-DD format
+    _dateLabels.push(currentDate.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' })); // YYYY-MM-DD format
     currentDate.setDate(currentDate.getDate() + 1);
   }
-
+  rawDepartmentTrendDateLabels.value = [..._dateLabels]; // Store the raw YYYY-MM-DD labels
   const countsByDate: { [date: string]: number } = {}; // Initialize once before the loop
 
   const datasets = departments.value.map((dept, index) => {
     const departmentCountsOnDate: { [date: string]: number } = {};
-    dateLabels.forEach(label => departmentCountsOnDate[label] = 0);
+    _dateLabels.forEach(label => departmentCountsOnDate[label] = 0);
 
     filteredTicketsForRange.forEach((ticket: Ticket) => {
       if (ticket.department?.id === dept.id) {
@@ -355,7 +395,7 @@ const processedDepartmentTrendData = computed(() => {
       }
     });
 
-    const data = dateLabels.map(label => departmentCountsOnDate[label] || 0);
+    const data = _dateLabels.map(label => departmentCountsOnDate[label] || 0);
     const color = primaryColorsPalette[index % primaryColorsPalette.length];
 
     return {
@@ -368,16 +408,49 @@ const processedDepartmentTrendData = computed(() => {
     };
   });
 
-  const displayDateLabels = dateLabels.map(dateStr => {
+  const displayDateLabels = _dateLabels.map(dateStr => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
   });
 
   return {
-    labels: displayDateLabels,
+    labels: displayDateLabels, // These are for chart display
     datasets: datasets,
   };
 });
+
+function handleDepartmentTrendChartClick(dataIndex: number) {
+  const clickedDateYYYYMMDD = rawDepartmentTrendDateLabels.value[dataIndex]; // YYYY-MM-DD from stored raw labels
+
+  if (!clickedDateYYYYMMDD) {
+    console.warn("Could not determine clicked date for department trend chart.");
+    return;
+  }
+
+  const allTicketsFromStore = ticketStore.tickets as Ticket[];
+  const filteredTicketsForModal = allTicketsFromStore.filter(ticket => {
+    const ticketDate = new Date(ticket.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    return ticketDate === clickedDateYYYYMMDD; // Filter by date only
+  });
+
+  const d = new Date(clickedDateYYYYMMDD);
+  const displayDate = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }); // Added year for clarity
+
+  modalStatusTitle.value = `รายการแจ้งปัญหาทั้งหมดในวันที่: ${displayDate}`; // Updated title
+  ticketsForModal.value = filteredTicketsForModal;
+  isSummaryModalVisible.value = true;
+
+  // Update global filters
+  departmentFilter.value = null; // No specific department is selected with this click
+  creationDateFilter.value = { period: 'day', value: clickedDateYYYYMMDD };
+  statusFilter.value = null;
+  typeFilter.value = null;
+
+  emit('filter-department-changed', null); // Emit null for department filter
+  emit('filter-creation-date-changed', creationDateFilter.value);
+  emit('filter-status-changed', null);
+  emit('filter-type-changed', null);
+}
 
 const departmentTrendOptions = computed(() => ({
   responsive: true,
@@ -390,6 +463,13 @@ const departmentTrendOptions = computed(() => ({
     legend: { position: 'top' as const },
     tooltip: { mode: 'index' as const, intersect: false },
   },
+  onClick: (event: unknown, elements: { index: number, datasetIndex: number }[], chart: any) => {
+    if (elements.length > 0) {
+      const element = elements[0];
+      const dataIndex = element.index;      // Index of the data point (date)
+      handleDepartmentTrendChartClick(dataIndex); // Pass only dataIndex
+    }
+  }
 }));
 
 const summary = ref({
