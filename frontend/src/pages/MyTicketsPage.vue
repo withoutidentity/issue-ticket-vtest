@@ -275,7 +275,7 @@
                     {{ utilpriorityName(ticket.priority) }}
                   </td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words"><span
-                      class="uppercase">{{ ticket.department?.name || "-"
+                      class="uppercase">{{ utilDepartmentName(ticket.department?.name) || "-"
                       }}</span></td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-center">
                     <div>
@@ -321,10 +321,9 @@ import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useRouter } from 'vue-router';
 import api from '@/api/axios-instance'; //Your configured axios instance
-import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket, priorityName as utilpriorityName } from '@/utils/ticketUtils';
+import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket, priorityName as utilpriorityName, departmentName as utilDepartmentName } from '@/utils/ticketUtils';
 import Swal from 'sweetalert2'; // Import SweetAlert2
 import * as XLSX from 'xlsx'; // Import the xlsx library
-
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -575,10 +574,10 @@ const prevPage = () => {
 };
 
 const statusClass = (status: Ticket['status']): object => ({
-  'bg-blue-100 text-blue-700': status === 'open',
-  'bg-green-100 text-green-700': status === 'in_progress',
+  'bg-red-100 text-red-700': status === 'open',
+  'bg-yellow-100 text-yellow-700': status === 'in_progress',
   'bg-purple-100 text-purple-700': status === 'pending',
-  'bg-red-100 text-red-700': status === 'closed',
+  'bg-green-100 text-green-700': status === 'closed',
 });
 
 const formatDateDDMMYYYY = (dateString: string | Date): string => {
@@ -806,9 +805,9 @@ const exportSelectedToExcel = async () => {
         'เลขอ้างอิง': ticket.reference_number,
         'หัวข้อ': ticket.title,
         'รายละเอียด': ticket.description,
-        'แผนก': ticket.department?.name || "-",
+        'แผนก': utilDepartmentName(ticket.department?.name) || "-",
         'หมวดหมู่': ticket.ticket_types?.name || "-",
-        'ความสำคัญ': ticket.priority || "-",
+        'ความสำคัญ': utilpriorityName(ticket.priority) || "-",
         'สถานะ': statusName(ticket.status),
         'ผู้แจ้ง': ticket.user?.name || "-",
         'ติดต่อ': ticket.contact || "-",

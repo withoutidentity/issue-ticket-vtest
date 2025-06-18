@@ -60,12 +60,12 @@
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">{{ ticket.reference_number }}</td>
                   <td class="py-2.5 px-4 text-gray-700 font-medium max-w-xs truncate">{{ ticket.title }}</td>
                   <td class="py-2.5 px-4 text-gray-700 whitespace-nowrap">
-                    <span class="uppercase">{{ ticket.department?.name || "-" }}</span>
+                    <span class="uppercase">{{ utilDepartmentName(ticket.department?.name) || "-" }}</span>
                   </td>
                   <td class="py-2.5 px-4 text-center whitespace-nowrap">
                     <span :class="{
-                      'bg-blue-100 text-blue-700': ticket.status === 'open',
-                      'bg-orange-100 text-orange-700': ticket.status === 'in_progress',
+                      'bg-red-100 text-red-700': ticket.status === 'open',
+                      'bg-yellow-100 text-yellow-700': ticket.status === 'in_progress',
                       'bg-purple-100 text-purple-700': ticket.status === 'pending',
                       'bg-green-100 text-green-700': ticket.status === 'closed',
                     }" class="px-2.5 py-1 rounded-full text-xs font-medium">
@@ -139,7 +139,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, PropType } from 'vue';
-import { Ticket as UtilTicket, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, searchTickets } from '@/utils/ticketUtils';
+import { Ticket as UtilTicket, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, searchTickets, departmentName as utilDepartmentName, priorityName as utilPriorityName } from '@/utils/ticketUtils';
 import * as XLSX from 'xlsx';
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
@@ -238,9 +238,9 @@ const exportModalDataToExcel = async () => {
     'เลขอ้างอิง': ticket.reference_number,
     'หัวข้อ': ticket.title,
     'รายละเอียด': ticket.description,
-    'แผนก': ticket.department?.name || "-",
+    'แผนก': utilDepartmentName(ticket.department?.name) || "-",
     'หมวดหมู่': ticket.ticket_types?.name || "-",
-    'ความสำคัญ': ticket.priority || "-",
+    'ความสำคัญ': utilPriorityName(ticket.priority) || "-",
     'สถานะ': utilStatusName(ticket.status),
     'ผู้แจ้ง': ticket.user?.name || "-",
     'ติดต่อ': ticket.contact || "-",

@@ -4,11 +4,12 @@
         <div v-if="isLoading" class="text-sm text-gray-500">กำลังโหลดข้อมูลไฟล์...</div>
 
         <!-- Display existing assignee files -->
-        <div v-if="currentAssigneeFiles && currentAssigneeFiles.length > 0" class="mb-4">
+        <div v-if="displayedAssigneeFiles && displayedAssigneeFiles.length > 0" class="mb-4">
             <h4 class="text-md font-medium mb-2 text-gray-600">ไฟล์ที่แนบแล้ว:</h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
-                <div v-for="file in currentAssigneeFiles" :key="file.id"
-                    class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 bg-white flex flex-col">
+                <div v-for="file in displayedAssigneeFiles" :key="file.id"
+                    class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 bg-white flex flex-col"
+                    :class="{ 'opacity-50 bg-red-50': file.isMarkedForRemoval && !props.disabled }">
                     <div class="p-3 hover:bg-gray-50 transition-colors duration-200 flex-grow ">
                         <!-- ส่วนแสดงไฟล์ -->
                         <a :href="getAssigneeFileUrl(file.filename)" target="_blank" rel="noopener noreferrer"
@@ -22,16 +23,20 @@
                             </div>
                             <div class="min-w-0">
                                 <p
-                                    class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all">
+                                    class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all"
+                                     :class="{ 'line-through': file.isMarkedForRemoval && !props.disabled }">
                                     {{ file.filename }}
                                 </p>
                             </div>
                         </a>
+                        <span v-if="file.isMarkedForRemoval && !props.disabled" class="text-xs text-red-500 block mt-1">จะถูกลบเมื่อบันทึก</span>
                     </div>
 
                     <!-- ปุ่มลบ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
                     <div v-if="!props.disabled" class="border-t border-gray-100 p-2 bg-gray-50">
-                        <button @click.stop="confirmDeleteExistingAssigneeFile(file.id, file.filename)" type="button"
+                        <button
+                            v-if="!file.isMarkedForRemoval"
+                            @click.stop="confirmDeleteExistingAssigneeFile(file.id, file.filename)" type="button"
                             class="w-full py-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 transition-colors duration-200 flex items-center justify-center text-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
                                 stroke="currentColor">
@@ -39,6 +44,16 @@
                                     d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
                             ลบ
+                        </button>
+                        <button
+                            v-else
+                            @click.stop="undoRemoveAssigneeFile(file.id)"
+                            type="button"
+                            class="w-full py-1 text-yellow-600 hover:text-yellow-700 rounded hover:bg-yellow-50 transition-colors duration-200 flex items-center justify-center text-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 15l-6 6m0 0l-6-6m6 6V9a6 6 0 0112 0v3M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                            </svg>
+                            ยกเลิกการลบ
                         </button>
                     </div>
                 </div>
@@ -100,6 +115,11 @@ interface AssigneeApiFile {
     created_at: string;
 }
 
+// Interface for assignee files displayed in the template, including edit-specific properties
+interface DisplayAssigneeFile extends AssigneeApiFile {
+    isMarkedForRemoval?: boolean;
+}
+
 // Props ที่รับมาจาก Parent Component (เช่น TicketDetailPage.vue)
 const props = defineProps<{
     ticketId: number;
@@ -116,6 +136,7 @@ const uploadError = ref<string | null>(null);
 const uploadSuccessMessage = ref<string | null>(null);
 const isLoading = ref(false);
 const currentAssigneeFiles = ref<AssigneeApiFile[]>(props.initialAssigneeFiles || []);
+const assigneeFilesToRemove = ref<Set<number>>(new Set());
 
 const MAX_FILES = 5;
 const ALLOWED_MIME_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
@@ -126,6 +147,19 @@ const MAX_FILE_SIZE_MB = 5; // ขนาดสูงสุดต่อไฟล�
 watch(() => props.initialAssigneeFiles, (newFiles) => {
     currentAssigneeFiles.value = newFiles || [];
 }, { deep: true });
+
+const displayedAssigneeFiles = computed((): DisplayAssigneeFile[] => {
+    if (props.disabled) { // If disabled (not in edit mode for assignee)
+        return currentAssigneeFiles.value.map(file => ({
+            ...file,
+            isMarkedForRemoval: false // Or undefined, to match DisplayAssigneeFile
+        }));
+    }
+    return currentAssigneeFiles.value.map(file => ({
+        ...file,
+        isMarkedForRemoval: assigneeFilesToRemove.value.has(file.id)
+    }));
+});
 
 const getAssigneeFileUrl = (filename: string) => {
     // Backend serve ไฟล์จาก /uploads/assignee/:filename
@@ -187,44 +221,30 @@ const resetSelectedFiles = () => {
 };
 
 const confirmDeleteExistingAssigneeFile = async (fileId: number, filename: string) => {
-    if (props.disabled) return;
+    if (props.disabled) return; // Should not happen if button is hidden when disabled
 
     const result = await Swal.fire({
-        title: 'ยืนยันการลบไฟล์?',
-        text: `คุณต้องการลบไฟล์ "${filename}" ที่ผู้รับผิดชอบเคยแนบไว้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
-        icon: 'warning',
+        title: 'ต้องการลบไฟล์นี้หรือไม่?',
+        text: `ไฟล์ "${filename}" จะถูกลบเมื่อคุณกดบันทึกการแก้ไขของผู้รับผิดชอบ`,
+        icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'ใช่, ลบเลย!',
+        confirmButtonText: 'ใช่, มาร์คว่าลบ',
         cancelButtonText: 'ยกเลิก'
     });
 
     if (result.isConfirmed) {
-        isLoading.value = true; // Show loading indicator
-        try {
-            const token = localStorage.getItem('accessToken');
-            // API endpoint สำหรับลบ AssigneeFile, e.g., /api/tickets/assignee-files/:fileId
-            await api.delete(`/tickets/assignee-files/${fileId}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            // Remove the file from the local list
-            currentAssigneeFiles.value = currentAssigneeFiles.value.filter(f => f.id !== fileId);
-            Swal.fire('ลบแล้ว!', `ไฟล์ "${filename}" ถูกลบเรียบร้อยแล้ว.`, 'success');
-            emit('files-uploaded', { assigneeFiles: currentAssigneeFiles.value }); // Emit to update parent
-        } catch (error: any) {
-            console.error('Error deleting assignee file:', error);
-            Swal.fire(
-                'เกิดข้อผิดพลาด!',
-                `ไม่สามารถลบไฟล์ได้: ${error.response?.data?.message || error.message}`,
-                'error'
-            );
-        } finally {
-            isLoading.value = false;
-        }
+        assigneeFilesToRemove.value.add(fileId);
+        Swal.fire('มาร์คว่าลบแล้ว', `ไฟล์ "${filename}" จะถูกลบเมื่อบันทึก`, 'info');
     }
 };
+
+const undoRemoveAssigneeFile = (fileId: number) => {
+    if (props.disabled) return;
+    assigneeFilesToRemove.value.delete(fileId);
+};
+
 
 const uploadFiles = async (): Promise<boolean> => { // Return true on success, false on failure
     if (selectedFiles.value.length === 0) {
@@ -302,10 +322,16 @@ const uploadFiles = async (): Promise<boolean> => { // Return true on success, f
     return uploadSuccessful;
 };
 
+const resetFilesToRemoveState = () => {
+    assigneeFilesToRemove.value.clear();
+};
+
 defineExpose({
     uploadFiles,
     selectedFiles, // Expose selectedFiles to check its length
-    resetSelectedFiles // Expose method to reset selected files
+    resetSelectedFiles, // Expose method to reset selected files
+    assigneeFilesToRemove, // Expose this
+    resetFilesToRemoveState // Expose method to reset this state
 });
 </script>
 

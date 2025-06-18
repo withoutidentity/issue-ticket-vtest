@@ -99,7 +99,7 @@
                         <li v-if="loadingDepartments" class="px-4 py-2 text-sm text-gray-400">กำลังโหลดแผนก...</li>
                         <li v-for="dept in departmentsList" :key="dept.id" @click="applyFilter('department', dept.name)"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
-                          {{ dept.name }}
+                          {{ utilDepartmentName(dept.name) }}
                         </li>
                       </ul>
                     </div>
@@ -270,7 +270,7 @@
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">{{
                     priorityName(ticket.priority) }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words">
-                    <span class="uppercase">{{ ticket.department?.name || "-" }}</span>
+                    <span class="uppercase">{{ utilDepartmentName(ticket.department?.name) || "-" }}</span>
                   </td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-center">
                     <div>
@@ -322,7 +322,7 @@ import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 import AdminDashboard from "./AdminDashboard.vue"; // AdminDashboard is now used for both
-import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket } from '@/utils/ticketUtils';
+import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket, departmentName as utilDepartmentName, priorityName as utilPriorityName } from '@/utils/ticketUtils';
 
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import axios from "axios";
@@ -849,9 +849,9 @@ const exportSelectedToExcel = async () => {
         'เลขอ้างอิง': ticket.reference_number,
         'หัวข้อ': ticket.title,
         'รายละเอียด': ticket.description,
-        'แผนก': ticket.department?.name || "-",
+        'แผนก': utilDepartmentName(ticket.department?.name) || "-",
         'หมวดหมู่': ticket.ticket_types?.name || "-",
-        'ความสำคัญ': ticket.priority || "-",
+        'ความสำคัญ': utilPriorityName(ticket.priority) || "-",
         'สถานะ': statusName(ticket.status),
         'ผู้แจ้ง': ticket.user?.name || "-",
         'ติดต่อ': ticket.contact || "-",

@@ -34,40 +34,47 @@
                 </div>
 
                 <!-- Grid Fields -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Department -->
-                    <div class="space-y-2">
-                        <label for="department" class="text-sm font-medium text-gray-900">
+                    <div class="space-y-2 relative">
+                        <label for="department-search" class="text-sm font-medium text-gray-900">
                             แผนก <span class="text-red-400">*</span>
                         </label>
-                        <select id="department" v-model="department_id"
+                        <input
+                            id="department-search"
+                            type="text"
+                            v-model="departmentSearchText"
+                            @input="handleDepartmentSearchInput"
+                            @focus="showDepartmentDropdown = true"
+                            @blur="handleDepartmentInputBlur"
+                            placeholder="พิมพ์เพื่อค้นหาแผนก..."
                             class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm bg-white"
-                            required :disabled="loadingDepartments">
-                            <option disabled value="" class="text-gray-400">
-                                {{ loadingDepartments ? 'กำลังโหลด...' : '-- เลือกแผนก --' }}
-                            </option>
-                            <option v-if="!loadingDepartments" v-for="department in departments" :key="department.id"
-                                :value="department.id" class="uppercase text-gray-900">
-                                {{ department.name }}
-                            </option>
-                        </select>
+                            :disabled="loadingDepartments"
+                            autocomplete="off"
+                        />
+                        <div
+                            v-if="loadingDepartments"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 top-7 pointer-events-none text-sm text-gray-500"
+                        >
+                            กำลังโหลด...
+                        </div>
+                        <ul
+                            v-if="showDepartmentDropdown && filteredDepartments.length > 0 && !loadingDepartments"
+                            class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
+                        >
+                            <li
+                                v-for="department in filteredDepartments"
+                                :key="department.id"
+                                @mousedown="selectDepartment(department)"
+                                class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-900 uppercase"
+                            >
+                                {{ utilDepartmentName(department.name) }}
+                            </li>
+                        </ul>
+                        <p v-if="showDepartmentDropdown && filteredDepartments.length === 0 && !loadingDepartments && departmentSearchText" class="text-sm text-gray-500 mt-1">
+                            ไม่พบแผนกที่ค้นหา
+                        </p>
                     </div>
-
-                    <!-- Priority -->
-                    <div class="space-y-2">
-                        <label for="priority" class="text-sm font-medium text-gray-900">
-                            ระดับความสำคัญ <span class="text-red-400">*</span>
-                        </label>
-                        <select id="priority" v-model="priority"
-                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm bg-white"
-                            required>
-                            <option disabled value="" class="text-gray-400">-- เลือกระดับความสำคัญ --</option>
-                            <option value="low" class="text-gray-900">ต่ำ</option>
-                            <option value="medium" class="text-gray-900">กลาง</option>
-                            <option value="high" class="text-gray-900">สูง</option>
-                        </select>
-                    </div>
-
                     <!-- Type -->
                     <div class="space-y-2">
                         <label for="type" class="text-sm font-medium text-gray-900">
@@ -81,7 +88,7 @@
                             </option>
                             <option v-if="!loadingTypes" v-for="type in types" :key="type.id" :value="type.id"
                                 class="text-gray-900">
-                                {{ `${type.name}: ` }} {{ type.description }}
+                                {{ type.name }}
                             </option>
                         </select>
                     </div>
@@ -127,28 +134,28 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import Swal from 'sweetalert2'
 import api from '@/api/axios-instance'
 
-import { useAuthStore } from '@/stores/auth'; // Import auth store
+import { useAuthStore } from '@/stores/auth';
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 import router from '@/router';
+import { departmentName as utilDepartmentName } from '@/utils/ticketUtils';
 
 const title = ref('')
 const description = ref('')
 const type_id = ref('')
 const department_id = ref('')
 const priority = ref('')
-// const status = ref('')
 const contact = ref('')
 const files = ref<File[]>([])
-const departments = ref([])
-const types = ref([])
+const departments = ref<{id: string, name: string}[]>([])
+const types = ref<{id: string, name: string, description: string}[]>([])
 
 const formError = ref('')
 const fileError = ref('')
@@ -156,8 +163,58 @@ const isSubmitting = ref(false)
 const loadingDepartments = ref(false)
 const loadingTypes = ref(false)
 const auth = useAuthStore(); // Initialize auth store
-const maxFiles = 5
+const maxFiles = 5;
 
+// For Department Searchable Select
+const departmentSearchText = ref('');
+const showDepartmentDropdown = ref(false);
+
+const filteredDepartments = computed(() => {
+    if (!departmentSearchText.value) {
+        return departments.value;
+    }
+    return departments.value.filter(dept =>
+        utilDepartmentName(dept.name).toLowerCase().includes(departmentSearchText.value.toLowerCase())
+    );
+});
+
+const selectDepartment = (department: { id: string; name: string }) => {
+    department_id.value = department.id;
+    departmentSearchText.value = utilDepartmentName(department.name); // แสดงชื่อภาษาไทยใน input
+    showDepartmentDropdown.value = false;
+};
+
+const handleDepartmentSearchInput = () => {
+    showDepartmentDropdown.value = true;
+    const currentSearchTextLower = departmentSearchText.value.toLowerCase();
+
+    // ตรวจสอบว่าข้อความที่พิมพ์ตรงกับชื่อแผนกภาษาไทยหรือไม่
+    const matchedDepartmentByThaiName = departments.value.find(dept =>
+        utilDepartmentName(dept.name).toLowerCase() === currentSearchTextLower
+    );
+
+    if (matchedDepartmentByThaiName) {
+        // ถ้าตรงกัน ให้ตั้งค่า department_id (departmentSearchText.value คือชื่อภาษาไทยที่ผู้ใช้พิมพ์เอง)
+        if (department_id.value !== matchedDepartmentByThaiName.id) {
+            department_id.value = matchedDepartmentByThaiName.id;
+        }
+    } else {
+        // ถ้าไม่ตรงกัน ให้ล้าง department_id ที่เลือกไว้
+        department_id.value = '';
+    }
+};
+
+const handleDepartmentInputBlur = () => {
+    setTimeout(() => {
+        const selectedDept = departments.value.find(d => d.id === department_id.value);
+        if (selectedDept) {
+            departmentSearchText.value = utilDepartmentName(selectedDept.name); // ถ้ามีแผนกที่ถูกเลือก ให้แสดงชื่อภาษาไทย
+        } else if (departmentSearchText.value.trim() !== '') {
+            departmentSearchText.value = ''; // ถ้าไม่มีการเลือกที่ถูกต้อง และมีข้อความใน input ให้ล้างออก
+        }
+        showDepartmentDropdown.value = false;
+    }, 200); // Delay to allow click on dropdown items
+};
 function handleFileChange(event: Event) {
     fileError.value = '' // Reset file error
     const input = event.target as HTMLInputElement
@@ -216,7 +273,7 @@ onMounted(async () => {
             api.get(`/departments`)
         ]);
         types.value = typesRes.data.data;
-        departments.value = departmentsRes.data;
+        departments.value = departmentsRes.data; // Assuming departmentsRes.data is the array
     } catch (error) {
         console.error("Error fetching initial data:", error);
         formError.value = 'ไม่สามารถโหลดข้อมูลเริ่มต้นสำหรับแบบฟอร์มได้';
@@ -229,7 +286,11 @@ onMounted(async () => {
 
 const submitTicket = async () => {
     const token = localStorage.getItem('accessToken')
-    if (!token) return alert('กรุณาเข้าสู่ระบบ')
+    if (!token) {
+        Swal.fire('ข้อผิดพลาด', 'กรุณาเข้าสู่ระบบก่อนทำการส่ง Ticket', 'error');
+        formError.value = 'ผู้ใช้ไม่ได้เข้าสู่ระบบ';
+        return;
+    }
 
     const decoded: any = jwtDecode(token)
     const userId = decoded.userId || decoded.id
@@ -238,8 +299,26 @@ const submitTicket = async () => {
 
     if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department_id.value) {
         formError.value = 'กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน';
+        isSubmitting.value = false;
         return;
     }
+
+    // Validate department_id (it's guaranteed to be non-empty by the check above)
+    if (!departments.value.find(d => d.id === department_id.value)) {
+        formError.value = 'กรุณาเลือกแผนกที่ถูกต้องจากรายการ';
+        isSubmitting.value = false;
+        return;
+    }
+
+    // Validate contact field for email or 10-digit phone number
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\d{10}$/;
+    if (!emailRegex.test(contact.value) && !phoneRegex.test(contact.value)) {
+        formError.value = 'กรุณากรอกข้อมูลในช่องข้อมูลติดต่อให้ถูกต้อง';
+        isSubmitting.value = false;
+        return;
+    }
+
     isSubmitting.value = true;
     const result = await Swal.fire({
         title: 'ส่ง Ticket?',
@@ -260,7 +339,6 @@ const submitTicket = async () => {
         formData.append('description', description.value)
         formData.append('type_id', type_id.value)
         formData.append('priority', priority.value)
-        // formData.append('status', status.value)
         formData.append('contact', contact.value)
         formData.append('department_id', department_id.value)
         formData.append('user_id', userId)
@@ -294,7 +372,7 @@ const submitTicket = async () => {
             await Swal.fire(
                 'ส่งไม่สำเร็จ!',
                 'เกิดข้อผิดพลาดในการส่ง Ticket: ' + (err.response?.data?.message || err.message),
-                'error'
+                'error' // Corrected: err.response might be undefined
             )
             formError.value = 'เกิดข้อผิดพลาดในการส่ง Ticket โปรดลองอีกครั้ง';
         } finally {

@@ -4,7 +4,7 @@
       <cardcontent>
         <div class="flex flex-col sm:flex-wrap space-y-4 mb-4">
           <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
-            <cardtitle class="text-lg font-semibold mb-3 sm:mb-0">จัดการผู้ใช้งาน</cardtitle>
+            <cardtitle class="mb-3 sm:mb-0">จัดการผู้ใช้งาน</cardtitle>
             <p class="text-sm text-gray-600 font-medium ml-3 sm:text-xs sm:mb-0">
               ผู้ใช้งานทั้งหมด:
               <span class="text-blue-600 font-semibold">{{ users.length }}</span>
@@ -29,36 +29,6 @@
 
               <!-- Department Filter Dropdown -->
               <div class="flex space-x-3 md-flex-wrap md:justify-between">
-                <div class="relative" ref="departmentFilterDropdownRef">
-                  <button @click="toggleDepartmentFilterDropdown"
-                    class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm cursor-pointer text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                    <!-- Filter Icon -->
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414v6.586a1 1 0 01-1.414.914l-2-1A1 1 0 0110 19.414V13.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                    </svg>
-                  </button>
-                  <div v-if="isDepartmentFilterDropdownOpen"
-                    class="absolute z-10 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 right-0 max-h-60 overflow-y-auto">
-                    <ul class="py-1">
-                      <li @click="selectDepartmentFilter(null)"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">แผนกทั้งหมด</li>
-                      <li v-for="dept in departmentsList" :key="dept.id" @click="selectDepartmentFilter(dept.id)"
-                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                        {{ dept.name }}
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-                <button @click="resetUserFilters"
-                  class="h-10 w-10 flex items-center justify-center border border-gray-300 rounded-lg shadow-sm text-gray-700 cursor-pointer bg-white hover:bg-gray-50 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </button>
                 <div
                   class="flex items-center space-x-2 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
                   <label for="perPageUsersInput" class="text-sm text-gray-600">แสดง:</label>
@@ -85,7 +55,6 @@
                   <th class="text-left py-3 px-4 font-medium">ชื่อผู้ใช้</th>
                   <th class="text-left py-3 px-4 font-medium">อีเมล</th>
                   <th class="text-left py-3 px-8 font-medium">บทบาท</th>
-                  <th class="text-left py-3 px-4 font-medium">แผนก</th>
                   <th class="text-left py-3 px-4 font-medium">สถานะ Officer</th>
                   <th class="text-center py-3 px-4 font-medium">การจัดการ</th>
                 </tr>
@@ -105,7 +74,6 @@
                       {{ roleName(user.role) }}
                     </span>
                   </td>
-                  <td class="py-3 px-4 uppercase">{{ user.department?.name || '-' }}</td>
                   <td class="py-3 px-4">
                     <span v-if="user.role === 'OFFICER'">
                       <span :class="{
@@ -271,7 +239,8 @@ const fetchDepartmentsList = async () => {
 };
 
 const filteredAndSearchedUsers = computed(() => {
-  let filtered = [...users.value];
+  // Filter out the current logged-in user
+  let filtered = users.value.filter(user => user.id !== auth.user?.id);
 
   // Filter by department
   if (selectedDepartmentFilter.value !== null) {
@@ -318,7 +287,7 @@ watch([searchQueryUsers, selectedDepartmentFilter, perPageUsers], () => {
 
 const bandUser = async (id: number) => {
   const result = await Swal.fire({
-    title: 'คุณแน่ใจหรือไม่?',
+    title: 'คุณแน่ใจหรือไม่จะระงับบัญชีนี้?',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#3085d6',
@@ -439,9 +408,6 @@ const roleName = (role: string) => {
   }
 };
 
-const toggleDepartmentFilterDropdown = () => {
-  isDepartmentFilterDropdownOpen.value = !isDepartmentFilterDropdownOpen.value;
-};
 
 const selectDepartmentFilter = (departmentId: number | null) => {
   selectedDepartmentFilter.value = departmentId;
@@ -452,13 +418,6 @@ const handleClickOutsideDepartmentFilter = (event: MouseEvent) => {
   if (departmentFilterDropdownRef.value && !departmentFilterDropdownRef.value.contains(event.target as Node)) {
     isDepartmentFilterDropdownOpen.value = false;
   }
-};
-
-const resetUserFilters = () => {
-  searchQueryUsers.value = '';
-  selectedDepartmentFilter.value = null;
-  perPageUsers.value = 10;
-  currentPageUsers.value = 1;
 };
 
 const nextPageUsers = () => {

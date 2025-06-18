@@ -151,7 +151,7 @@
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
                 <tr v-for="data in departments" :key="data.id" class="hover:bg-gray-50 transition-colors duration-150">
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ data.name }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ utilDepartmentName(data.name) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div class="flex justify-end space-x-3 items-center">
                       <button @click="openEditModal(data)" title="แก้ไข"
@@ -193,6 +193,7 @@ import { ref, onMounted } from 'vue'
 // import axios from 'axios' // axios is not directly used, api instance is
 import Swal from 'sweetalert2'
 import api from '@/api/axios-instance'
+import { departmentName as utilDepartmentName } from '@/utils/ticketUtils';
 
 interface Department {
   id: number;

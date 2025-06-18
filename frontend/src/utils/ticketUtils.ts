@@ -54,6 +54,27 @@ export function statusName(status: TicketStatus | string | undefined): string {
   }
 }
 
+export function getStatusStyle(status: TicketStatus | string | undefined): string {
+  if (!status) return 'bg-gray-100 text-gray-700';
+  switch (status) {
+    case "open":
+      return "bg-red-100 text-red-700";
+    case "in_progress":
+      return "bg-yellow-100 text-yellow-700";
+    case "pending":
+      return "bg-gray-100 text-gray-700";
+    case "closed":
+      return "bg-green-100 text-green-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+}
+
+/**
+ * แปลงค่าความสำคัญ Ticket เป็นชื่อภาษาไทย
+ * @param priority ความสำคัญ Ticket (ภาษาอังกฤษ)
+ * @returns ชื่อความสำคัญภาษาไทย
+ */
 export const priorityName = (priority: string) => {
   if (!priority) return '';
   switch (priority) {
@@ -65,6 +86,32 @@ export const priorityName = (priority: string) => {
       return "สูง";
     default:
       return priority;
+  }
+};
+
+export const departmentName = (department: string) => {
+  if (!department) return '';
+  switch (department) {
+    case "it":
+      return "ฝ่ายไอที";
+    case "sale":
+      return "ฝ่ายขาย";
+    case "hr":
+      return "ฝ่ายทรัพยากรบุคคล";
+    case "production":
+      return "ฝ่ายผลิต";
+    case "accounting":
+      return "ฝ่ายบัญชี";
+    case "strategy":
+      return "ฝ่ายกลยุทธ์";
+    case "marketing":
+      return "ฝ่ายการตลาด";
+    case "overseas_purchasing":
+      return "ฝ่ายจัดซื้อต่างประเทศ";
+    case "transportation":
+      return "ฝ่ายขนส่ง";
+    default:
+      return department;
   }
 };
 
@@ -105,10 +152,10 @@ export function searchTickets(tickets: Ticket[], searchTerm: string): Ticket[] {
       ticket.reference_number,
       ticket.title,
       ticket.description,
-      ticket.department?.name,
+      departmentName(ticket.department?.name),
       ticket.status, // ค้นหาจาก key สถานะ (เช่น 'open')
       statusName(ticket.status), // ค้นหาจากชื่อสถานะภาษาไทย (เช่น 'เปิด')
-      ticket.priority,
+      priorityName(ticket.priority),
       ticket.user?.name, // ชื่อผู้แจ้ง
       ticket.assignee?.name, // ชื่อผู้รับผิดชอบ
       ticket.ticket_types?.name, // ชื่อประเภท Ticket

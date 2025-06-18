@@ -38,10 +38,8 @@
               </div>
               <!-- New Ticket Creation Trend Chart -->
               <div class="bg-white shadow p-6 rounded">
-                <TicketCreationTrendChart
-                  @filter-by-creation-date="handleCreationDateFilterChanged"
-                  @bar-clicked="handleTicketCreationTrendBarClick"
-                />
+                <TicketCreationTrendChart @filter-by-creation-date="handleCreationDateFilterChanged"
+                  @bar-clicked="handleTicketCreationTrendBarClick" />
               </div>
 
             </div>
@@ -97,7 +95,7 @@ import { useTicketStore } from '@/stores/ticketStore'
 import { useAuthStore } from "@/stores/auth";
 import TicketCreationTrendChart from '@/components/TicketCreationTrendChart.vue'
 import TicketSummaryModal from '@/components/TicketSummaryModal.vue';
-
+import { departmentName as utilDepartmentName } from '@/utils/ticketUtils';
 
 const auth = useAuthStore();
 
@@ -179,7 +177,7 @@ import {
   CategoryScale,
   LinearScale,
   TimeScale,
-  TimeSeriesScale,
+  TimeSeriesScale, TooltipItem,
 } from 'chart.js'
 import type { ChartEvent, ActiveElement, Chart } from 'chart.js'; // Added for stronger typing
 
@@ -266,7 +264,7 @@ function handleDepartmentChartClick(departmentName: string) {
     // Prepare data for the modal
     // We can reuse modalStatusTitle, or create a new one like modalDepartmentTitle if preferred for clarity
     // For now, reusing modalStatusTitle for simplicity, the modal's title will be "รายการแจ้งปัญหา: [Department Name]"
-    modalStatusTitle.value = departmentName;
+    modalStatusTitle.value = utilDepartmentName(departmentName); // Use translated name for modal
     ticketsForModal.value = filteredTicketsForModal;
     isSummaryModalVisible.value = true;
   }
@@ -402,7 +400,8 @@ const processedDepartmentTrendData = computed(() => {
     const color = primaryColorsPalette[index % primaryColorsPalette.length];
 
     return {
-      label: dept.name, // Label is department name
+      label: utilDepartmentName(dept.name), // Label is department name
+      originalLabel: dept.name, // Store original English name
       data: data,
       borderColor: color,
       backgroundColor: color, // 
@@ -422,73 +421,136 @@ const processedDepartmentTrendData = computed(() => {
   };
 });
 
-function handleDepartmentTrendChartClick(dataIndex: number) {
-  const clickedDateYYYYMMDD = rawDepartmentTrendDateLabels.value[dataIndex]; // YYYY-MM-DD from stored raw labels
 
-  if (!clickedDateYYYYMMDD) {
-    console.warn("Could not determine clicked date for department trend chart.");
-    return;
-  }
-
-  const allTicketsFromStore = ticketStore.tickets as Ticket[];
-  const filteredTicketsForModal = allTicketsFromStore.filter(ticket => {
-    const ticketDate = new Date(ticket.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
-    return ticketDate === clickedDateYYYYMMDD; // Filter by date only
-  });
-
-  const d = new Date(clickedDateYYYYMMDD);
-  const displayDate = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' }); // Added year for clarity
-
-  modalStatusTitle.value = `รายการแจ้งปัญหาทั้งหมดในวันที่: ${displayDate}`; // Updated title
-  ticketsForModal.value = filteredTicketsForModal;
-  isSummaryModalVisible.value = true;
-
-  // Update global filters
-  departmentFilter.value = null; // No specific department is selected with this click
-  creationDateFilter.value = { period: 'day', value: clickedDateYYYYMMDD };
-  statusFilter.value = null;
-  typeFilter.value = null;
-
-  emit('filter-department-changed', null); // Emit null for department filter
-  emit('filter-creation-date-changed', creationDateFilter.value);
-  emit('filter-status-changed', null);
-  emit('filter-type-changed', null);
-}
 
 const departmentTrendOptions = computed(() => ({
   responsive: true,
   maintainAspectRatio: false,
+  interaction: { // กำหนดวิธีที่ chart ตอบสนองต่อการชี้
+    mode: 'nearest' as const, // หา element ที่ใกล้ที่สุด
+    axis: 'x' as const, // พิจารณาตามแนวแกน X
+    intersect: true // จะนับว่าโดน element ต่อเมื่อชี้โดนจริงๆ (สำหรับ getActiveElements)
+  },
   scales: {
     y: { beginAtZero: true, ticks: { precision: 0 } },
     x: { title: { display: true, text: 'วันที่' } }
   },
   plugins: {
     legend: { position: 'top' as const },
-    tooltip: { mode: 'index' as const, intersect: false },
-  },
-  onClick: (event: ChartEvent, initialElements: ActiveElement[], chart: Chart) => {
-    let targetElements: ActiveElement[] = initialElements;
+    tooltip: {
+      mode: 'index' as const, // แสดง tooltip สำหรับทุก dataset ณ index ที่ชี้
+      intersect: false, // ให้ tooltip แสดงแม้ว่าจะไม่ได้ชี้โดนแท่งโดยตรง (แค่ชี้ในคอลัมน์วันนั้น)
+      callbacks: {
+        // title: function(tooltipItems) { // โดยปกติ title จะเป็น label ของแกน X (วันที่) ซึ่งถูกต้องแล้ว
+        //   if (tooltipItems.length > 0) {
+        //     return processedDepartmentTrendData.value.labels[tooltipItems[0].index];
+        //   }
+        //   return '';
+        // },
+        filter: function(tooltipItem: TooltipItem<any>, index: number, tooltipItems: TooltipItem<any>[], data: any) {
+          const chart = this as Chart; // 'this' คือ chart instance
+          const activeElements = chart.getActiveElements();
 
-    // If the initial click didn't hit a specific bar (intersect: true behavior for clicks)
-    // try to find elements as if intersect was false for the 'index' mode.
-    // This makes clicking anywhere in the "column" of a day work.
-    if (initialElements.length === 0) {
-      targetElements = chart.getElementsAtEventForMode(event.native, 'index', { intersect: false }, true);
-    }
-
-    if (targetElements.length > 0) {
-      const dataIndex = targetElements[0].index;
-
-      // Validate dataIndex before calling handler
-      if (typeof dataIndex === 'number' &&
-          dataIndex >= 0 &&
-          dataIndex < rawDepartmentTrendDateLabels.value.length &&
-          rawDepartmentTrendDateLabels.value[dataIndex]) {
-        handleDepartmentTrendChartClick(dataIndex);
+          if (activeElements.length === 1) {
+            // ถ้าผู้ใช้ชี้โดนแท่งใดแท่งหนึ่งโดยเฉพาะ (intersect: true สำหรับ activeElements)
+            // ให้ tooltip แสดงเฉพาะข้อมูลของแท่งนั้น
+            const activeElement = activeElements[0];
+            return tooltipItem.datasetIndex === activeElement.datasetIndex && tooltipItem.dataIndex === activeElement.index;
+          }
+          // ถ้าไม่ได้ชี้โดนแท่งใดแท่งหนึ่ง (เช่น ชี้ที่พื้นที่ว่างในคอลัมน์)
+          // ให้ tooltip แสดงข้อมูลของทุกแผนกในวันนั้น (พฤติกรรมปกติของ mode: 'index', intersect: false)
+          return true;
+        },
+        label: function(tooltipItem: TooltipItem<any>) {
+          const datasetLabel = tooltipItem.dataset.label || '';
+          const value = tooltipItem.parsed.y;
+          if (value === null || typeof value === 'undefined') return '';
+          return `${datasetLabel}: ${value} รายการ`;
+        },
+        footer: function(tooltipItems: TooltipItem<any>[]) {
+          // แสดง "รวมทั้งหมด" เฉพาะเมื่อ tooltip แสดงข้อมูลหลายรายการ (คือไม่ได้ชี้โดนแท่งเดียว)
+          if (tooltipItems.length > 1) {
+            let sum = 0;
+            tooltipItems.forEach(function(item) {
+              sum += item.parsed.y;
+            });
+            return 'รวมทั้งหมด: ' + sum + ' รายการ';
+          }
+          return '';
+        }
       }
+    },
+  },
+  onClick: (event: ChartEvent, initialElements: ActiveElement[], chart: Chart) => { // `initialElements` are the elements directly under the cursor
+    // `getElementsAtEventForMode` with `intersect: false` helps find elements in the same "column" (index)
+    const elementsForColumn = chart.getElementsAtEventForMode(event.native, 'index', { intersect: false }, true);
+
+    if (elementsForColumn.length > 0) {
+      const dataIndex = elementsForColumn[0].index; // This is the index for the day on the x-axis
+      const clickedDateYYYYMMDD = rawDepartmentTrendDateLabels.value[dataIndex];
+
+      if (!clickedDateYYYYMMDD) {
+        console.warn("Could not determine clicked date for department trend chart.");
+        return;
+      }
+
+      let departmentOriginalNameToFilter: string | null = null;
+
+      // Check if the `initialElements` (direct click) hit a specific bar segment
+      if (initialElements.length > 0 && initialElements[0].datasetIndex !== undefined) {
+        const datasetIndex = initialElements[0].datasetIndex;
+        // Ensure processedDepartmentTrendData and its datasets are available
+        if (processedDepartmentTrendData.value && processedDepartmentTrendData.value.datasets && processedDepartmentTrendData.value.datasets[datasetIndex]) {
+          const departmentDataset = processedDepartmentTrendData.value.datasets[datasetIndex];
+          if (departmentDataset && (departmentDataset as any).originalLabel) {
+            departmentOriginalNameToFilter = (departmentDataset as any).originalLabel;
+          }
+        }
+      }
+      handleDailyDepartmentTrendClick(clickedDateYYYYMMDD, departmentOriginalNameToFilter);
     }
   }
 }));
+
+function handleDailyDepartmentTrendClick(clickedDateYYYYMMDD: string, departmentOriginalName: string | null) {
+  const allTicketsFromStore = ticketStore.tickets as Ticket[];
+  let modalTitlePrefix = "";
+
+  if (departmentOriginalName) {
+    const departmentDisplayName = utilDepartmentName(departmentOriginalName);
+    modalTitlePrefix = `รายการแจ้งปัญหาแผนก ${departmentDisplayName} ในวันที่`;
+  } else {
+    modalTitlePrefix = "รายการแจ้งปัญหาทั้งหมดในวันที่";
+  }
+
+  const filteredTicketsForModal = allTicketsFromStore.filter(ticket => {
+    const ticketDate = new Date(ticket.created_at).toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const dateMatch = ticketDate === clickedDateYYYYMMDD;
+    if (!dateMatch) return false;
+    if (departmentOriginalName) { // If a specific department is targeted
+      return ticket.department?.name === departmentOriginalName;
+    }
+    return true; // If no specific department, just match the date
+  });
+
+  const d = new Date(clickedDateYYYYMMDD + 'T00:00:00'); // Ensure correct date parsing for display
+  const displayDate = d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+
+  modalStatusTitle.value = `${modalTitlePrefix}: ${displayDate}`;
+  ticketsForModal.value = filteredTicketsForModal;
+  isSummaryModalVisible.value = true;
+
+  // Update global filters
+  departmentFilter.value = departmentOriginalName; // This will be null if no specific department was clicked
+  creationDateFilter.value = { period: 'day', value: clickedDateYYYYMMDD };
+  statusFilter.value = null;
+  typeFilter.value = null;
+
+  emit('filter-department-changed', departmentFilter.value);
+  emit('filter-creation-date-changed', creationDateFilter.value);
+  emit('filter-status-changed', null);
+  emit('filter-type-changed', null);
+}
 
 const summary = ref({
   total: 0,
@@ -544,6 +606,7 @@ const darkenColor = (hexColor: string, percent: number): string => {
 // For Department Bar Chart (Tickets by Department)
 const departmentChartData = ref({
   labels: [] as string[],
+  originalLabels: [] as string[], // To store original English labels
   datasets: [{
     label: 'จำนวน Ticket ตามแผนก',
     backgroundColor: [] as string[],
@@ -557,14 +620,15 @@ const departmentChartKey = ref(0);
 const departmentChartOptions = {
   responsive: true,
   maintainAspectRatio: false,
-  onClick: (event: unknown, elements: { index: number }[], chart: any) => {
+  onClick: (event: ChartEvent, elements: ActiveElement[], chart: Chart) => {
     if (elements.length > 0) {
       const elementIndex = elements[0].index;
-      // console.log("[AdminDashboard] Department chart bar clicked. Element index:", elementIndex);
-      if (chart.data.labels && chart.data.labels[elementIndex]) {
-        const clickedDepartmentName = chart.data.labels[elementIndex] as string;
-        // console.log("[AdminDashboard] Clicked department name from chart label:", clickedDepartmentName);
-        handleDepartmentChartClick(clickedDepartmentName);
+      // Access originalLabels directly from the component's ref for reliability
+      const componentOriginalLabels = departmentChartData.value.originalLabels;
+
+      if (componentOriginalLabels && componentOriginalLabels[elementIndex]) {
+        const clickedDepartmentOriginalName = componentOriginalLabels[elementIndex] as string;
+        handleDepartmentChartClick(clickedDepartmentOriginalName);
       }
     }
   }
@@ -573,32 +637,35 @@ const departmentChartOptions = {
 const updateDepartmentChart = () => {
   if (!ticketStore.tickets.length || !departments.value.length) {
     // console.log("[AdminDashboard] updateDepartmentChart: Conditions not met. Tickets:", ticketStore.tickets.length, "Departments:", departments.value.length);
-    departmentChartData.value = { labels: [], datasets: [{ label: 'จำนวน Ticket ตามแผนก', backgroundColor: [], borderColor: [], borderWidth: 1, data: [] }] };
+    departmentChartData.value = { labels: [], originalLabels: [], datasets: [{ label: 'จำนวน Ticket ตามแผนก', backgroundColor: [], borderColor: [], borderWidth: 1, data: [] }] };
     return;
   }
 
   const countsByDepartment: { [deptName: string]: number } = {};
   departments.value.forEach(dept => countsByDepartment[dept.name] = 0);
 
-  // console.log("[AdminDashboard] updateDepartmentChart: Initial countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
   ticketStore.tickets.forEach((ticket: Ticket) => {
-    // Use ticket.department?.id to match department object in ticket
-    // Ensure department_id is a number and not null/empty string before comparing
-    if (typeof ticket.department.id === 'number' && ticket.department.id !== null) {
-      const dept = departments.value.find(d => d.id === ticket.department.id);
+    // Use ticket.department?.name directly if it's the English name from API
+    if (ticket.department?.name && countsByDepartment.hasOwnProperty(ticket.department.name)) {
+      countsByDepartment[ticket.department.name]++;
+    } else if (ticket.department?.id) { // Fallback to ID if name isn't directly matching keys (e.g. if keys were IDs)
+      const dept = departments.value.find(d => d.id === ticket.department?.id);
       if (dept && countsByDepartment.hasOwnProperty(dept.name)) {
         countsByDepartment[dept.name]++;
       }
     }
   });
-  console.log("[AdminDashboard] updateDepartmentChart: Final countsByDepartment:", JSON.parse(JSON.stringify(countsByDepartment)));
 
-  const labels = Object.keys(countsByDepartment);
+  const originalLabels = Object.keys(countsByDepartment); // English labels
+  const displayLabels = originalLabels.map(name => utilDepartmentName(name)); // Thai labels for display
   const data = Object.values(countsByDepartment);
 
-  departmentChartData.value.labels = labels;
+  departmentChartData.value.labels = displayLabels;
+  departmentChartData.value.originalLabels = originalLabels; // Store original English labels
+
+  departmentChartData.value.labels = displayLabels;
   departmentChartData.value.datasets[0].data = data;
-  departmentChartData.value.datasets[0].backgroundColor = labels.map((_, index) => primaryColorsPalette[index % primaryColorsPalette.length]);
+  departmentChartData.value.datasets[0].backgroundColor = displayLabels.map((_, index) => primaryColorsPalette[index % primaryColorsPalette.length]);
   departmentChartData.value.datasets[0].borderColor = departmentChartData.value.datasets[0].backgroundColor.map(color => darkenColor(color, 15));
   departmentChartKey.value++;
   // console.log("[AdminDashboard] updateDepartmentChart: Chart data updated.", JSON.parse(JSON.stringify(departmentChartData.value)));
