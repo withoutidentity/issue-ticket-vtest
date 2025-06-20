@@ -1,7 +1,7 @@
 // stores/ticketStore.ts
 import { defineStore } from 'pinia';
 import api from '@/api/axios-instance'; // สมมติว่าคุณมี instance ของ axios ที่ตั้งค่าไว้แล้ว
-import { useAuthStore } from './auth'; // หากต้องการใช้ token จาก authStore
+import { useAuthStore } from './auth'; 
 import { Ticket } from '@/types/ticket'
 import { FileInfo } from '@/types/ticket'
 export const useTicketStore = defineStore('ticket', {
@@ -11,12 +11,18 @@ export const useTicketStore = defineStore('ticket', {
     error: null as any, // หรือกำหนด type ของ error ที่ชัดเจน
   }),
   actions: {
-    async fetchTickets() {
+    // Modify fetchTickets to accept a filters object
+    async fetchTickets(filters: { visibility?: 'active' | 'hidden' | 'all' } = {}) {
       this.loading = true;
       this.error = null;
       const auth = useAuthStore(); // เรียกใช้ auth store
       try {
-        const response = await api.get('/tickets', { // Endpoint สำหรับดึง tickets ทั้งหมด
+        const params = new URLSearchParams();
+        if (filters.visibility) {
+          params.append('visibility', filters.visibility);
+        }
+        // Ensure params are included in the API call URL
+        const response = await api.get(`/tickets?${params.toString()}`, { 
           headers: {
             Authorization: `Bearer ${auth.accessToken || localStorage.getItem('accessToken')}`, // เลือกใช้ token ที่เหมาะสม
           },

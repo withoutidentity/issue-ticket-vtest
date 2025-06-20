@@ -103,8 +103,21 @@
                       <li v-for="dept in departmentsListMyTickets" :key="dept.id"
                         @click="applyMyTicketsFilter('department', dept.id)"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer uppercase">
-                        {{ dept.name }}
+                        {{ utilDepartmentName(dept.name) }}
                       </li>
+                    </ul>
+                    <!-- New Visibility Filter Section -->
+                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">การแสดงผล</div>
+                    <ul class="py-1">
+                      <li @click="applyMyTicketsFilter('visibility', 'active')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'active' }">แสดงรายการที่ใช้งาน</li>
+                      <li @click="applyMyTicketsFilter('visibility', 'hidden')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'hidden' }">แสดงรายการที่ซ่อน</li>
+                      <li @click="applyMyTicketsFilter('visibility', 'all')"
+                        class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'all' }">แสดงทั้งหมด (รวมที่ซ่อน)</li>
                     </ul>
                   </div>
                 </div>
@@ -131,11 +144,22 @@
                     <path stroke-linecap="round" stroke-linejoin="round"
                       d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  <span class="hidden xs:inline">เลือกรายการเพื่อ Export</span>
-                  <span class="xs:hidden">เลือก Export</span>
+                  <span class="hidden xs:inline">เลือกรายการ</span>
+                  <span class="xs:hidden">เลือก</span>
                 </button>
               </div>
               <div v-if="isSelectionModeActive" class="flex flex-wrap gap-2">
+                <!-- Hide Selected button -->
+                <button @click="hideSelectedTickets" :disabled="countSelected === 0"
+                  class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
+                  :class="countSelected > 0 ? 'bg-red-500 hover:bg-red-600 border-red-500 focus:ring-red-500' : 'bg-gray-400 border-gray-400 cursor-not-allowed'">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.293-3.293m7.532 7.532l3.293 3.293M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                  ซ่อนรายการที่เลือก ({{ countSelected }})
+                </button>
                 <button @click="exportSelectedToExcel" :disabled="countSelected === 0"
                   class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
                   :class="countSelected > 0 ? 'bg-green-500 hover:bg-green-600 border-green-500 focus:ring-green-500' : 'bg-gray-400 border-gray-400 cursor-not-allowed'">
@@ -324,9 +348,11 @@ import api from '@/api/axios-instance'; //Your configured axios instance
 import { searchTickets, statusName as utilStatusName, formatDateDDMMYYYY as utilFormatDate, Ticket as UtilTicket, priorityName as utilpriorityName, departmentName as utilDepartmentName } from '@/utils/ticketUtils';
 import Swal from 'sweetalert2'; // Import SweetAlert2
 import * as XLSX from 'xlsx'; // Import the xlsx library
+import { useTicketStore } from "@/stores/ticketStore"; // Import ticket store
 
 const router = useRouter();
 const auth = useAuthStore();
+const ticketStore = useTicketStore(); // Import and use ticket store
 
 interface User {
   id: number;
@@ -366,7 +392,7 @@ interface Ticket extends UtilTicket { // สามารถ extends จาก Ut
   // files?: Array<{ id: number; filename: string; filepath: string; }>; // Uncomment if needed
 }
 
-const allFetchedTickets = ref<Ticket[]>([]);
+// const allFetchedTickets = ref<Ticket[]>([]); // No longer needed, will use ticketStore.tickets
 const isLoading = ref(true);
 const searchQuery = ref(''); // เพิ่ม ref สำหรับคำค้นหา
 const perPage = ref(10);
@@ -376,6 +402,7 @@ const sortPriorityMyTickets = ref<'asc' | 'desc' | null>(null); // Added this li
 const priorityFilterMyTickets = ref<'high' | 'medium' | 'low' | null>(null);
 const departmentFilterMyTickets = ref<number | null>(null);
 const sortDirection = ref<'asc' | 'desc' | null>('desc'); // null: unsorted, 'asc': oldest first, 'desc': newest first
+const visibilityFilterMyTickets = ref<'active' | 'hidden' | 'all'>('active'); // Added visibility filter ref
 
 const isFilterDropdownOpenMyTickets = ref(false);
 const filterDropdownMyTicketsRef = ref<HTMLElement | null>(null);
@@ -395,19 +422,19 @@ const officerCreatedTickets = computed(() => {
     // console.warn("OfficerMyTicketsPage: officerCreatedTickets - Auth user or ID invalid/missing.");
     return [];
   }
-  const officerId = auth.user.id;
-  if (allFetchedTickets.value.length === 0) {
+  const officerId = auth.user.id; 
+  if (ticketStore.tickets.length === 0) { // Use ticketStore.tickets as the source
     return [];
   }
 
   // Filter tickets where the creator's ID matches the logged-in officer's ID
-  const filtered = allFetchedTickets.value.filter(ticket => {
+  const filtered = ticketStore.tickets.filter(ticket => { // Filter from ticketStore.tickets
     // Use ticket.user.id for filtering, as the API provides the user object with an ID.
     // Ensure ticket.user and ticket.user.id exist before comparing.
     const ticketCreatorId = ticket.user?.id;
 
     if (ticket.user === undefined || ticket.user.id === undefined) {
-      // console.warn(`OfficerMyTicketsPage: officerCreatedTickets - Ticket ID ${ticket.id} has undefined user or user.id. Skipping.`);
+      console.warn(`OfficerMyTicketsPage: officerCreatedTickets - Ticket ID ${ticket.id} has undefined user or user.id. Skipping.`);
       return false;
     }
     // Ensure comparison is robust, e.g. if one is string and other is number
@@ -496,19 +523,15 @@ const fetchOfficerTickets = async () => {
   isLoading.value = true;
   if (!auth.accessToken) {
     isLoading.value = false;
+    console.warn("OfficerMyTicketsPage: fetchOfficerTickets - No access token.");
     return;
   }
   // console.log("OfficerMyTicketsPage: fetchOfficerTickets - Logged in Officer ID from auth store:", auth.user?.id, "Role:", auth.user?.role);
 
   try {
-    const response = await api.get('/tickets', {
-      headers: {
-        Authorization: `Bearer ${auth.accessToken}`,
-      },
-    });
-
-    allFetchedTickets.value = response.data as Ticket[];
-    // console.log(`OfficerMyTicketsPage: fetchOfficerTickets - Fetched ${allFetchedTickets.value.length} tickets in total and assigned to allFetchedTickets.`);
+    // Call the store action to fetch tickets with the current visibility filter
+    await ticketStore.fetchTickets({ visibility: visibilityFilterMyTickets.value });
+    // officerCreatedTickets will now compute from ticketStore.tickets
   } catch (err) {
     console.error("OfficerMyTicketsPage: fetchOfficerTickets - Failed to load tickets.", err);
     //Consider adding user-facing error notification here
@@ -544,7 +567,7 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutsideFilterDropdownMyTickets);
 });
 
-watch([searchQuery, perPage, statusFilter, priorityFilterMyTickets, departmentFilterMyTickets, sortDirection, sortPriorityMyTickets], () => {
+watch([searchQuery, perPage, statusFilter, priorityFilterMyTickets, departmentFilterMyTickets, sortDirection, sortPriorityMyTickets, visibilityFilterMyTickets], () => {
   currentPage.value = 1;
 });
 
@@ -609,7 +632,7 @@ const toggleFilterDropdownMyTickets = () => {
   isFilterDropdownOpenMyTickets.value = !isFilterDropdownOpenMyTickets.value;
 };
 
-const applyMyTicketsFilter = (filterType: 'status' | 'department' | 'priority', value: 'total' | 'open' | 'in_progress' | 'pending' | 'closed' | number | null | 'high' | 'medium' | 'low') => {
+const applyMyTicketsFilter = (filterType: 'status' | 'department' | 'priority' | 'visibility', value: 'total' | 'open' | 'in_progress' | 'pending' | 'closed' | number | null | 'high' | 'medium' | 'low' | 'active' | 'hidden' | 'all') => {
 
   if (filterType === 'status') {
     statusFilter.value = value as 'total' | 'open' | 'in_progress' | 'pending' | 'closed';
@@ -625,11 +648,9 @@ const applyMyTicketsFilter = (filterType: 'status' | 'department' | 'priority', 
       statusFilter.value = 'total'; // Reset status filter to 'all'
       departmentFilterMyTickets.value = null;
     }
-  } else if (filterType === 'department') {
-    departmentFilterMyTickets.value = value as number | null;
-    if (value !== null) {
-      departmentFilterMyTickets.value = null;
-    }
+  } else if (filterType === 'visibility') {
+    visibilityFilterMyTickets.value = value as 'active' | 'hidden' | 'all';
+    fetchOfficerTickets(); // Re-fetch tickets from backend with new visibility
   } else if (filterType === 'department') {
     departmentFilterMyTickets.value = value as number | null;
     // Clear status filter when a department is selected from this dropdown
@@ -651,6 +672,7 @@ const resetFilters = () => {
   statusFilter.value = 'total' // กลับไปแสดงทั้งหมด
   priorityFilterMyTickets.value = null; // ล้าง filter ความสำคัญ
   departmentFilterMyTickets.value = null; // ล้าง filter แผนก
+   visibilityFilterMyTickets.value = 'active'; // รีเซ็ต filter การมองเห็นเป็น 'active'
   perPage.value = 10 // รีเซ็ตเป็นค่าเริ่มต้น
 
   // ถ้ามีตัวกรองอื่นๆ สามารถเพิ่มได้ที่นี่
@@ -744,6 +766,45 @@ const selectAllFilteredTickets = () => {
 
 const deselectAllTickets = () => {
   selectedTicketIds.value.clear();
+};
+
+const hideSelectedTickets = async () => {
+  if (countSelected.value === 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'ไม่ได้เลือกรายการ',
+      text: 'กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อซ่อน',
+    });
+    return;
+  }
+
+  const confirmResult = await Swal.fire({
+    title: 'ยืนยันการซ่อนรายการ?',
+    text: `คุณต้องการซ่อน Ticket ที่เลือกจำนวน ${countSelected.value} รายการใช่หรือไม่? รายการที่ซ่อนจะไม่แสดงในรายการนี้`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'ใช่, ซ่อนเลย!',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!confirmResult.isConfirmed) {
+    return;
+  }
+
+  try {
+    const ticketIdsToHide = Array.from(selectedTicketIds.value);
+    await api.patch('/tickets/visibility', { ticketIds: ticketIdsToHide, isHidden: true });
+
+    Swal.fire('ซ่อนสำเร็จ!', 'รายการที่เลือกถูกซ่อนเรียบร้อยแล้ว', 'success');
+    selectedTicketIds.value.clear();
+    isSelectionModeActive.value = false;
+    await fetchOfficerTickets(); // Refresh the list specific to this page
+  } catch (error) {
+    console.error('Error hiding tickets:', error);
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถซ่อนรายการที่เลือกได้', 'error');
+  }
 };
 
 const exportToExcel = async () => {

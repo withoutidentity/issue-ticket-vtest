@@ -73,7 +73,7 @@
                       <ul class="pb-1 border-b border-gray-200">
                         <li @click="applyFilter('status', null)"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
-                          ทั้งหมด
+                          ทั้งหมด (สถานะ)
                         </li>
                         <li @click="applyFilter('status', 'open')"
                           class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer">
@@ -102,6 +102,19 @@
                           {{ utilDepartmentName(dept.name) }}
                         </li>
                       </ul>
+                      <!-- New Visibility Filter Section -->
+                      <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase mt-1">การแสดงผล</div>
+                      <ul class="py-1">
+                        <li @click="applyFilter('visibility', 'active')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                          :class="{ 'bg-blue-100': visibilityFilter === 'active' }">แสดงรายการที่ใช้งาน</li>
+                        <li @click="applyFilter('visibility', 'hidden')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                          :class="{ 'bg-blue-100': visibilityFilter === 'hidden' }">แสดงรายการที่ซ่อน</li>
+                        <li @click="applyFilter('visibility', 'all')"
+                          class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                          :class="{ 'bg-blue-100': visibilityFilter === 'all' }">แสดงทั้งหมด (รวมที่ซ่อน)</li>
+                      </ul>
                     </div>
                   </div>
 
@@ -129,11 +142,22 @@
                       <path stroke-linecap="round" stroke-linejoin="round"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    <span class="hidden xs:inline">เลือกรายการเพื่อ Export</span>
-                    <span class="xs:hidden">เลือก Export</span>
+                    <span class="hidden xs:inline">เลือก</span>
+                    <span class="xs:hidden">เลือก</span>
                   </button>
                 </div>
+                
                 <div v-if="isSelectionModeActive" class="flex flex-wrap gap-2">
+                  <button @click="hideSelectedTickets" :disabled="countSelected === 0"
+                    class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
+                    :class="countSelected > 0 ? 'bg-red-500 hover:bg-red-600 border-red-500 focus:ring-red-500' : 'bg-gray-400 border-gray-400 cursor-not-allowed'">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.293-3.293m7.532 7.532l3.293 3.293M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                    ซ่อนรายการที่เลือก ({{ countSelected }})
+                  </button>
                   <button @click="exportSelectedToExcel" :disabled="countSelected === 0"
                     class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
                     :class="countSelected > 0 ? 'bg-green-500 hover:bg-green-600 border-green-500 focus:ring-green-500' : 'bg-gray-400 border-gray-400 cursor-not-allowed'">
@@ -388,6 +412,7 @@ const departmentsList = ref<Department[]>([]);
 const loadingDepartments = ref(false);
 const priorityFilterForTable = ref<'high' | 'medium' | 'low' | null>(null);
 
+const visibilityFilter = ref<'active' | 'hidden' | 'all'>('active');
 const handleStatusFilterChange = (newStatus: 'open' | 'in_progress' | 'pending' | 'closed' | null) => {
   statusFilterForTable.value = newStatus;
   // When AdminDashboard sets a status, clear other AdminDashboard specific filters
@@ -540,7 +565,7 @@ const paginatedTickets = computed(() => {
 
 onMounted(async () => {
   // console.log("DashboardPage: Component mounted.");
-  // Ensure tickets are fetched via the store if not already loaded.
+  // Fetch tickets with default visibility ('active')
   await ticketStore.fetchTickets();
   fetchDepartmentsList();
   // Add event listener for clicks outside the status filter dropdown
@@ -569,7 +594,7 @@ const toggleFilterDropdown = () => {
   isFilterDropdownOpen.value = !isFilterDropdownOpen.value;
 };
 
-const applyFilter = (filterType: 'status' | 'department' | 'priority', value: string | null) => {
+const applyFilter = (filterType: 'status' | 'department' | 'priority' | 'visibility', value: string | null) => {
   if (filterType === 'status') {
     // Directly call handleStatusFilterChange to ensure consistent logic
     // (like clearing other AdminDashboard filters if a status is explicitly chosen here)
@@ -597,6 +622,14 @@ const applyFilter = (filterType: 'status' | 'department' | 'priority', value: st
     //   statusFilterForTable.value = null;
     //   departmentFilterForTable.value = null;
     // }
+  } else if (filterType === 'visibility') {
+    const newVisibility = value as 'active' | 'hidden' | 'all';
+    if (visibilityFilter.value !== newVisibility) {
+      visibilityFilter.value = newVisibility;
+      // Fetch tickets from backend with the new visibility setting
+      ticketStore.fetchTickets({ visibility: newVisibility });
+    }
+    // Optionally clear other local filters or let them apply to the new dataset
   }
   isFilterDropdownOpen.value = false;
 };
@@ -607,7 +640,7 @@ const handleClickOutsideFilterDropdown = (event: MouseEvent) => {
   }
 };
 
-watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, priorityFilterForTable, sortDirectionDashboard, sortPriorityDashboard], () => {
+watch([searchQuery, perPage, statusFilterForTable, typeFilterForTable, departmentFilterForTable, creationDateFilterForTable, priorityFilterForTable, sortDirectionDashboard, sortPriorityDashboard, visibilityFilter], () => {
   currentPage.value = 1;
 });
 
@@ -695,6 +728,10 @@ const resetFilters = () => {
   typeFilterForTable.value = null;
   departmentFilterForTable.value = null;
   creationDateFilterForTable.value = null;
+  if (visibilityFilter.value !== 'active') { // If not already active, reset and fetch
+    visibilityFilter.value = 'active';
+    ticketStore.fetchTickets({ visibility: 'active' });
+  }
   priorityFilterForTable.value = null;
 
   // Note: The handle... functions already clear other related filters when one is set.
@@ -776,6 +813,45 @@ const selectAllFilteredTickets = () => {
 
 const deselectAllTickets = () => {
   selectedTicketIds.value.clear();
+};
+
+const hideSelectedTickets = async () => {
+  if (countSelected.value === 0) {
+    Swal.fire({
+      icon: 'info',
+      title: 'ไม่ได้เลือกรายการ',
+      text: 'กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อซ่อน',
+    });
+    return;
+  }
+
+  const confirmResult = await Swal.fire({
+    title: 'ยืนยันการซ่อนรายการ?',
+    text: `คุณต้องการซ่อน Ticket ที่เลือกจำนวน ${countSelected.value} รายการใช่หรือไม่? รายการที่ซ่อนจะไม่แสดงในรายการหลัก`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'ใช่, ซ่อนเลย!',
+    cancelButtonText: 'ยกเลิก'
+  });
+
+  if (!confirmResult.isConfirmed) {
+    return;
+  }
+
+  try {
+    const ticketIdsToHide = Array.from(selectedTicketIds.value);
+    await api.patch('/tickets/visibility', { ticketIds: ticketIdsToHide, isHidden: true });
+
+    Swal.fire('ซ่อนสำเร็จ!', 'รายการที่เลือกถูกซ่อนเรียบร้อยแล้ว', 'success');
+    selectedTicketIds.value.clear();
+    isSelectionModeActive.value = false;
+    await ticketStore.fetchTickets(); // Refresh the list to show only non-hidden tickets
+  } catch (error) {
+    console.error('Error hiding tickets:', error);
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถซ่อนรายการที่เลือกได้', 'error');
+  }
 };
 
 const exportToExcel = async () => { // Changed to async to await Swal

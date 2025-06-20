@@ -1,7 +1,7 @@
 import { Ticket } from './../types/index';
 import { Router, Response } from 'express' // Removed Request as it's not directly used
 import { PrismaClient, TicketStatus, LogActionType, User } from '@prisma/client' // Added LogActionType
-import { authenticateToken, AuthenticatedRequest } from '../middleware/auth.middleware'
+import { authenticateToken, AuthenticatedRequest, authorizeRoles } from '../middleware/auth.middleware'
 import { uploadUser, uploadAssignee } from '../middleware/upload'
 import path from 'path'; // เพิ่ม import path
 import { io, connectedUsers } from '../index'; // เพิ่ม import สำหรับ Socket.IO
@@ -352,9 +352,28 @@ router.post(
 // GET /api/tickets
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const user = req.user
-    const tickets = await prisma.ticket.findMany({
-      where: user?.role === 'ADMIN' || user?.role === 'OFFICER' ? {} : { user_id: user?.id },
+    const user = req.user;
+    const { visibility } = req.query; // visibility can be 'active', 'hidden', 'all'
+
+    let whereClause: any = {};
+
+    // Base filtering for non-admin/officer users
+    if (user?.role !== 'ADMIN' && user?.role !== 'OFFICER') {
+      whereClause.user_id = user?.id;
+      whereClause.is_hidden = false; // Non-admins/officers ONLY see active tickets they own
+    } else {
+      // Admin/Officer specific visibility
+      if (visibility === 'hidden') {
+        whereClause.is_hidden = true;
+      } else if (visibility === 'all') {
+        // No is_hidden filter, show all (both hidden and not hidden)
+      } else { // Default or 'active'
+        whereClause.is_hidden = false;
+      }
+    }
+
+    const tickets = await prisma.ticket.findMany({ // Modify query to exclude hidden tickets by default
+      where: whereClause,
       select: { // เปลี่ยนมาใช้ select เพื่อความชัดเจนในการดึงข้อมูล
         id: true,
         title: true,
@@ -1138,5 +1157,76 @@ router.delete(
     }
   }
 );
+
+// PATCH /api/tickets/visibility - Update the is_hidden status for multiple tickets
+router.patch(
+  '/visibility',
+  authenticateToken,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { ticketIds, isHidden } = req.body; // Expecting an array of ticket IDs and a boolean value
+    const performingUser = req.user;
+
+    if (!performingUser || typeof performingUser.id !== 'number' || !performingUser.name) {
+      res.status(401).json({ error: 'User information is missing or invalid for logging.' });
+      return;
+    }
+
+    if (!Array.isArray(ticketIds) || ticketIds.length === 0) {
+      res.status(400).json({ success: false, message: 'An array of ticket IDs is required.' });
+      return;
+    }
+
+    if (typeof isHidden !== 'boolean') {
+      res.status(400).json({ success: false, message: 'A boolean value for isHidden is required.' });
+      return;
+    }
+
+    const parsedTicketIds = ticketIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+
+    if (parsedTicketIds.length === 0) {
+      res.status(400).json({ success: false, message: 'Invalid ticket IDs provided.' });
+      return;
+    }
+
+    try {
+      // Fetch the tickets before updating to get their current state for logging
+      const ticketsToUpdate = await prisma.ticket.findMany({
+        where: { id: { in: parsedTicketIds } },
+        select: { id: true, is_hidden: true, reference_number: true }
+      });
+
+      if (ticketsToUpdate.length === 0) {
+        res.status(404).json({ success: false, message: 'No tickets found with the provided IDs.' });
+        return;
+      }
+
+      const updatedTickets = await prisma.ticket.updateMany({
+        where: { id: { in: parsedTicketIds } },
+        data: { is_hidden: isHidden },
+      });
+
+      // Log the change for each ticket that was actually updated (where the status changed)
+      for (const ticket of ticketsToUpdate) {
+        if (ticket.is_hidden !== isHidden) {
+          const actionDetail = isHidden ? 'ซ่อน' : 'แสดง';
+          await createTicketLogEntry(
+            ticket.id,
+            performingUser.id,
+            performingUser.name,
+            LogActionType.TICKET_VISIBILITY_CHANGED, // Use the new log type
+            `${actionDetail} Ticket รหัส '${ticket.reference_number}'`,
+            'is_hidden', // field_changed
+            String(ticket.is_hidden), // old_value
+            String(isHidden) // new_value
+          );
+        }
+      }
+
+      res.status(200).json({ success: true, message: `Successfully updated visibility for ${updatedTickets.count} tickets.` });
+    } catch (error) {
+      console.error('Error updating ticket visibility:', error);
+      res.status(500).json({ success: false, message: 'Failed to update ticket visibility.', error: error instanceof Error ? error.message : String(error) });
+    }
+  });
 
 export default router
