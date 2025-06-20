@@ -44,7 +44,7 @@
                 @click="goToTicket(noti)"
               >
                 <p class="text-sm flex items-center gap-2">
-                  <span :class="`material-symbols-outlined text-base ${getIconColor(noti.type)}`">
+                  <span :class="`material-symbols-outlined text-base ${getIconColor(noti.type, noti.message)}`">
                     {{ getIcon(noti.type) }}
                   </span>
                   <span>{{ noti.message }}</span>
@@ -72,8 +72,11 @@
                 @click="goToTicket(noti)"
               >
                 <p class="text-sm flex items-center gap-2">
-                  <span class="material-symbols-outlined text-base text-blue-500">info</span>
-                  {{ noti.message }}
+                  <span :class="`material-symbols-outlined text-base ${getIconColor(noti.type, noti.message)}`">
+                    {{ getIcon(noti.type) }}
+                  </span>
+                  <span>{{ noti.message }}</span>
+                  <span class="text-[11px] text-gray-400" v-if="noti.ticketCode">({{ noti.ticketCode }})</span>
                 </p>
                 <span class="text-xs text-gray-500">{{ timeAgo(noti.timestamp) }}</span>
               </li>
@@ -239,23 +242,43 @@ async function checkOpenNotifications(){
 
 function getIcon(type) {
   switch (type) {
-    case 'in_progress_alert': return 'build'
-    case 'done_alert': return 'check_circle'
-    case 'ADMIN_TICKET_CREATED': return 'fiber_new'
-    case 'ADMIN_STATUS_CHANGED': return 'sync_alt'
-    default: return 'info'
+    case 'open_ticket_alert': return 'brightness_1'
+    case 'in_progress_alert': return 'brightness_1'
+    case 'done_alert': return 'brightness_1'
+    case 'ADMIN_TICKET_CREATED': return 'brightness_1'
+    case 'ADMIN_STATUS_CHANGED': return 'brightness_1'
+    default: return 'brightness_1'
   }
 }
 
-function getIconColor(type) {
+function getIconColor(type, message) {
   switch (type) {
+    case 'open_ticket_alert': return 'text-red-500'
     case 'in_progress_alert': return 'text-yellow-500'
     case 'done_alert': return 'text-green-500'
-    case 'ADMIN_TICKET_CREATED': return 'text-blue-500'
-    case 'ADMIN_STATUS_CHANGED': return 'text-purple-500'
-    default: return 'text-blue-500'
+    case 'ADMIN_TICKET_CREATED': return 'text-red-500'
+    case 'ADMIN_STATUS_CHANGED': 
+      return message?.includes("กำลังดำเนินการ") ? 'text-yellow-500' : 'text-green-500'
   }
 }
+// function getIconColor(notificationItem) {
+//   const type = notificationItem.type;
+//   const message = notificationItem.message || "";
+
+//   if (type == "ADMIN_TICKET_CREATED" || type == "open_ticket_alert") {
+//     console.log('🔴 Returning red for ADMIN_TICKET_CREATED or open_ticket_alert');
+//     return 'text-red-500'; // 🔴
+//   }
+//   if (type == "in_progress_alert" || (type == "ADMIN_STATUS_CHANGED" && (message.includes("กำลังดำเนินการ")))) {
+//     console.log('🟡 Returning yellow for in_progress_alert or ADMIN_STATUS_CHANGED with in_progress');
+//     return 'text-yellow-500'; // 🟡
+//   }
+//   if (type == "done_alert" || (type == "ADMIN_STATUS_CHANGED" && (message.includes("เสร็จสิ้น")))) {
+//     console.log('🟢 Returning green for done_alert or ADMIN_STATUS_CHANGED with done');
+//     return 'text-green-500'; // 🟢
+//   }
+//   return 'text-blue-500';
+// }
 
 function timeAgo(dateStr) {
   const now = new Date();

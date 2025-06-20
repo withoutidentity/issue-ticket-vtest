@@ -272,7 +272,7 @@
                   <td class="py-3 px-4 text-gray-700">{{ ticket.reference_number }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 font-medium break-words">{{ ticket.title }}</td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-600 hidden sm:table-cell break-words">
-                    {{ utilpriorityName(ticket.priority) }}
+                    {{ utilpriorityName(ticket.priority) || "-"  }}
                   </td>
                   <td class="py-2 px-2 sm:py-3 sm:px-3 text-gray-700 hidden md:table-cell break-words"><span
                       class="uppercase">{{ utilDepartmentName(ticket.department?.name) || "-"

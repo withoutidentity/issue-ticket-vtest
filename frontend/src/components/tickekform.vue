@@ -297,7 +297,7 @@ const submitTicket = async () => {
 
     formError.value = '' // Reset form error
 
-    if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department_id.value) {
+    if (!title.value || !description.value || !type_id.value || !contact.value || !department_id.value) {
         formError.value = 'กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน';
         isSubmitting.value = false;
         return;

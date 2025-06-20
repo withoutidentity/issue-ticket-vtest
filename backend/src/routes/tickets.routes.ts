@@ -120,7 +120,7 @@ router.post(
   uploadUser.array('files', 5), // เปลี่ยนไปใช้ uploadUser
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { title, description, type_id, priority, contact, department_id } =
+      const { title, description, type_id, contact, department_id } =
         req.body
       const performingUser = req.user;
 
@@ -165,7 +165,6 @@ router.post(
             connect: { id: parseInt(type_id) } // เชื่อมกับ ticket_types ที่มี id = 1
           },
           reference_number: referenceNumberGenerated, // เพิ่ม reference_number ที่สร้างขึ้น
-          priority,
           contact,
           department: {
             connect: { id: parseInt(department_id) }
@@ -616,7 +615,7 @@ router.put(
             open: "รอดำเนินการ",
             in_progress: "กำลังดำเนินการ",
             pending: "รอการแก้ไข",
-            closed: "ปิดงาน",
+            closed: "เสร็จสิ้น",
             // Add other statuses if any
           };
 
@@ -687,10 +686,10 @@ router.put(
                     targetThreadIdForOwnerDept = ticketOwnerDepartment.thread_id[1];
                   }
 
-                  // if (targetThreadIdForOwnerDept) {
-                  //   const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
-                  //   await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
-                  // }
+                  if (targetThreadIdForOwnerDept) {
+                    const messageToOwnerDept = `Ticket รหัส ${ticketDetailsForNotification.reference_number} ของแผนก ${ticketOwnerDepartment.name} ข้อความ: ${dynamicMessage}`;
+                    await sendTelegramMessage(ticketOwnerDepartment.group_id, messageToOwnerDept, targetThreadIdForOwnerDept);
+                  }
                 }
               }
 
