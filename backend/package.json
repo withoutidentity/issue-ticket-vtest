@@ -8,7 +8,8 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon --require tsconfig-paths/register src/index.ts"
+    "dev": "nodemon --require tsconfig-paths/register src/index.ts",
+    "start": "ts-node src/index.ts"
   },
   "devDependencies": {
     "@types/connect-history-api-fallback": "^1.5.4",

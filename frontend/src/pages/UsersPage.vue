@@ -319,8 +319,6 @@ const bandUser = async (id: number) => {
         'error'
       )
     }
-    {/*await axios.put(`${config.apiUrl}/api/users/${id}`, { role: 'BANNED' })
-  fetchUsers() */}
   }
 }
 

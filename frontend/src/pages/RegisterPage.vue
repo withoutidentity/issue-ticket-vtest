@@ -40,21 +40,6 @@
           />
           <p v-if="passwordsDoNotMatch && confirmPassword.length > 0" class="text-red-500 text-sm mt-1">รหัสผ่านไม่ตรงกัน</p>
         </div>
-        <!-- <div class="space-y-1">
-          <label for="role" class="block text-sm font-medium text-gray-700">ประเภทผู้ใช้งาน:</label>
-          <select v-model="role" id="role" class="w-full p-2 border rounded" required>
-            <option value="USER">ผู้ใช้งานทั่วไป (User)</option>
-            <option value="OFFICER">เจ้าหน้าที่ (Officer)</option>
-          </select>
-        </div>
-
-        <div v-if="role === 'OFFICER'" class="space-y-1">
-          <label for="department" class="block text-sm font-medium text-gray-700">แผนก:</label>
-          <select v-model="selectedDepartment" id="department" class="w-full p-2 border rounded" required>
-            <option disabled value="">กรุณาเลือกแผนก</option>
-            <option v-for="dept in departments" :key="dept.id" :value="dept.id">{{ dept.name }}</option>
-          </select>
-        </div> -->
         <button type="submit" class="w-full bg-black text-white py-2 rounded hover:bg-gray-800">สมัครสมาชิก</button>
       </form>
       <router-link to="/login" class="mt-4 text-lg text-gray-600 hover:text-gray-800">
@@ -99,20 +84,6 @@ const emailError = ref('');
 const passwordErrorOnSubmit = ref('');
 
 const router = useRouter()
-
-// const fetchDepartments = async () => {
-//   try {
-//     const response = await axios.get(`${config.apiUrl}/api/departments`); // สมมติ API endpoint นี้
-//     departments.value = response.data.data || response.data; // ปรับตามโครงสร้าง response จริง
-//   } catch (error) {
-//     console.error('Failed to fetch departments:', error)
-//     Swal.fire({
-//       icon: 'error',
-//       title: 'เกิดข้อผิดพลาด',
-//       text: 'ไม่สามารถโหลดรายชื่อแผนกได้',
-//     })
-//   }
-// }
 
 const isValidEmailFormat = (emailToValidate: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -243,10 +214,6 @@ const onRegister = async () => {
     })
   }
 }
-
-// onMounted(() => {
-//   fetchDepartments();
-// });
 </script>
 
 <style scoped>
