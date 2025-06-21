@@ -43,6 +43,30 @@
                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
                     placeholder="กรอกชื่อแผนก" @keyup.enter="addDepartment" />
                 </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Group ID (Optional)</label>
+                  <input v-model="newDepartment.group_id" type="text"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="กรอก Group ID" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Thread ID (Topic กำลังดำเนินการ) (Optional)</label>
+                  <input v-model="newDepartment.thread_id_inprogress" type="text"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="กรอก Thread ID Topic กำลังดำเนินการ" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">Thread ID (Topic ดำเนินการเสร็จแล้ว) (Optional)</label>
+                  <input v-model="newDepartment.thread_id_done" type="text"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="กรอก Thread ID Topic ดำเนินการเสร็จแล้ว" />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-1">IT Target Thread Index (Optional)</label>
+                  <input v-model.number="newDepartment.it_target_thread_index" type="number" min="0"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                    placeholder="กรอก IT Target Thread Index" />
+                </div>
               </div>
               <div class="mt-6 flex justify-end space-x-3">
                 <button @click="closeAddModal"
@@ -271,7 +295,11 @@ const confirmDelete = async (id: number) => {
 
 const isAddModalOpen = ref(false);
 const newDepartment = ref({
-  name: ''
+  name: '',
+  group_id: '',
+  thread_id_inprogress: '',
+  thread_id_done: '',
+  it_target_thread_index: null as number | null,
 });
 
 // ฟังก์ชันเปิด Modal
@@ -282,7 +310,13 @@ const openAddModal = () => {
 // ฟังก์ชันปิด Modal
 const closeAddModal = () => {
   isAddModalOpen.value = false;
-  newDepartment.value = { name: '' }; // รีเซ็ตข้อมูล
+  newDepartment.value = {
+    name: '',
+    group_id: '',
+    thread_id_inprogress: '',
+    thread_id_done: '',
+    it_target_thread_index: null,
+  }; // รีเซ็ตข้อมูล
 };
 // ฟังก์ชันเพิ่มประเภทใหม่
 const addDepartment = async () => {
@@ -292,19 +326,26 @@ const addDepartment = async () => {
       return;
     }
 
-    const response = await api.post(`/departments/create`, newDepartment.value);
+    const payload = { ...newDepartment.value };
+    if (isNaN(payload.it_target_thread_index as number)) {
+        payload.it_target_thread_index = null;
+    }
+
+    const response = await api.post(`/departments/create`, payload);
 
     // Assuming backend returns { success: true, data: ... } or throws error for non-2xx
-    if (response.data && response.data.id) { // Check if created department has an id
+    if (response.data && response.data.success) { // Check for success property from backend
       fetchDepartments(); // ดึงข้อมูลใหม่
       closeAddModal(); // ปิด Modal
       Swal.fire('สำเร็จ!', 'เพิ่มแผนกใหม่เรียบร้อยแล้ว', 'success');
     } else {
       Swal.fire('ผิดพลาด!', response.data.message || 'เกิดข้อผิดพลาดในการสร้างแผนก', 'error');
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding department:', error);
-    Swal.fire('ผิดพลาด!', 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
+    // แสดงข้อความ error จาก backend ถ้ามี
+    const errorMessage = error.response?.data?.message || 'เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์';
+    Swal.fire('ผิดพลาด!', errorMessage, 'error');
   }
 };
 

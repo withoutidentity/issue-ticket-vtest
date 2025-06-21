@@ -30,6 +30,7 @@ router.get('/admin', authenticateToken, authorizeRoles(['ADMIN', 'OFFICER']), as
     const typeCounts = await prisma.ticket.groupBy({
       by: ['type_id'],
       _count: true,
+      where: { is_hidden: false } // Ensure type counts also exclude hidden tickets
     })
 
     const types = await prisma.ticket_types.findMany()

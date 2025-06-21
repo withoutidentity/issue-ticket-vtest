@@ -237,7 +237,6 @@ router.post(
 
           const officerSocketId = connectedUsers.get(officer.id);
           if (officerSocketId && dbNotificationForOfficer) { // ตรวจสอบว่ามี dbNotificationForOfficer ด้วย
-            console.log(`[Ticket Create] Emitting 'notification:new' (open_alert) to OFFICER ${officer.id} (socket ${officerSocketId}) for new ticket ${newTicket.id}`);
             io.to(officerSocketId).emit('notification:new', {
               userId: officer.id, // ID ของ Officer ผู้รับ
               message: notificationMessageToOfficer,
@@ -275,12 +274,10 @@ router.post(
               const targetIndex = sourceDepartment.it_target_thread_index;
               if (targetIndex >= 0 && targetIndex < itDepartment.thread_id.length) {
                 targetThreadIdForIT = itDepartment.thread_id[targetIndex];
-                console.log(`[Ticket Create] New ticket from '${sourceDepartment.name}' dept. Notifying IT dept in thread: ${targetThreadIdForIT} (index ${targetIndex})`);
               } else {
                 console.warn(`[Ticket Create] Configured IT target thread index ${targetIndex} for department '${sourceDepartment.name}' is out of bounds for IT department's threads (count: ${itDepartment.thread_id.length}).`);
               }
             } else if (sourceDepartment) {
-              console.log(`[Ticket Create] Department '${sourceDepartment.name}' does not have IT notification target thread index configured.`);
             } else {
               console.warn(`[Ticket Create] Could not find source department with ID ${newTicket.department_id} for IT notification routing.`);
             }
@@ -328,7 +325,6 @@ router.post(
               ticketCode: newTicket.reference_number, type: adminNotificationType, timestamp: new Date().toISOString(),
               db_notification_id: dbNotificationForAdmin.id, db_is_read: dbNotificationForAdmin.is_read, db_created_at: dbNotificationForAdmin.created_at?.toISOString(),
             });
-            console.log(`[Ticket Create] Emitting '${adminNotificationType}' to ADMIN ${admin.id} for new ticket ${newTicket.id}`);
           }
         }
       }

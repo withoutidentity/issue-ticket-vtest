@@ -27,9 +27,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       name: dept.name,
       group_id: dept.group_id,
       it_target_thread_index: dept.it_target_thread_index,
-      raw_thread_ids: dept.thread_id, // Include the raw array for IT display
-      thread_id_inprogress: dept.thread_id && dept.thread_id.length > 0 ? dept.thread_id[0] : null,
-      thread_id_done: dept.thread_id && dept.thread_id.length > 1 ? dept.thread_id[1] : null, // Assuming index 1 is 'done'
+      raw_thread_ids: dept.thread_id,
+      thread_id_inprogress: dept.thread_id?.[0] || null,
+      thread_id_done: dept.thread_id?.[1] || null,
     }));
     res.json(formattedDepartments);
   } catch (error) {
@@ -66,10 +66,12 @@ router.post('/create', authenticateToken, async (req: Request, res: Response) =>
     }
 
     // สร้าง array thread_id จากค่าที่รับมา
-    const newThreadIdArray = [
+    const tempArray: (string | null)[] = [
       thread_id_inprogress || null,
       thread_id_done || null
-    ].filter((id): id is string => id !== null);
+    ];
+    // Prisma String[] cannot store nulls. We use empty strings as placeholders to preserve index.
+    const newThreadIdArray = tempArray.map(id => (id === null || id === undefined) ? '' : String(id));
 
     const result = await prisma.department.create({
       data:{
@@ -146,7 +148,7 @@ router.put('/update/:id', authenticateToken, async (req: Request, res: Response)
 
     let newThreadIdsForDb: string[]; // Prisma schema for thread_id is String[]
 
-    if (departmentToUpdate.name === 'it') {
+    if (departmentToUpdate.name.toLowerCase() === 'it') {
       if (req.body.raw_thread_ids !== undefined) {
         if (!Array.isArray(req.body.raw_thread_ids)) {
           res.status(400).json({ success: false, message: 'raw_thread_ids must be an array for IT department' });
@@ -172,8 +174,8 @@ router.put('/update/:id', authenticateToken, async (req: Request, res: Response)
       tempArray[0] = inProgressFromRequest !== undefined ? (inProgressFromRequest || null) : (currentThreadIds.length > 0 ? currentThreadIds[0] : null);
       tempArray[1] = doneFromRequest !== undefined ? (doneFromRequest || null) : (currentThreadIds.length > 1 ? currentThreadIds[1] : null);
       
-      // Filter out nulls to store only actual string IDs, consistent with create logic
-      newThreadIdsForDb = tempArray.filter((id): id is string => id !== null && id.trim() !== '');
+      // Use map to preserve indices, replacing nulls with empty strings.
+      newThreadIdsForDb = tempArray.map(id => (id === null || id === undefined) ? '' : String(id));
     }
 
     const updatedDepartment = await prisma.department.update({

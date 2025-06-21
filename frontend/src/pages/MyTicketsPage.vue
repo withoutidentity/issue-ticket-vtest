@@ -111,13 +111,13 @@
                     <ul class="py-1">
                       <li @click="applyMyTicketsFilter('visibility', 'active')"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'active' }">แสดงรายการที่ใช้งาน</li>
+                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'active' }">แสดงรายการปกติ</li>
                       <li @click="applyMyTicketsFilter('visibility', 'hidden')"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'hidden' }">แสดงรายการที่ซ่อน</li>
+                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'hidden' }">แสดงรายการที่จัดเก็บ</li>
                       <li @click="applyMyTicketsFilter('visibility', 'all')"
                         class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'all' }">แสดงทั้งหมด (รวมที่ซ่อน)</li>
+                        :class="{ 'bg-blue-100': visibilityFilterMyTickets === 'all' }">แสดงทั้งหมด</li>
                     </ul>
                   </div>
                 </div>
@@ -156,9 +156,9 @@
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
                     stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.293-3.293m7.532 7.532l3.293 3.293M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      d="M5 8h14M5 8a2 2 0 01-2-2V3a2 2 0 012-2h14a2 2 0 012 2v3a2 2 0 01-2 2H5zM5 8v10a2 2 0 002 2h10a2 2 0 002-2V8" />
                   </svg>
-                  ซ่อนรายการที่เลือก ({{ countSelected }})
+                  จัดเก็บรายการที่เลือก ({{ countSelected }})
                 </button>
                 <button @click="exportSelectedToExcel" :disabled="countSelected === 0"
                   class="h-10 px-3 sm:px-4 flex items-center justify-center border rounded-lg shadow-sm text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200 text-xs sm:text-sm"
@@ -773,19 +773,19 @@ const hideSelectedTickets = async () => {
     Swal.fire({
       icon: 'info',
       title: 'ไม่ได้เลือกรายการ',
-      text: 'กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อซ่อน',
+      text: 'กรุณาเลือกอย่างน้อยหนึ่งรายการเพื่อจัดเก็บ',
     });
     return;
   }
 
   const confirmResult = await Swal.fire({
-    title: 'ยืนยันการซ่อนรายการ?',
-    text: `คุณต้องการซ่อน Ticket ที่เลือกจำนวน ${countSelected.value} รายการใช่หรือไม่? รายการที่ซ่อนจะไม่แสดงในรายการนี้`,
+    title: 'ยืนยันการจัดเก็บรายการ?',
+    text: `คุณต้องการจัดเก็บ Ticket ที่เลือกจำนวน ${countSelected.value} รายการใช่หรือไม่? รายการที่จัดเก็บจะไม่แสดงในรายการนี้`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#d33',
     cancelButtonColor: '#3085d6',
-    confirmButtonText: 'ใช่, ซ่อนเลย!',
+    confirmButtonText: 'ใช่, จัดเก็บเลย!',
     cancelButtonText: 'ยกเลิก'
   });
 
@@ -797,13 +797,13 @@ const hideSelectedTickets = async () => {
     const ticketIdsToHide = Array.from(selectedTicketIds.value);
     await api.patch('/tickets/visibility', { ticketIds: ticketIdsToHide, isHidden: true });
 
-    Swal.fire('ซ่อนสำเร็จ!', 'รายการที่เลือกถูกซ่อนเรียบร้อยแล้ว', 'success');
+    Swal.fire('จัดเก็บสำเร็จ!', 'รายการที่เลือกถูกจัดเก็บเรียบร้อยแล้ว', 'success');
     selectedTicketIds.value.clear();
     isSelectionModeActive.value = false;
     await fetchOfficerTickets(); // Refresh the list specific to this page
   } catch (error) {
     console.error('Error hiding tickets:', error);
-    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถซ่อนรายการที่เลือกได้', 'error');
+    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถจัดเก็บรายการที่เลือกได้', 'error');
   }
 };
 
@@ -903,7 +903,7 @@ const exportSelectedToExcel = async () => {
       });
       console.error("Error exporting to Excel:", error);
     }
-  }, 50); // Delay for UI update
+  }, 3000); // Delay for UI update
 };
 </script>
 

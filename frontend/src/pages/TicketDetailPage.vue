@@ -13,6 +13,12 @@
             <cardtitle>
                 {{ form.reference_number }}: {{ form.title }}
             </cardtitle>
+            <!-- Badge แสดงสถานะการซ่อน -->
+            <span v-if="form.is_hidden"
+                class="ml-3 px-2.5 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">
+                ถูกจัดเก็บ (ซ่อน)
+            </span>
+
         </div>
         <div class="ml-40">ผู้แจ้ง: {{ form.user.name }}</div>
         <card>
@@ -47,6 +53,16 @@
                             <button v-if="isEditing" type="button" @click="cancelEdit"
                                 class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-colors duration-200 cursor-pointer">
                                 ยกเลิก
+                            </button>
+                            <!-- ปุ่มยกเลิกการจัดเก็บ -->
+                            <button v-if="form.is_hidden && (auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER')" 
+                                type="button" @click="unhideTicket"
+                                class="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                แสดงรายการ
                             </button>
                         </div>
                         <!-- ปุ่มดำเนินการ สำหรับ User -->
@@ -477,7 +493,9 @@ interface TicketForm {
         filepath: string;
     }>;
     assigneeFiles?: AssigneeApiFile[]; // ไฟล์จาก Assignee
+    is_hidden: boolean;
 }
+
 
 // Type for a single file object within TicketForm.files
 type RequesterFile = TicketForm['files'][number]; // Or TicketForm['files'][0] if you prefer, but [number] is more general for array elements
@@ -507,7 +525,8 @@ const form = ref<TicketForm>({
     comment: '',
     status: '',
     files: [],
-    assigneeFiles: [],
+    assigneeFiles: [], 
+    is_hidden: false, // เพิ่ม is_hidden ใน form
 })
 
 const types = ref<TicketType[]>([]);
@@ -538,6 +557,7 @@ async function fetchTicket() {
     selectedUserId.value = res.data.assignee_id || ""
     const data = await res.data
     form.value = data as TicketForm;
+    // console.log('Fetched ticket data including is_hidden: ', form.value.is_hidden);
     // console.log('Fetched ticket data: ', form.value)
 }
 
@@ -981,6 +1001,39 @@ async function openLogsModal() {
 
 function closeLogsModal() {
     showLogsModal.value = false;
+}
+
+async function unhideTicket() {
+    if (!form.value || !form.value.id) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูล Ticket', 'error');
+        return;
+    }
+
+    const confirmResult = await Swal.fire({
+        title: 'ยืนยันการแสดงรายการ?',
+        text: `คุณต้องการให้ Ticket รหัส '${form.value.reference_number}' กลับมาแสดงในรายการหลักใช่หรือไม่?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, แสดงเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!confirmResult.isConfirmed) {
+        return;
+    }
+
+    try {
+        await api.patch('/tickets/visibility', { ticketIds: [form.value.id], isHidden: false });
+        Swal.fire('สำเร็จ!', 'Ticket กลับมาแสดงในรายการหลักแล้ว', 'success');
+        form.value.is_hidden = false; // อัปเดตสถานะใน form ทันที
+        // อาจจะต้อง fetchTicket() ใหม่ถ้าต้องการข้อมูลที่สดใหม่จาก server ทั้งหมด
+        // await fetchTicket(); 
+    } catch (error: any) {
+        console.error('Error unhiding ticket:', error);
+        Swal.fire('เกิดข้อผิดพลาด', `ไม่สามารถยกเลิกการจัดเก็บ Ticket ได้: ${error.response?.data?.message || error.message}`, 'error');
+    }
 }
 onMounted(() => {
     fetchTicket()

@@ -691,9 +691,8 @@ watch([() => ticketStore.tickets, departments], () => {
 }, { deep: true });
 
 onMounted(async () => {
-  if (!ticketStore.tickets || ticketStore.tickets.length === 0) { // โหลดถ้ายังไม่มีข้อมูล หรือโหลดใหม่เสมอตามต้องการ
-    await ticketStore.fetchTickets(); // สมมติว่า store มี action นี้
-  }
+  // Always fetch active tickets for the dashboard view
+  await ticketStore.fetchTickets({ visibility: 'active' });
   await fetchTypes(); // Ensure types are fetched for the line chart
   // console.log("[AdminDashboard] Types fetched.");
   await fetchDepartmentsForChart(); // Fetch departments for the bar chart
