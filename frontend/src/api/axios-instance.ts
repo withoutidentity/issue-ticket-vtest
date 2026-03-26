@@ -2,7 +2,7 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // เปลี่ยนตาม backend ของคุณ
+  baseURL: 'https://issue-ticket.hopto.org/api', // เปลี่ยนตาม backend ของคุณ
 })
 
 let isRefreshing = false

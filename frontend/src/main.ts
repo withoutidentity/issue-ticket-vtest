@@ -10,7 +10,7 @@ import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 import './assets/main.css'
 import './assets/base.css'
 
-axios.defaults.baseURL = 'http://localhost:3000/api'
+axios.defaults.baseURL = 'https://issue-ticket.hopto.org/api'
 const app = createApp(App)
 const pinia = createPinia()
 

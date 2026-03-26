@@ -21,7 +21,7 @@ const prisma = new PrismaClient()
 // เปลี่ยนจาก GET /check-inprogress/:userId เป็น GET /check-inprogress
 // userId จะมาจาก req.user.id ที่ได้จาก authentication middleware
 router.get('/check-inprogress/:userId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  const userId = parseInt(req.params.userId); // 🗑️ ลบออก
+  const userId = parseInt(req.params.userId); // ลบออก
 
   try {
     const inProgressTickets = await prisma.ticket.findMany({
@@ -78,7 +78,7 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
           io.to(socketId).emit('notification:new', {
             userId,
             message: dynamicMessage, // ใช้ข้อความที่สร้างล่าสุดสำหรับการแจ้งเตือนแบบ real-time
-            ticketId: ticket.id,       // ID ของ ticket (PK)
+            ticketId: ticket.id,     // ID ของ ticket (PK)
             ticketCode: ticket.reference_number, // รหัส ticket (string)
             type: 'in_progress_alert',
             timestamp: new Date().toISOString(),
@@ -116,8 +116,8 @@ router.get('/check-inprogress/:userId', authenticateToken, async (req: Authentic
 // เปลี่ยนจาก GET /user/:userId เป็น GET /
 // userId จะมาจาก req.user.id
 router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
-  // const userId = parseInt(req.params.userId); // 🗑️ ลบออก
-  const userId = req.user?.id; // 👈  ใช้ userId จาก authenticated user
+  // const userId = parseInt(req.params.userId); // ลบออก
+  const userId = req.user?.id; // ใช้ userId จาก authenticated user
 
   try {
     const notifications = await prisma.notifications.findMany({
@@ -151,7 +151,7 @@ router.get('/', authenticateToken, async (req: AuthenticatedRequest, res: Respon
 // เปลี่ยน path เป็น /mark-read/:notificationId เพื่อความเป็นระเบียบ (optional)
 router.post('/mark-read/:notificationId', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
   const notificationId = parseInt(req.params.notificationId);
-  const userId = req.user?.id; // 👈  ใช้ userId จาก authenticated user
+  const userId = req.user?.id; // ใช้ userId จาก authenticated user
 
   if (isNaN(notificationId)) {
     res.status(400).json({ error: 'Invalid notification ID' });
@@ -183,7 +183,7 @@ router.post('/mark-read/:notificationId', authenticateToken, async (req: Authent
     // P2025: Record to update not found.
     if (err && typeof err === 'object' && 'code' in err && err.code === 'P2025') {
         res.status(404).json({ error: 'Notification not found to mark as read.' });
-        return 
+        return
     }
     res.status(500).json({ error: 'Internal server error' });
   }
