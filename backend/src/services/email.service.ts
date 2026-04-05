@@ -29,7 +29,6 @@ export const sendEmail = async (options: EmailOptions): Promise<void> => {
       html: options.html,
     };
     await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully to ${options.to}`);
   } catch (error) {
     console.error(`Error sending email to ${options.to}:`, error);
     // ใน production อาจจะต้องมีการ logging ที่ดีกว่านี้ หรือ retry mechanism

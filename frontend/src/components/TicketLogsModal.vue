@@ -16,7 +16,7 @@
                     </div>
                     <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
                         <h3 class="text-lg font-semibold leading-6 text-gray-900" id="modal-title">
-                            ประวัติการดำเนินการ Ticket ID: {{ ticketId }}
+                            ประวัติการดำเนินการ Ticket: {{ referenceNumber }}
                         </h3>
                         <div class="mt-4 max-h-[60vh] overflow-y-auto pr-2">
                             <div v-if="logs && logs.length > 0" class="space-y-4">
@@ -73,8 +73,8 @@ const props = defineProps({
         type: Array as PropType<TicketLogEntry[]>,
         default: () => [],
     },
-    ticketId: {
-        type: [String, Number],
+    referenceNumber: { // เปลี่ยนจาก ticketId เป็น referenceNumber
+        type: String,
         required: true,
     }
 });

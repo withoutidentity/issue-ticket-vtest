@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { ApiResponse } from '../types/index';
+import { format, startOfDay, endOfDay } from 'date-fns'; // นำเข้า date-fns
 
 const prisma = new PrismaClient();
 
@@ -8,9 +9,10 @@ export const getAllTickets = async (): Promise<ApiResponse<any>> => {
     const tickets = await prisma.ticket.findMany({
         select: {
             id: true,
+            reference_number: true, // เพิ่มฟิลด์เลขอ้างอิง
             user_id: true,
             title: true,
-            description: true
+            description: true,
         },
       orderBy: {
         created_at: 'desc'
@@ -36,6 +38,7 @@ export const createTicket = async (data: {
   description?: string;
   type_id?: number;
   user_id?: number;
+  reference_number?: string;
 }): Promise<ApiResponse<any>> => {
   try {
     // ตรวจสอบว่า type_id มีอยู่จริง (ถ้ามี)
@@ -52,17 +55,45 @@ export const createTicket = async (data: {
       }
     }
 
+    // --- สร้างเลข Reference Number ---
+    const now = new Date();
+    // รูปแบบ YYMMDD
+    const datePart = format(now, 'yyMMdd');
+
+    // กำหนดช่วงเวลาของวันนี้
+    const todayStart = startOfDay(now);
+    const todayEnd = endOfDay(now);
+
+    // นับจำนวน Ticket ที่สร้างในวันนี้
+    const ticketsCreatedToday = await prisma.ticket.count({
+      where: {
+        created_at: {
+          gte: todayStart,
+          lte: todayEnd,
+        },
+      }
+    });
+
+    // คำนวณลำดับและเติมเลขศูนย์ข้างหน้า (ใช้ 3 หลัก)
+    const sequenceNumber = ticketsCreatedToday + 1;
+    const paddedSequence = sequenceNumber.toString().padStart(3, '0');
+
+    const referenceNumber = `TK${datePart}${paddedSequence}`;
+    // --- สิ้นสุดการสร้างเลข Reference Number ---
+
     const newTicket = await prisma.ticket.create({
       data: {
         title: data.title,
         description: data.description || null,
         type_id: data.type_id || null,
         user_id: data.user_id || null,
-        status: 'open'
+        status: 'open',
+        reference_number: referenceNumber, // เพิ่มเลขอ้างอิงที่สร้างขึ้น
       },
         select: {
             id: true,
             title: true,
+            reference_number: true, // เพิ่มเลขอ้างอิงในข้อมูลที่ส่งกลับ
             description: true,
             type_id: true,
             user_id: true,
@@ -77,12 +108,19 @@ export const createTicket = async (data: {
       message: 'Ticket created successfully',
       data: newTicket
     };
-  } catch (error) {
+  } catch (error: any) {
     return {
       success: false,
       message: 'Failed to create ticket',
       error: error instanceof Error ? error.message : 'Unknown error'
-    };
+    }
+    // จัดการกรณีที่อาจเกิดการชนกันของเลขอ้างอิง (Race Condition)
+    if (error.code === 'P2002' && error.meta?.target?.includes('reference_number')) {
+         return {
+            success: false,
+            message: 'Failed to create ticket due to a potential conflict in reference number generation. Please try again.',
+         };
+    }
   }
 };
 
@@ -91,6 +129,7 @@ export const getTicketById = async (id: number): Promise<ApiResponse> => {
       const ticket = await prisma.ticket.findUnique({
         where: { id },
         include: {
+          // include จะดึงฟิลด์ทั้งหมดของ Ticket มาอยู่แล้ว รวมถึง reference_number
           ticket_types: {
             select: {
               id: true,
@@ -172,8 +211,9 @@ export const getTicketById = async (id: number): Promise<ApiResponse> => {
         where: { id },
         data: {
           title: data.title,
-          description: data.description,
-          type_id: data.type_id,
+          description: data.description, // อนุญาตให้อัปเดต description เป็น null ได้ถ้าส่งมาเป็น null
+          type_id: data.type_id, // อนุญาตให้อัปเดต type_id เป็น null ได้ถ้าส่งมาเป็น null
+          // ไม่ควรอัปเดต reference_number หลังจากสร้างครั้งแรก
           status: data.status,
           updated_at: new Date()
         },

@@ -1,69 +1,111 @@
 <template>
-    <cardtitle>สร้าง Ticket ใหม่</cardtitle>
     <card>
         <cardcontent>
-            <form @submit.prevent="submitTicket" class="space-y-4">
+            <cardtitle>สร้าง Ticket ใหม่</cardtitle>
+            <form @submit.prevent="submitTicket" class="mx-auto space-y-6 p-6">
+                <!-- Title Field -->
                 <div>
-                    <label for="title" class="block text-sm font-medium text-gray-700">หัวข้อปัญหา <span class="text-red-500">*</span></label>
-                    <input id="title" v-model="title" type="text" placeholder="ระบุหัวข้อปัญหา" class="input mt-1" required />
+                    <label for="title" class="text-sm font-medium text-gray-900">
+                        หัวข้อปัญหา <span class="text-red-400">*</span>
+                    </label>
+                    <input id="title" v-model="title" type="text" placeholder="ระบุหัวข้อปัญหา"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-400"
+                        required />
                 </div>
 
-                <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700">รายละเอียด <span class="text-red-500">*</span></label>
-                    <textarea id="description" v-model="description" placeholder="อธิบายรายละเอียดของปัญหา" class="input mt-1" rows="5" required />
+                <!-- Description Field -->
+                <div class="space-y-2">
+                    <label for="description" class="text-sm font-medium text-gray-900">
+                        รายละเอียด <span class="text-red-400">*</span>
+                    </label>
+                    <textarea id="description" v-model="description" placeholder="อธิบายรายละเอียดของปัญหา"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-400 resize-none"
+                        rows="4" required></textarea>
                 </div>
 
-                <div>
-                    <label for="contact" class="block text-sm font-medium text-gray-700">ข้อมูลติดต่อ <span class="text-red-500">*</span></label>
-                    <input id="contact" v-model="contact" type="text" placeholder="เช่น เบอร์โทรศัพท์ หรือ อีเมล" class="input mt-1" required />
+                <!-- Contact Field -->
+                <div class="space-y-2">
+                    <label for="contact" class="text-sm font-medium text-gray-900">
+                        ข้อมูลติดต่อ <span class="text-red-400">*</span>
+                    </label>
+                    <input id="contact" v-model="contact" type="text" placeholder="เช่น เบอร์โทรศัพท์ หรือ อีเมล"
+                        class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm placeholder-gray-400"
+                        required />
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="department" class="block text-sm font-medium text-gray-700">แผนก <span class="text-red-500">*</span></label>
-                        <select id="department" v-model="department_id" class="input mt-1" required :disabled="loadingDepartments">
-                            <option disabled value="">{{ loadingDepartments ? 'กำลังโหลด...' : '-- เลือกแผนก --' }}</option>
-                            <option v-if="!loadingDepartments" v-for="department in departments" :key="department.id" :value="department.id">
-                                {{ department.name  }} 
+                <!-- Grid Fields -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Department -->
+                    <div class="space-y-2 relative">
+                        <label for="department-search" class="text-sm font-medium text-gray-900">
+                            แผนก <span class="text-red-400">*</span>
+                        </label>
+                        <input
+                            id="department-search"
+                            type="text"
+                            v-model="departmentSearchText"
+                            @input="handleDepartmentSearchInput"
+                            @focus="showDepartmentDropdown = true"
+                            @blur="handleDepartmentInputBlur"
+                            placeholder="พิมพ์เพื่อค้นหาแผนก..."
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm bg-white"
+                            :disabled="loadingDepartments"
+                            autocomplete="off"
+                        />
+                        <div
+                            v-if="loadingDepartments"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 top-7 pointer-events-none text-sm text-gray-500"
+                        >
+                            กำลังโหลด...
+                        </div>
+                        <ul
+                            v-if="showDepartmentDropdown && filteredDepartments.length > 0 && !loadingDepartments"
+                            class="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
+                        >
+                            <li
+                                v-for="department in filteredDepartments"
+                                :key="department.id"
+                                @mousedown="selectDepartment(department)"
+                                class="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-900 uppercase"
+                            >
+                                {{ utilDepartmentName(department.name) }}
+                            </li>
+                        </ul>
+                        <p v-if="showDepartmentDropdown && filteredDepartments.length === 0 && !loadingDepartments && departmentSearchText" class="text-sm text-gray-500 mt-1">
+                            ไม่พบแผนกที่ค้นหา
+                        </p>
+                    </div>
+                    <!-- Type -->
+                    <div class="space-y-2">
+                        <label for="type" class="text-sm font-medium text-gray-900">
+                            ประเภท <span class="text-red-400">*</span>
+                        </label>
+                        <select id="type" v-model="type_id"
+                            class="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-sm bg-white"
+                            required :disabled="loadingTypes">
+                            <option disabled value="" class="text-gray-400">
+                                {{ loadingTypes ? 'กำลังโหลด...' : '-- เลือกประเภท --' }}
+                            </option>
+                            <option v-if="!loadingTypes" v-for="type in types" :key="type.id" :value="type.id"
+                                class="text-gray-900">
+                                {{ type.name }}
                             </option>
                         </select>
                     </div>
-
-                    <div>
-                        <label for="priority" class="block text-sm font-medium text-gray-700">ระดับความสำคัญ <span class="text-red-500">*</span></label>
-                        <select id="priority" v-model="priority" class="input mt-1" required>
-                            <option disabled value="">-- เลือกระดับความสำคัญ --</option>
-                            <option value="low">ต่ำ</option>
-                            <option value="medium">กลาง</option>
-                            <option value="high">สูง</option>
-                        </select>
-                    </div>
                 </div>
 
-                <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700">ประเภท <span class="text-red-500">*</span></label>
-                    <select id="type" v-model="type_id" class="input mt-1" required :disabled="loadingTypes">
-                        <option disabled value="">{{ loadingTypes ? 'กำลังโหลด...' : '-- เลือกประเภท --' }}</option>
-                        <option v-if="!loadingTypes" v-for="type in types" :key="type.id" :value="type.id">
-                            {{ `${type.name}: ` }} {{ type.description }}
-                        </option>
-                    </select>
-                </div>
-
-                <!-- <select v-model="status" class="input">
-                    <option disabled value="">-- สถานะ --</option>
-                    <option value="open">เปิด</option>
-                    <option value="in_progress">กำลังดำเนินการ</option>
-                    <option value="pending">รอดำเนินการ</option>
-                    <option value="closed">ปิดแล้ว</option>
-                </select> -->
-
-                <div>
-                    <label for="files" class="block text-sm font-medium text-gray-700">แนบไฟล์ (สูงสุด 5 ไฟล์, ประเภท: PDF, JPG, PNG)</label>
-                    <input id="files" type="file" multiple @change="handleFileChange" class="input mt-1" accept=".pdf, .jpg, .jpeg, .png" />
+                <div class="mb-3">
+                    <label for="files" class="block text-sm font-medium text-gray-700 mb-1">เลือกไฟล์ (สูงสุด {{
+                        maxFiles }} ไฟล์)</label>
+                    <input id="files" type="file" multiple @change="handleFileChange"
+                        class="iblock w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70"
+                        accept=".pdf, .jpg, .jpeg, .png" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        ประเภทไฟล์ที่อนุญาต: PDF, JPG, PNG
+                    </p>
                     <p v-if="fileError" class="text-red-500 text-sm mt-1">{{ fileError }}</p>
                 </div>
-                
+
                 <ul v-if="files.length > 0" class="mt-2 space-y-1">
                     <li v-for="(file, index) in files" :key="index"
                         class="flex justify-between items-center bg-gray-100 px-3 py-1 rounded">
@@ -76,7 +118,13 @@
 
                 <p v-if="formError" class="text-red-500 text-sm">{{ formError }}</p>
 
-                <button type="submit" :disabled="isSubmitting" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
+                <button type="submit" :disabled="isSubmitting"
+                    class="flex items-center justify-center w-full sm:w-auto bg-blue-600 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-sm hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                        stroke="currentColor" class="w-5 h-5 mr-2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+                    </svg>
                     {{ isSubmitting ? 'กำลังส่ง...' : 'ส่ง Ticket' }}
                 </button>
             </form>
@@ -86,34 +134,87 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import Swal from 'sweetalert2'
 import api from '@/api/axios-instance'
 
+import { useAuthStore } from '@/stores/auth';
 import cardtitle from '@/ui/cardtitle.vue';
 import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 import router from '@/router';
+import { departmentName as utilDepartmentName } from '@/utils/ticketUtils';
 
 const title = ref('')
 const description = ref('')
 const type_id = ref('')
 const department_id = ref('')
 const priority = ref('')
-// const status = ref('')
 const contact = ref('')
 const files = ref<File[]>([])
-const departments = ref([])
-const types = ref([])
+const departments = ref<{id: string, name: string}[]>([])
+const types = ref<{id: string, name: string, description: string}[]>([])
 
 const formError = ref('')
 const fileError = ref('')
 const isSubmitting = ref(false)
 const loadingDepartments = ref(false)
 const loadingTypes = ref(false)
+const auth = useAuthStore(); // Initialize auth store
+const maxFiles = 5;
 
+// For Department Searchable Select
+const departmentSearchText = ref('');
+const showDepartmentDropdown = ref(false);
+
+const filteredDepartments = computed(() => {
+    if (!departmentSearchText.value) {
+        return departments.value;
+    }
+    return departments.value.filter(dept =>
+        utilDepartmentName(dept.name).toLowerCase().includes(departmentSearchText.value.toLowerCase())
+    );
+});
+
+const selectDepartment = (department: { id: string; name: string }) => {
+    department_id.value = department.id;
+    departmentSearchText.value = utilDepartmentName(department.name); // แสดงชื่อภาษาไทยใน input
+    showDepartmentDropdown.value = false;
+};
+
+const handleDepartmentSearchInput = () => {
+    showDepartmentDropdown.value = true;
+    const currentSearchTextLower = departmentSearchText.value.toLowerCase();
+
+    // ตรวจสอบว่าข้อความที่พิมพ์ตรงกับชื่อแผนกภาษาไทยหรือไม่
+    const matchedDepartmentByThaiName = departments.value.find(dept =>
+        utilDepartmentName(dept.name).toLowerCase() === currentSearchTextLower
+    );
+
+    if (matchedDepartmentByThaiName) {
+        // ถ้าตรงกัน ให้ตั้งค่า department_id (departmentSearchText.value คือชื่อภาษาไทยที่ผู้ใช้พิมพ์เอง)
+        if (department_id.value !== matchedDepartmentByThaiName.id) {
+            department_id.value = matchedDepartmentByThaiName.id;
+        }
+    } else {
+        // ถ้าไม่ตรงกัน ให้ล้าง department_id ที่เลือกไว้
+        department_id.value = '';
+    }
+};
+
+const handleDepartmentInputBlur = () => {
+    setTimeout(() => {
+        const selectedDept = departments.value.find(d => d.id === department_id.value);
+        if (selectedDept) {
+            departmentSearchText.value = utilDepartmentName(selectedDept.name); // ถ้ามีแผนกที่ถูกเลือก ให้แสดงชื่อภาษาไทย
+        } else if (departmentSearchText.value.trim() !== '') {
+            departmentSearchText.value = ''; // ถ้าไม่มีการเลือกที่ถูกต้อง และมีข้อความใน input ให้ล้างออก
+        }
+        showDepartmentDropdown.value = false;
+    }, 200); // Delay to allow click on dropdown items
+};
 function handleFileChange(event: Event) {
     fileError.value = '' // Reset file error
     const input = event.target as HTMLInputElement
@@ -121,7 +222,6 @@ function handleFileChange(event: Event) {
 
     const selectedFiles = Array.from(input.files)
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png']
-    const maxFiles = 5
 
     if (selectedFiles.length > maxFiles) {
         fileError.value = `ไม่สามารถแนบไฟล์เกิน ${maxFiles} ไฟล์ได้`
@@ -145,12 +245,12 @@ function handleFileChange(event: Event) {
         fileError.value = 'มีไฟล์บางประเภทไม่ได้รับอนุญาต (อนุญาตเฉพาะ PDF, JPG, PNG)'
         // Keep valid files if any, or clear if all are invalid and input was reset
         if (validFiles.length < selectedFiles.length) {
-             input.value = '' // Reset input if some files were invalid to force re-selection
-             files.value = [] // Clear selection as some were invalid
-             return;
+            input.value = '' // Reset input if some files were invalid to force re-selection
+            files.value = [] // Clear selection as some were invalid
+            return;
         }
     }
-    
+
     files.value = [...files.value, ...validFiles].slice(0, maxFiles) // Add new valid files, ensuring not to exceed maxFiles
     if (files.value.length > maxFiles) { // Should not happen if initial check is correct, but as a safeguard
         files.value = files.value.slice(0, maxFiles)
@@ -173,7 +273,7 @@ onMounted(async () => {
             api.get(`/departments`)
         ]);
         types.value = typesRes.data.data;
-        departments.value = departmentsRes.data;
+        departments.value = departmentsRes.data; // Assuming departmentsRes.data is the array
     } catch (error) {
         console.error("Error fetching initial data:", error);
         formError.value = 'ไม่สามารถโหลดข้อมูลเริ่มต้นสำหรับแบบฟอร์มได้';
@@ -186,17 +286,39 @@ onMounted(async () => {
 
 const submitTicket = async () => {
     const token = localStorage.getItem('accessToken')
-    if (!token) return alert('กรุณาเข้าสู่ระบบ')
-    
+    if (!token) {
+        Swal.fire('ข้อผิดพลาด', 'กรุณาเข้าสู่ระบบก่อนทำการส่ง Ticket', 'error');
+        formError.value = 'ผู้ใช้ไม่ได้เข้าสู่ระบบ';
+        return;
+    }
+
     const decoded: any = jwtDecode(token)
     const userId = decoded.userId || decoded.id
 
     formError.value = '' // Reset form error
 
-    if (!title.value || !description.value || !type_id.value || !priority.value || !contact.value || !department_id.value) {
+    if (!title.value || !description.value || !type_id.value || !contact.value || !department_id.value) {
         formError.value = 'กรุณากรอกข้อมูลในช่องที่มีเครื่องหมาย * ให้ครบถ้วน';
+        isSubmitting.value = false;
         return;
     }
+
+    // Validate department_id (it's guaranteed to be non-empty by the check above)
+    if (!departments.value.find(d => d.id === department_id.value)) {
+        formError.value = 'กรุณาเลือกแผนกที่ถูกต้องจากรายการ';
+        isSubmitting.value = false;
+        return;
+    }
+
+    // Validate contact field for email or 10-digit phone number
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^\d{10}$/;
+    if (!emailRegex.test(contact.value) && !phoneRegex.test(contact.value)) {
+        formError.value = 'กรุณากรอกข้อมูลในช่องข้อมูลติดต่อให้ถูกต้อง';
+        isSubmitting.value = false;
+        return;
+    }
+
     isSubmitting.value = true;
     const result = await Swal.fire({
         title: 'ส่ง Ticket?',
@@ -211,56 +333,59 @@ const submitTicket = async () => {
             popup: 'animate__animated animate__fadeOutUp'
         }
     })
-        if (result.isConfirmed) {
-            const formData = new FormData()
-            formData.append('title', title.value)
-            formData.append('description', description.value)
-            formData.append('type_id', type_id.value)
-            formData.append('priority', priority.value)
-            // formData.append('status', status.value)
-            formData.append('contact', contact.value)
-            formData.append('department_id', department_id.value)
-            formData.append('user_id', userId)
+    if (result.isConfirmed) {
+        const formData = new FormData()
+        formData.append('title', title.value)
+        formData.append('description', description.value)
+        formData.append('type_id', type_id.value)
+        formData.append('priority', priority.value)
+        formData.append('contact', contact.value)
+        formData.append('department_id', department_id.value)
+        formData.append('user_id', userId)
 
-            files.value.forEach(file => {
-                formData.append('files', file)
+        files.value.forEach(file => {
+            formData.append('files', file)
+        })
+
+        try {
+            await api.post(`/tickets/create`, formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
             })
-
-            try {
-                await api.post(`/tickets/create`, formData, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    }
-                })
-                Swal.fire({
-                    title: 'ส่งแล้ว!',
-                    text: 'ส่งข้อมูลสำเร็จ',
-                    icon: 'success',
-                    showClass: {
-                        popup: 'animate__animated animate__heartBeat'
-                    },
-                    timer: 2000
-                });
+            Swal.fire({
+                title: 'ส่งแล้ว!',
+                text: 'ส่งข้อมูลสำเร็จ',
+                icon: 'success',
+                showClass: {
+                    popup: 'animate__animated animate__heartBeat'
+                },
+                timer: 2000
+            });
+            if (auth.user.role === 'OFFICER' || auth.user.role === 'ADMIN') {
                 router.push('/dashboard')
-            } catch (err) {
-                await Swal.fire(
-                    'ส่งไม่สำเร็จ!',
-                    'เกิดข้อผิดพลาดในการส่ง Ticket: ' + (err.response?.data?.message || err.message),
-                    'error'
-                )
-                formError.value = 'เกิดข้อผิดพลาดในการส่ง Ticket โปรดลองอีกครั้ง';
-            } finally {
-                isSubmitting.value = false;
+            } else {
+                router.push('/MyTickets')
             }
-        } else {
-            isSubmitting.value = false; // User cancelled
+        } catch (err) {
+            await Swal.fire(
+                'ส่งไม่สำเร็จ!',
+                'เกิดข้อผิดพลาดในการส่ง Ticket: ' + (err.response?.data?.message || err.message),
+                'error' // Corrected: err.response might be undefined
+            )
+            formError.value = 'เกิดข้อผิดพลาดในการส่ง Ticket โปรดลองอีกครั้ง';
+        } finally {
+            isSubmitting.value = false;
         }
+    } else {
+        isSubmitting.value = false; // User cancelled
+    }
 }
 
-    const removeFile = (index: number) => {
-        files.value.splice(index, 1)
-    }
+const removeFile = (index: number) => {
+    files.value.splice(index, 1)
+}
 
 </script>
 
@@ -270,6 +395,7 @@ const submitTicket = async () => {
     border: 1px solid #ccc;
     padding: 8px;
     border-radius: 6px;
-    box-sizing: border-box; /* Added for better layout consistency */
+    box-sizing: border-box;
+    /* Added for better layout consistency */
 }
 </style>

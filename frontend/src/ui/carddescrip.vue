@@ -1,5 +1,6 @@
 <template>
     <p
+      class="ml-3"
       :ref="forwardedRef"
       :class="['text-base text-[#6C6B6B]', $attrs.class]"
       v-bind="$attrs"

@@ -1,24 +1,67 @@
 <template>
   <AppLayout>
-    <cardtitle>จัดการผู้ใช้งาน</cardtitle>
-    <carddescrip>ดูแลและจัดการผู้ใช้งานในระบบ</carddescrip>
     <card>
       <cardcontent>
-        <div className="space-y-6">
-          <div className="overflow-x-auto">
+        <div class="flex flex-col sm:flex-wrap space-y-4 mb-4">
+          <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+            <cardtitle class="mb-3 sm:mb-0">จัดการผู้ใช้งาน</cardtitle>
+            <p class="text-sm text-gray-600 font-medium ml-3 sm:text-xs sm:mb-0">
+              ผู้ใช้งานทั้งหมด:
+              <span class="text-blue-600 font-semibold">{{ users.length }}</span>
+            </p>
+          </div>
+          <div
+            class="flex flex-col space-y-3 sm:flex-wrap sm:justify-between sm:gap-y-3 sm:space-y-0 md:flex-wrap md:gap-y-3">
+            <div class="flex flex-col space-y-3 justify-between sm:flex-row sm:items-center sm:space-y-0 sm:space-x-3">
+              <!-- Search box -->
+              <div class="relative w-full sm:w-auto">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input type="text" v-model="searchQueryUsers"
+                  class="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  placeholder="ค้นหาชื่อ, อีเมล, บทบาท..." />
+              </div>
+
+              <!-- Department Filter Dropdown -->
+              <div class="flex space-x-3 md-flex-wrap md:justify-between">
+                <div
+                  class="flex items-center space-x-2 md:mt-0 justify-start md:justify-end col-span-1 md:col-span-2 lg:col-span-1">
+                  <label for="perPageUsersInput" class="text-sm text-gray-600">แสดง:</label>
+                  <input id="perPageUsersInput" type="number" min="1" v-model.number="perPageUsers"
+                    class="w-12 px-2 py-1.5 bg-white border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm" />
+                  <span class="text-sm text-gray-600">รายการต่อหน้า</span>
+                </div>
+              </div>
+
+              <!-- Reset button -->
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Items per page -->
+
+
+        <div className="space-y-6 overflow-x-auto">
+          <div class="mt-3 rounded-lg overflow-hidden overflow-x-auto border border-gray-200">
             <table class="w-full">
               <thead>
-                <tr class="bg-gray-200">
+                <tr class="bg-gray-100">
                   <th class="text-left py-3 px-4 font-medium">ชื่อผู้ใช้</th>
                   <th class="text-left py-3 px-4 font-medium">อีเมล</th>
                   <th class="text-left py-3 px-8 font-medium">บทบาท</th>
-                  <th class="text-left py-3 px-4 font-medium">แผนก</th>
                   <th class="text-left py-3 px-4 font-medium">สถานะ Officer</th>
                   <th class="text-center py-3 px-4 font-medium">การจัดการ</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="user in users" :key="user.id" class="border-b hover:bg-gray-50">
+                <tr v-for="user in paginatedUsers" :key="user.id"
+                  class="text-sm border-gray-700/25 border-b hover:bg-gray-50">
                   <td class="py-3 px-4">{{ user.name }}</td>
                   <td class="py-3 px-4">{{ user.email }}</td>
                   <td class="py-3 px-4">
@@ -31,7 +74,6 @@
                       {{ roleName(user.role) }}
                     </span>
                   </td>
-                  <td class="py-3 px-4">{{ user.department?.name || '-' }}</td>
                   <td class="py-3 px-4">
                     <span v-if="user.role === 'OFFICER'">
                       <span :class="{
@@ -43,36 +85,77 @@
                     </span>
                     <span v-else>-</span>
                   </td>
-                  <td class="py-3 px-4 space-x-2 text-center">
-                    <button @click="openEdit(user)" class="border px-3 py-1 rounded hover:bg-gray-100">แก้ไขบทบาท</button>
-                    <button v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
-                            @click="confirmOfficer(user.id)"
-                            class="border px-3 py-1 rounded text-green-600 hover:bg-green-50">ยืนยัน Officer</button>
-                    <button @click="bandUser(user.id)" class="border px-3 py-1 rounded text-red-600 hover:bg-red-50">ระงับ</button>
-                  </td>
-                </tr>
-
-                <!-- แก้ไข role -->
-                <tr v-if="editingUser" class="bg-gray-50">
-                  <td colspan="5" class="px-4 py-3">
-                    <div class="flex items-center gap-4">
-                      <span class="font-medium">เปลี่ยนบทบาทของ {{ editingUser.name }} เป็น:</span>
-                      <select v-model="selectedRole" class="border rounded px-3 py-1">
-                        <option value="ADMIN">ผู้ดูแลระบบ</option>
-                        <option value="OFFICER">เจ้าหน้าที่</option>
-                        <option value="USER">ผู้ใช้งาน</option>
-                        <option value="BANNED">ระงับบัญชี</option>
-                      </select>
-                      <button @click="updateRole" class="bg-blue-500 text-white px-3 py-1 rounded">บันทึก</button>
-                      <button @click="cancelEdit" class="text-gray-500">ยกเลิก</button>
-                    </div>
+                  <td class="py-3 px-4 space-x-1 text-center">
+                    <button @click="openEdit(user)"
+                      class="p-2 rounded-full hover:bg-gray-200 text-gray-600 hover:text-gray-800 transition-colors duration-150"
+                      title="แก้ไขบทบาท">
+                      <span class="material-icons text-lg">edit</span>
+                    </button>
+                    <button
+                      v-if="user.role === 'OFFICER' && !user.is_officer_confirmed && (auth.isAdmin || (auth.isOfficer && auth.user?.is_officer_confirmed)) && user.id !== auth.user?.id"
+                      @click="confirmOfficer(user.id)"
+                      class="p-2 rounded-full hover:bg-green-100 text-green-600 hover:text-green-800 transition-colors duration-150"
+                      title="ยืนยัน Officer">
+                      <span class="material-icons text-lg">how_to_reg</span>
+                    </button>
+                    <button @click="bandUser(user.id)"
+                      class="p-2 rounded-full hover:bg-red-100 text-red-600 hover:text-red-800 transition-colors duration-150"
+                      title="ระงับบัญชี">
+                      <span class="material-icons text-lg">block</span>
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
+        <!-- Pagination Controls -->
+        <div v-if="totalPagesUsers > 1" class="mt-6 flex justify-between items-center">
+          <button @click="prevPageUsers" :disabled="currentPageUsers === 1"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            ก่อนหน้า
+          </button>
+          <span class="text-sm text-gray-700">
+            หน้า {{ currentPageUsers }} จาก {{ totalPagesUsers }}
+          </span>
+          <button @click="nextPageUsers" :disabled="currentPageUsers === totalPagesUsers"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+            ถัดไป
+          </button>
+        </div>
+
       </cardcontent>
+
+      <!-- Edit Role Modal -->
+      <div v-if="isEditModalOpen && editingUser"
+        class="fixed inset-0 backdrop-blur-sm bg-black/60 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4">
+        <div class="relative p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+          <div class="mt-3">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 text-center mb-4">แก้ไขบทบาทสำหรับ: <span
+                class="font-semibold">{{ editingUser.name }}</span></h3>
+            <div class="mt-2 px-7 py-3">
+              <label for="roleSelectModal" class="block text-sm font-medium text-gray-700 text-left mb-1">บทบาท:</label>
+              <select id="roleSelectModal" v-model="selectedRole"
+                class="w-full border border-gray-300 rounded px-3 py-2 shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="ADMIN">ผู้ดูแลระบบ</option>
+                <option value="OFFICER">เจ้าหน้าที่</option>
+                <option value="USER">ผู้ใช้งาน</option>
+                <option value="BANNED">ระงับบัญชี</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-end px-4 py-3 space-x-3">
+              <button @click="closeEditModal" type="button"
+                class="px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                ยกเลิก
+              </button>
+              <button @click="updateRole" type="button"
+                class="px-4 py-2 bg-blue-500 text-white text-base font-medium rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                บันทึก
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </card>
   </AppLayout>
 </template>
@@ -85,7 +168,7 @@ import card from '@/ui/card.vue';
 import cardcontent from '@/ui/cardcontent.vue';
 
 import { config } from '@/config';
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth';
 import Swal from 'sweetalert2'
@@ -104,6 +187,12 @@ interface User {
   } | null;
 }
 
+interface DepartmentListItem {
+  id: number;
+  name: string;
+}
+
+
 const form = ref<User>({
   id: 0,
   name: '',
@@ -118,6 +207,16 @@ const editingUser = ref<User | null>(null)
 const selectedRole = ref('USER')
 const auth = useAuthStore(); // Access the auth store
 
+const searchQueryUsers = ref('');
+const selectedDepartmentFilter = ref<number | null>(null);
+const perPageUsers = ref(10);
+const currentPageUsers = ref(1);
+const departmentsList = ref<DepartmentListItem[]>([]);
+const isEditModalOpen = ref(false);
+
+const isDepartmentFilterDropdownOpen = ref(false);
+const departmentFilterDropdownRef = ref<HTMLElement | null>(null);
+
 const fetchUsers = async () => {
   try {
     // Use the pre-configured axios instance (api) which should include the auth token
@@ -129,18 +228,72 @@ const fetchUsers = async () => {
   }
 }
 
-onMounted(fetchUsers)
+const fetchDepartmentsList = async () => {
+  try {
+    const res = await api.get(`/departments`); // Assuming this endpoint returns all departments
+    departmentsList.value = res.data as DepartmentListItem[];
+  } catch (error) {
+    console.error('Failed to fetch departments list:', error);
+    // departmentsList.value = []; // Or handle error appropriately
+  }
+};
+
+const filteredAndSearchedUsers = computed(() => {
+  // Filter out the current logged-in user
+  let filtered = users.value.filter(user => user.id !== auth.user?.id);
+
+  // Filter by department
+  if (selectedDepartmentFilter.value !== null) {
+    filtered = filtered.filter(user => user.department?.id === selectedDepartmentFilter.value);
+  }
+
+  // Filter by search query (name, email, role)
+  if (searchQueryUsers.value.trim() !== '') {
+    const lowerSearchQuery = searchQueryUsers.value.toLowerCase();
+    filtered = filtered.filter(user =>
+      user.name.toLowerCase().includes(lowerSearchQuery) ||
+      user.email.toLowerCase().includes(lowerSearchQuery) ||
+      roleName(user.role).toLowerCase().includes(lowerSearchQuery)
+    );
+  }
+  return filtered;
+});
+
+const totalPagesUsers = computed(() => {
+  if (perPageUsers.value <= 0) return 1;
+  return Math.ceil(filteredAndSearchedUsers.value.length / perPageUsers.value);
+});
+
+const paginatedUsers = computed(() => {
+  const start = (currentPageUsers.value - 1) * perPageUsers.value;
+  const end = start + perPageUsers.value;
+  return filteredAndSearchedUsers.value.slice(start, end);
+});
+
+onMounted(() => {
+  fetchUsers();
+  fetchDepartmentsList();
+  document.addEventListener('click', handleClickOutsideDepartmentFilter);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutsideDepartmentFilter);
+});
+
+watch([searchQueryUsers, selectedDepartmentFilter, perPageUsers], () => {
+  currentPageUsers.value = 1;
+});
+
 
 const bandUser = async (id: number) => {
   const result = await Swal.fire({
-    title: 'คุณแน่ใจหรือไม่?',
+    title: 'คุณแน่ใจหรือไม่จะระงับบัญชีนี้?',
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#3085d6',
     cancelButtonColor: '#d33',
     confirmButtonText: 'ตกลง',
     cancelButtonText: 'ยกเลิก',
-    reverseButtons: true,
     backdrop: `
       rgba(0,0,0,0.4)
       url("/images/nyan-cat.gif")
@@ -153,7 +306,7 @@ const bandUser = async (id: number) => {
     try {
       const payload = {
         role: 'BANNED',
-       };
+      };
       // Use the pre-configured axios instance (api)
       await api.put(`/users/update/${id}`, payload);
       await fetchUsers(); // Refresh the user list
@@ -166,30 +319,32 @@ const bandUser = async (id: number) => {
         'error'
       )
     }
-    {/*await axios.put(`${config.apiUrl}/api/users/${id}`, { role: 'BANNED' })
-  fetchUsers() */}
   }
 }
 
 const openEdit = (user: User) => {
-  editingUser.value = user
-  selectedRole.value = user.role
-}
+  editingUser.value = { ...user }; // Clone user object to avoid direct mutation if cancelled
+  selectedRole.value = user.role;
+  isEditModalOpen.value = true;
+};
 
-const cancelEdit = () => {
-  editingUser.value = null
-}
+const closeEditModal = () => {
+  isEditModalOpen.value = false;
+  editingUser.value = null;
+  // Optionally reset selectedRole if needed, e.g., selectedRole.value = 'USER';
+};
 
 const updateRole = async () => {
-  if (!editingUser.value) return
+  if (!editingUser.value) return;
   try {
     // Use the pre-configured axios instance (api)
     await api.put(`/users/update/${editingUser.value.id}`, {
       role: selectedRole.value,
     });
-    editingUser.value = null;
+    // editingUser.value = null; // This will be handled by closeEditModal
     await fetchUsers(); // Refresh the user list
     Swal.fire('สำเร็จ!', 'บทบาทถูกปรับปรุงแล้ว', 'success');
+    closeEditModal(); // Close modal on successful update
   } catch (error) {
     console.error('Error updating role:', error);
     Swal.fire('ผิดพลาด!', 'ไม่สามารถปรับปรุงบทบาทได้', 'error');
@@ -229,8 +384,8 @@ const confirmOfficer = async (userId: number) => {
     } catch (error) {
       console.error('Error confirming officer:', error.response || error);
       const errorMessage = error.response?.data?.error || // พยายามดึงข้อความ error จาก backend response
-                           error.message || // หรือใช้ error message ทั่วไปของ JavaScript
-                           'ไม่สามารถยืนยัน Officer ได้'; // ข้อความ fallback
+        error.message || // หรือใช้ error message ทั่วไปของ JavaScript
+        'ไม่สามารถยืนยัน Officer ได้'; // ข้อความ fallback
       Swal.fire('ผิดพลาด!', errorMessage, 'error');
     }
   }
@@ -249,5 +404,25 @@ const roleName = (role: string) => {
     default:
       return role
   }
-}
+};
+
+
+const selectDepartmentFilter = (departmentId: number | null) => {
+  selectedDepartmentFilter.value = departmentId;
+  isDepartmentFilterDropdownOpen.value = false;
+};
+
+const handleClickOutsideDepartmentFilter = (event: MouseEvent) => {
+  if (departmentFilterDropdownRef.value && !departmentFilterDropdownRef.value.contains(event.target as Node)) {
+    isDepartmentFilterDropdownOpen.value = false;
+  }
+};
+
+const nextPageUsers = () => {
+  if (currentPageUsers.value < totalPagesUsers.value) currentPageUsers.value++;
+};
+
+const prevPageUsers = () => {
+  if (currentPageUsers.value > 1) currentPageUsers.value--;
+};
 </script>

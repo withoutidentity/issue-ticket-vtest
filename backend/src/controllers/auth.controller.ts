@@ -2,7 +2,6 @@ import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import { Request, Response } from 'express'
 import { PrismaClient, User } from '@prisma/client'
-import { connect } from 'http2'
 import crypto from 'crypto'; // สำหรับสร้าง token
 import { sendPasswordResetEmail } from '../services/email.service'; // import service ส่งอีเมล
 const prisma = new PrismaClient()
@@ -55,6 +54,7 @@ export const login = async (req: Request, res: Response) => {
       role: true,
       name: true, //เพิ่ม name ด้วย
       is_officer_confirmed: true,
+      avatar_url: true,
       department: { // Include department details
         select: {
           id: true,
@@ -84,6 +84,7 @@ export const login = async (req: Request, res: Response) => {
     email: user.email, // Frontend authStore might use this from token if user object isn't fully parsed yet
     department: user.department, // Include the full department object or null
     is_officer_confirmed: user.is_officer_confirmed,
+    avatar_url: user.avatar_url,
   }
 
   const accessToken = jwt.sign(userPayloadForToken, accessSecret, { expiresIn: '1h' }) // Increased expiry for convenience
@@ -99,7 +100,6 @@ export const refresh = async (req: Request, res: Response) => {
   
   try {
     const payload = jwt.verify(token, refreshSecret)
-    // console.log('🔁 Received refresh token:', token)
 
     if (typeof payload !== 'object' || !('id' in payload)) {
       return res.status(403).json({ error: 'Invalid token payload' })
@@ -116,6 +116,7 @@ export const refresh = async (req: Request, res: Response) => {
         name: true,
         refreshToken: true,
         is_officer_confirmed: true, // ดึงสถานะการยืนยัน
+        avatar_url: true,
         department: {
           select: {
             id: true,
@@ -139,6 +140,7 @@ export const refresh = async (req: Request, res: Response) => {
       name: user.name,
       email: user.email,
       department: user.department, // Include the full department object or null
+      avatar_url: user.avatar_url,
       is_officer_confirmed: user.is_officer_confirmed, // Ensure this is included
     }
     const newAccessToken = jwt.sign(userPayloadForToken, accessSecret, { expiresIn: '1h' })

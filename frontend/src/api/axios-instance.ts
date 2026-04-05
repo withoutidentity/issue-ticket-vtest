@@ -2,7 +2,7 @@ import axios from 'axios'
 import Swal from 'sweetalert2'
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // เปลี่ยนตาม backend ของคุณ
+  baseURL: 'https://issue-ticket.hopto.org/api', // เปลี่ยนตาม backend ของคุณ
 })
 
 let isRefreshing = false
@@ -16,6 +16,20 @@ function onRefreshed(token: string) {
   refreshSubscribers.forEach((cb) => cb(token))
   refreshSubscribers = []
 }
+
+// Interceptor: เพิ่ม Authorization header ให้ทุก request ถ้ามี token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken'); // หรือดึงจาก authStore
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // Interceptor: ดัก response ถ้า token หมดอายุจะ auto-refresh
 api.interceptors.response.use(

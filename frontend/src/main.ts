@@ -2,20 +2,28 @@ import { config } from './config';
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from './stores/auth'; 
 import { createPinia } from 'pinia'
-import './assets/main.css'
 import axios from 'axios'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
-axios.defaults.baseURL = 'http://localhost:3000/api'
+import './assets/main.css'
+import './assets/base.css'
+
+axios.defaults.baseURL = 'https://issue-ticket.hopto.org/api'
 const app = createApp(App)
 const pinia = createPinia()
 
 pinia.use(piniaPluginPersistedstate)
 
+app.use(pinia) // 🟢 Use Pinia with the app first
+
+// 🟢 Initialize auth store after Pinia is used and before mounting the app
+const authStore = useAuthStore();
+authStore.initializeAuthFromStorage();
+
 app.use(router)
 app.mount('#app')
-app.use(pinia)
 
 axios.interceptors.request.use((config) => {
     const token = localStorage.getItem('accessToken')

@@ -1,24 +1,120 @@
 <template>
     <AppLayout>
-        <cardtitle>รายละเอียด Ticket ID: {{ route.params.id }}</cardtitle>
+        <div class="flex items-center space-x-3 ml-3"> <!-- Vertically centered, adjusted spacing and padding -->
+            <button @click="goBack" type="button"
+                class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 cursor-pointer hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                <span>ย้อนกลับ</span>
+            </button>
+            <cardtitle>
+                {{ form.reference_number }}: {{ form.title }}
+            </cardtitle>
+            <!-- Badge แสดงสถานะการซ่อน -->
+            <span v-if="form.is_hidden"
+                class="ml-3 px-2.5 py-1 text-xs font-semibold text-yellow-800 bg-yellow-200 rounded-full">
+                ถูกจัดเก็บ (ซ่อน)
+            </span>
+
+        </div>
+        <div class="ml-40">ผู้แจ้ง: {{ form.user.name }}</div>
         <card>
             <cardcontent>
-                <form @submit.prevent="handleSubmit" class="w-full bg-white rounded-xl overflow-hidden p-6">
-                    <!-- ส่วนฟอร์มหลัก -->
-                    <div class="space-y-6">
+                <!-- Main Ticket Details Section -->
+                <form @submit.prevent="handleSubmit"
+                    class="w-full bg-white rounded-xl overflow-hidden md:flex md:flex-row">
+                    <!-- ปุ่มดำเนินการหลัก (ย้ายมาด้านบน) -->
+                    <div class="md:order-2 md:pt-6 md:pr-6 md:pl-4 md:self-start md:w-auto flex-shrink-0">
+                        <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
+                            class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:justify-end sm:space-x-3 pt-4 pr-6 md:pt-0 md:pr-0">
+                            <button v-if="!isEditing" type="button" @click="isEditing = true"
+                                class="px-5 py-2.5 bg-blue-600 cursor-pointer hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                แก้ไข
+                            </button>
+
+                            <button v-if="isEditing" type="submit"
+                                class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                บันทึก
+                            </button>
+
+                            <button v-if="isEditing" type="button" @click="cancelEdit"
+                                class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-colors duration-200 cursor-pointer">
+                                ยกเลิก
+                            </button>
+                            <!-- ปุ่มยกเลิกการจัดเก็บ -->
+                            <button v-if="form.is_hidden && (auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER')" 
+                                type="button" @click="unhideTicket"
+                                class="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center cursor-pointer">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                แสดงรายการ
+                            </button>
+                        </div>
+                        <!-- ปุ่มดำเนินการ สำหรับ User -->
+                        <div v-if="auth.user.role === 'USER'"
+                            class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:justify-end sm:items-center sm:space-x-3 pt-4 pr-6 md:pt-0 md:pr-0">
+                            <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
+                            <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
+                            <button v-if="!isEditing" type="button" @click="isEditing = true"
+                                :disabled="form.status === 'in_progress' || form.status === 'closed'"
+                                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md"
+                                :class="{ 'opacity-50 cursor-not-allowed': form.status === 'in_progress' || form.status === 'closed' }">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                แก้ไข
+                            </button>
+
+                            <!-- ปุ่มบันทึก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
+                            <button v-if="isEditing" type="submit"
+                                class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                บันทึก
+                            </button>
+
+                            <!-- ปุ่มยกเลิก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
+                            <button v-if="isEditing" type="button" @click="cancelEdit"
+                                class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="p-6 md:order-1 md:flex-grow">
                         <!-- หัวข้อ -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">หัวข้อ</label>
                             <input v-model="form.title" :readonly="!isEditing"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                 :class="{ 'bg-gray-50': !isEditing }" />
                         </div>
-
+                        <!-- ปุ่มดำเนินการ --
                         <!-- รายละเอียด -->
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">รายละเอียด</label>
                             <textarea v-model="form.description" :readonly="!isEditing"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                 :class="{ 'bg-gray-50': !isEditing }" rows="5"></textarea>
                         </div>
 
@@ -26,12 +122,12 @@
                         <div class="mb-6">
                             <label class="block text-sm font-medium text-gray-700 mb-1">ติดต่อ</label>
                             <input v-model="form.contact" :readonly="!isEditing"
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                 :class="{ 'bg-gray-50': !isEditing }" />
                         </div>
 
                         <!-- ข้อมูลแบบ Grid -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                             <!-- หมวดหมู่ -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">หมวดหมู่</label>
@@ -52,33 +148,8 @@
                                     :class="{ 'bg-gray-50': !isEditing }">
                                     <option v-for="department in departments" :key="department.id"
                                         :value="department.id">
-                                        {{ department.name }}
+                                        {{ utilDepartmentName(department.name) }}
                                     </option>
-                                </select>
-                            </div>
-
-                            <!-- ความสำคัญ -->
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">ความสำคัญ</label>
-                                <select v-model="form.priority" :disabled="!isEditing"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                    :class="{ 'bg-gray-50': !isEditing }">
-                                    <option value="low">ต่ำ</option>
-                                    <option value="medium">กลาง</option>
-                                    <option value="high">สูง</option>
-                                </select>
-                            </div>
-
-                            <!-- สถานะ -->
-                            <div v-if="auth.user.role === 'USER'">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                                <select v-model="form.status" :disabled="!isEditing"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                                    :class="{ 'bg-gray-50': !isEditing }">
-                                    <option value="open">เปิด</option>
-                                    <option value="in_progress">กำลังดำเนินการ</option>
-                                    <option value="pending">รอดำเนินการ</option>
-                                    <option value="closed">เสร็จสิ้น</option>
                                 </select>
                             </div>
                         </div>
@@ -94,15 +165,18 @@
                                 ไฟล์แนบ
                             </h2>
 
-                            <div v-if="form.files.length === 0"
+                            <div v-if="displayedRequesterFiles.length === 0 && !isEditing"
                                 class="text-gray-500 italic bg-gray-50 p-4 rounded-lg mb-4 border border-dashed border-gray-300">
                                 ไม่มีไฟล์แนบ
                             </div>
-
+                            <div v-if="displayedRequesterFiles.length === 0 && newFiles.length === 0 && isEditing"
+                                class="text-gray-500 italic bg-gray-50 p-4 rounded-lg mb-4 border border-dashed border-gray-300">
+                                ไม่มีไฟล์แนบ (คุณสามารถเพิ่มไฟล์ใหม่ได้ด้านล่าง)</div>
                             <div v-else
                                 class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-4">
-                                <div v-for="(file, index) in form.files" :key="file.id"
-                                    class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 bg-white flex flex-col">
+                                <div v-for="file in displayedRequesterFiles" :key="file.id"
+                                    class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 bg-white flex flex-col"
+                                    :class="{ 'opacity-50 bg-red-50': file.isMarkedForRemoval && isEditing }">
                                     <div class="p-3 hover:bg-gray-50 transition-colors duration-200 flex-grow">
                                         <!-- ส่วนแสดงไฟล์ -->
                                         <a :href="`${config.apiUrl}/uploads/user/${file.filename}`" target="_blank"
@@ -116,17 +190,20 @@
                                                 </svg>
                                             </div>
                                             <div class="min-w-0">
-                                                <p
-                                                    class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all">
+                                                <p class="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors duration-200 break-all"
+                                                    :class="{ 'line-through': file.isMarkedForRemoval && isEditing }">
                                                     {{ file.filename }}
                                                 </p>
                                             </div>
                                         </a>
+                                        <span v-if="file.isMarkedForRemoval && isEditing"
+                                            class="text-xs text-red-500 block mt-1">จะถูกลบเมื่อบันทึก</span>
                                     </div>
 
                                     <!-- ปุ่มลบ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
                                     <div v-if="isEditing" class="border-t border-gray-100 p-2 bg-gray-50">
-                                        <button @click.stop="removeExistingFile(index)" type="button"
+                                        <button v-if="!file.isMarkedForRemoval"
+                                            @click.stop="removeExistingFile(file.id, file.filename)" type="button"
                                             class="w-full py-1 text-red-500 hover:text-red-700 rounded hover:bg-red-50 transition-colors duration-200 flex items-center justify-center text-sm">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor">
@@ -135,12 +212,21 @@
                                             </svg>
                                             ลบ
                                         </button>
+                                        <button v-else @click.stop="undoRemoveFile(file.id)" type="button"
+                                            class="w-full py-1 text-yellow-600 hover:text-yellow-700 rounded hover:bg-yellow-50 transition-colors duration-200 flex items-center justify-center text-sm">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M15 15l-6 6m0 0l-6-6m6 6V9a6 6 0 0112 0v3M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
+                                            </svg>
+                                            ยกเลิกการลบ
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                             <!-- ส่วนสำหรับเพิ่มไฟล์ใหม่ (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
                             <div v-if="isEditing" class="mt-6 pt-6 border-t border-gray-200">
-                                <h3 class="text-md font-semibold text-gray-700 mb-3">
+                                <h3 class="block text-sm font-medium text-gray-700 mb-1">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="h-5 w-5 mr-2 inline-block text-gray-500" fill="none" viewBox="0 0 24 24"
                                         stroke="currentColor">
@@ -149,82 +235,25 @@
                                     </svg>
                                     เพิ่มไฟล์ใหม่ (สูงสุด {{ MAX_FILES }} ไฟล์รวมทั้งหมด)
                                 </h3>
-                                <input type="file" multiple @change="handleFileChange" class="input mb-3"
+                                <input type="file" multiple @change="handleFileChange"
+                                    class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-70"
                                     accept=".pdf,.jpg,.jpeg,.png" />
-                                <div v-if="newFiles.length > 0" class="mt-2">
+                                <p class="mt-1 text-xs text-gray-500">
+                                    ประเภทไฟล์ที่อนุญาต: PDF, JPG, PNG
+                                </p>
+                                <div v-if="newFiles.length > 0" class="mb-4">
                                     <h4 class="text-sm font-medium text-gray-600 mb-1">ไฟล์ใหม่ที่เลือก:</h4>
-                                    <ul class="list-disc list-inside pl-4 space-y-1">
+                                    <ul class="list-disc list-inside pl-4 space-y-1 mt-1">
                                         <li v-for="(file, index) in newFiles" :key="index"
                                             class="text-sm text-gray-700 flex justify-between items-center py-1">
                                             <span>{{ file.name }} ({{ (file.size / 1024).toFixed(2) }} KB)</span>
                                             <button type="button" @click="removeNewFile(index)"
-                                                class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded">ลบ</button>
+                                                class="ml-3 px-2 py-0.5 text-xs bg-red-100 text-red-600 hover:bg-red-200 rounded disabled:opacity-50 disabled:cursor-not-allowed">
+                                                ลบ
+                                            </button>
                                         </li>
                                     </ul>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- ปุ่มดำเนินการ -->
-                        <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'"
-                            class="flex justify-end space-x-3 pt-4 border-t">
-                            <button v-if="!isEditing" type="button" @click="isEditing = true"
-                                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                แก้ไข
-                            </button>
-
-                            <button v-if="isEditing" type="submit"
-                                class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                    viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M5 13l4 4L19 7" />
-                                </svg>
-                                บันทึก
-                            </button>
-
-                            <button v-if="isEditing" type="button" @click="cancelEdit"
-                                class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-colors duration-200">
-                                ยกเลิก
-                            </button>
-                        </div>
-                        <!-- ปุ่มดำเนินการ สำหรับ User-->
-                        <div v-if="auth.user.role === 'USER'"
-                            class="flex justify-end items-center space-x-3 pt-4 mt-8 border-t">
-                            <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
-                            <div class="flex space-x-3">
-                                <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
-                                <button v-if="!isEditing" type="button" @click="isEditing = true"
-                                    class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    แก้ไข
-                                </button>
-
-                                <!-- ปุ่มบันทึก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
-                                <button v-if="isEditing" type="submit"
-                                    class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                        viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                            d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    บันทึก
-                                </button>
-
-                                <!-- ปุ่มยกเลิก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
-                                <button v-if="isEditing" type="button" @click="cancelEdit"
-                                    class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
-                                    ยกเลิก
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -234,10 +263,46 @@
         <div>
             <cardtitle class="mt-6">ผู้รับผิดชอบ</cardtitle>
             <card>
-                <cardcontent>
-                    <form @submit.prevent="handleSubmitAssignee" class="overflow-hidden p-6">
+                <cardcontent class="md:flex md:flex-row">
+                    <!-- ปุ่มดำเนินการผู้รับผิดชอบ (ย้ายมาด้านบน) -->
+                    <div class="md:order-2 md:pt-6 md:pr-6 md:pl-4 md:self-start md:w-auto flex-shrink-0"
+                        v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
+                        <div
+                            class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:justify-end sm:space-x-3 pt-4 pr-6 md:pt-0 md:pr-0">
+                            <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
+                            <button v-if="!isEditingAssignee" type="button" @click="isEditingAssignee = true"
+                                class="px-5 py-2.5 bg-blue-600 cursor-pointer hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                แก้ไข
+                            </button>
+
+                            <!-- ปุ่มบันทึก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
+                            <button v-if="isEditingAssignee" type="button" @click="handleSubmitAssignee"
+                                class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
+                                    viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M5 13l4 4L19 7" />
+                                </svg>
+                                บันทึก
+                            </button>
+
+                            <!-- ปุ่มยกเลิก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
+                            <button v-if="isEditingAssignee" type="button" @click="cancelEditAssignee"
+                                class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Form Fields for Assignee: md:order-1 -->
+                    <form @submit.prevent="handleSubmitAssignee" class="overflow-hidden p-6 md:order-1 md:flex-grow">
                         <div class="space-y-6">
-                            <div class="mb-6">
+                            <div class="mb-6" v-if="auth.user.role === 'OFFICER' || auth.user.role === 'USER'">
                                 <label class="block text-sm font-medium text-gray-700 mb-4">ชื่อผู้รับผิดชอบ</label>
                                 <strong
                                     class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
@@ -247,7 +312,7 @@
 
                             <div v-if="auth.user?.role === 'OFFICER' && !form.assignee?.name" class="mb-6">
                                 <button @click="assignToMe" type="button"
-                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center">
+                                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors duration-200 flex items-center cursor-pointer">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
                                         viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -257,30 +322,53 @@
                                 </button>
                             </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                                <div v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
+                            <div v-if="auth.user.role === 'ADMIN'">
+                                <div v-if="!isEditingAssignee" class="mb-1">
+                                    <div> <!-- Assignee Name Display -->
+                                        <label
+                                            class="w-full block text-sm font-medium text-gray-700 mb-1">ชื่อผู้รับผิดชอบ</label>
+                                        <div class="w-full px-4 py-2 border border-gray-200 bg-gray-50 rounded-lg mt-1">
+                                            {{ form.assignee ? form.assignee.name : 'ยังไม่มีผู้รับผิดชอบ' }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="isEditingAssignee" class="mb-1">
+                                    <div>
+                                        <label
+                                            class="block text-sm font-medium text-gray-700 mb-1">เปลี่ยนผู้รับผิดชอบ</label>
+                                        <select v-model="selectedUserId" @change="assignUser"
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                                            <option value="" disabled>เลือกผู้รับผิดชอบ</option>
+                                            <option v-for="user in officerList" :key="user.id" :value="user.id"
+                                                class="py-2">
+                                                {{ user.name }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-                                    <select v-model="form.status" :disabled="!isEditingAssignee"
+                                    <select v-model="form.status"
+                                        :disabled="!isEditingAssignee || form.status === 'closed'"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                         :class="{ 'bg-gray-50': !isEditingAssignee }">
-                                        <option value="open">เปิด</option>
+                                        <option value="open">ใหม่</option>
                                         <option value="in_progress">กำลังดำเนินการ</option>
-                                        <option value="pending">รอดำเนินการ</option>
                                         <option value="closed">เสร็จสิ้น</option>
                                     </select>
                                 </div>
 
-                                <div v-if="auth.user.role === 'ADMIN'">
-                                    <label
-                                        class="block text-sm font-medium text-gray-700 mb-1">เปลี่ยนผู้รับผิดชอบ</label>
-                                    <select v-model="selectedUserId" @change="assignUser" :disabled="!isEditingAssignee"
+                                <!-- ความสำคัญ -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">ความสำคัญ</label>
+                                    <select v-model="form.priority" :disabled="!isEditingAssignee"
                                         class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                         :class="{ 'bg-gray-50': !isEditingAssignee }">
-                                        <option value="" disabled>เลือกผู้รับผิดชอบ</option>
-                                        <option v-for="user in officerList" :key="user.id" :value="user.id"
-                                            class="py-2">
-                                            {{ user.name }}
-                                        </option>
+                                        <option value="low">ต่ำ</option>
+                                        <option value="medium">กลาง</option>
+                                        <option value="high">สูง</option>
                                     </select>
                                 </div>
                             </div>
@@ -288,68 +376,29 @@
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-1">หมายเหตุ</label>
                                 <textarea v-model="form.comment" :readonly="!isEditingAssignee"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                    class="w-full md:w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                     :class="{ 'bg-gray-50': !isEditingAssignee }" rows="5"></textarea>
                             </div>
                             <!-- ไฟล์แนบสำหรับผู้รับผิดชอบ -->
                             <div>
-                                <AssigneeFileUpload :disabled="!isEditingAssignee"
-                                    :ticket-id="form.id" ref="assigneeFileUploadRef"
-                                    :initial-assignee-files="form.assigneeFiles"
+                                <AssigneeFileUpload :disabled="!isEditingAssignee" :ticket-id="form.id"
+                                    ref="assigneeFileUploadRef" :initial-assignee-files="form.assigneeFiles"
                                     :class="{ 'bg-gray-50': !isEditingAssignee }"
                                     @files-uploaded="handleAssigneeFilesUploaded" />
                             </div>
 
-                            <div class="flex flex-wrap justify-between items-center gap-y-3 pt-4 mt-8 border-t">
-                                <!-- ปุ่มย้อนกลับ -->
+                            <div
+                                class="flex flex-wrap justify-between items-center gap-y-3 pt-4 mt-8 border-t border-gray-700/25">
+                                <!-- ปุ่มดู log -->
                                 <div class="flex space-x-2">
-                                    <button @click="goBack" type="button"
-                                        class="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-50 transition-colors duration-200">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                        </svg>
-                                        <span>ย้อนกลับ</span>
-                                    </button>
-                                     <button @click="openLogsModal" type="button"
-                                        class="flex items-center space-x-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg shadow-sm text-gray-700 hover:bg-gray-200 transition-colors duration-200">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    <button @click="openLogsModal" type="button"
+                                        class="flex items-center space-x-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg shadow-sm text-gray-700 cursor-pointer  hover:bg-gray-200 transition-colors duration-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none"
+                                            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round"
+                                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                         </svg>
                                         <span>ดูประวัติ</span>
-                                    </button>
-                                </div>
-
-                                <!-- กลุ่มปุ่มแก้ไข/บันทึก/ยกเลิก -->
-                                <div class="flex space-x-3"
-                                    v-if="auth.user.role === 'ADMIN' || auth.user?.role === 'OFFICER'">
-                                    <!-- ปุ่มแก้ไข (แสดงเมื่อไม่ใช่โหมดแก้ไข) -->
-                                    <button v-if="!isEditingAssignee && form.user.id !== auth.user.id" type="button" @click="isEditingAssignee = true"
-                                        class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        แก้ไข
-                                    </button>
-
-                                    <!-- ปุ่มบันทึก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
-                                    <button v-if="isEditingAssignee" type="submit"
-                                        class="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-sm transition-all duration-200 flex items-center hover:shadow-md">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none"
-                                            viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        บันทึก
-                                    </button>
-
-                                    <!-- ปุ่มยกเลิก (แสดงเมื่ออยู่ในโหมดแก้ไข) -->
-                                    <button v-if="isEditingAssignee" type="button" @click="cancelEditAssignee"
-                                        class="px-5 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-lg shadow-sm transition-all duration-200 hover:shadow-md">
-                                        ยกเลิก
                                     </button>
                                 </div>
                             </div>
@@ -359,16 +408,12 @@
             </card>
         </div>
     </AppLayout>
-    <TicketLogsModal 
-        :visible="showLogsModal"
-        :logs="ticketLogs"
-        :ticketId="ticketId"
-        @close="closeLogsModal"
-    />
+    <TicketLogsModal :visible="showLogsModal" :logs="ticketLogs" :referenceNumber="form.reference_number"
+        @close="closeLogsModal" />
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { config } from '@/config'
 import api from '@/api/axios-instance'
@@ -384,6 +429,7 @@ import cardcontent from '@/ui/cardcontent.vue';
 import AssigneeFileUpload from '@/components/AssigneeFileUpload.vue';
 import TicketLogsModal from '@/components/TicketLogsModal.vue';
 import Swal from 'sweetalert2';
+import { departmentName as utilDepartmentName, getStatusStyle } from '@/utils/ticketUtils';
 
 const route = useRoute()
 const router = useRouter()
@@ -430,6 +476,7 @@ interface AssigneeApiFile {
 
 interface TicketForm {
     id: number;
+    reference_number: string; // เพิ่ม reference_number
     title: string;
     description: string;
     type_id: number | ''; // สามารถเป็น number (เมื่อเลือก) หรือ empty string (ค่าเริ่มต้น)
@@ -446,16 +493,30 @@ interface TicketForm {
         filepath: string;
     }>;
     assigneeFiles?: AssigneeApiFile[]; // ไฟล์จาก Assignee
+    is_hidden: boolean;
+}
+
+
+// Type for a single file object within TicketForm.files
+type RequesterFile = TicketForm['files'][number]; // Or TicketForm['files'][0] if you prefer, but [number] is more general for array elements
+
+// Interface for files displayed in the template, including edit-specific properties
+// interface DisplayFile extends TicketForm['files'][0] { // Original problematic line
+// Now extends the correctly defined RequesterFile type
+interface DisplayFile extends RequesterFile {
+    isMarkedForRemoval?: boolean; // Optional because it's only relevant in edit mode
+    // Add other display-specific properties here if needed
 }
 
 const form = ref<TicketForm>({
     id: 0,
+    reference_number: '', // เพิ่มค่าเริ่มต้น
     title: '',
     description: '',
     type_id: '',
     priority: '',
     contact: '',
-    user: { id: 0, name: '', email:'', role: '' },
+    user: { id: 0, name: '', email: '', role: '' },
     department_id: '',
     assignee: {
         assignee_id: 0,
@@ -464,7 +525,8 @@ const form = ref<TicketForm>({
     comment: '',
     status: '',
     files: [],
-    assigneeFiles: [],
+    assigneeFiles: [], 
+    is_hidden: false, // เพิ่ม is_hidden ใน form
 })
 
 const types = ref<TicketType[]>([]);
@@ -473,6 +535,7 @@ const officerList = ref([]);
 const selectedUserId = ref("");
 // ไฟล์ใหม่ที่เลือกใน session การแก้ไขปัจจุบัน
 const newFiles = ref<File[]>([])        // ไฟล์ใหม่ (ยังไม่ได้อัปโหลด)
+const filesToRemove = ref<Set<number>>(new Set()); // เก็บ ID ของไฟล์ที่ต้องการลบ
 const ticketLogs = ref<TicketLogEntry[]>([]);
 
 const isAdmin = computed(() => auth.user.role === "ADMIN")
@@ -494,7 +557,8 @@ async function fetchTicket() {
     selectedUserId.value = res.data.assignee_id || ""
     const data = await res.data
     form.value = data as TicketForm;
-    // console.log('ticket f: ', form.value)
+    // console.log('Fetched ticket data including is_hidden: ', form.value.is_hidden);
+    // console.log('Fetched ticket data: ', form.value)
 }
 
 async function fetchTypes() {
@@ -522,6 +586,7 @@ async function fetchDepartments() {
 function cancelEdit() {
     isEditing.value = false
     newFiles.value = [] // เคลียร์ไฟล์ใหม่ที่เลือกไว้เมื่อยกเลิกการแก้ไข
+    filesToRemove.value.clear(); // เคลียร์ไฟล์ที่มาร์คไว้ว่าจะลบ
     fetchTicket() // รีโหลดข้อมูลเดิม
 }
 
@@ -576,47 +641,63 @@ function handleFileChange(event: Event) {
     inputElement.value = ''; // Clear the file input so user can select same file again if they removed it
 }
 
-async function removeExistingFile(index: number) {
-    const fileToRemove = form.value.files[index];
-    if (!fileToRemove) {
-        console.error('File not found at index:', index);
+async function removeExistingFile(fileId: number, filename: string) {
+    const fileInForm = form.value.files.find(f => f.id === fileId);
+    if (!fileInForm) {
+        console.error('File not found in form.files with ID:', fileId);
         return;
     }
 
     const result = await Swal.fire({
-        title: 'ยืนยันการลบไฟล์?',
-        text: `คุณต้องการลบไฟล์ "${fileToRemove.filename}" ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้`,
-        icon: 'warning',
+        title: 'ต้องการลบไฟล์นี้หรือไม่?',
+        text: `ไฟล์ "${filename}" จะถูกลบเมื่อคุณกดบันทึกการแก้ไข`,
+        icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'ใช่, ลบเลย!',
+        confirmButtonText: 'ใช่, มาร์คว่าลบ',
         cancelButtonText: 'ยกเลิก'
     });
 
     if (result.isConfirmed) {
-        try {
-            // สมมติว่า API endpoint สำหรับลบไฟล์คือ /uploads/user/:filename
-            // หรือถ้าใช้ ID: /files/${fileToRemove.id}
-            await api.delete(`/tickets/requester-files/${ticketId}/${fileToRemove.filename}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('accessToken')}`,
-                },
-            });
-
-            form.value.files.splice(index, 1); // ลบไฟล์ออกจากอาร์เรย์ใน UI
-
-            Swal.fire('ลบแล้ว!', `ไฟล์ "${fileToRemove.filename}" ถูกลบเรียบร้อยแล้ว`, 'success');
-        } catch (err) {
-            console.error('Error deleting file:', err);
-            Swal.fire('เกิดข้อผิดพลาด!', `ไม่สามารถลบไฟล์ได้: ${err.response?.data?.message || err.message}`, 'error');
-        }
+        filesToRemove.value.add(fileId);
+        Swal.fire('มาร์คว่าลบแล้ว', `ไฟล์ "${filename}" จะถูกลบเมื่อบันทึกการแก้ไข`, 'info');
     }
+}
+
+function undoRemoveFile(fileId: number) {
+    filesToRemove.value.delete(fileId);
 }
 
 function removeNewFile(index: number) {
     newFiles.value.splice(index, 1)
 }
+
+const displayedRequesterFiles = computed((): DisplayFile[] => {
+    if (!isEditing.value) {
+        // When not editing, map to DisplayFile and set isMarkedForRemoval to false or undefined
+        return form.value.files.map(file => ({
+            ...file,
+            isMarkedForRemoval: false
+        }));
+    }
+    // While editing, show all files but visually indicate those marked for removal
+    return form.value.files.map(file => ({
+        ...file,
+        isMarkedForRemoval: filesToRemove.value.has(file.id)
+    }));
+});
+
+const filesToUpload = computed(() => {
+    // This will be used by handleSubmit to know which new files to upload
+    return newFiles.value;
+});
+
+const filesToDelete = computed(() => {
+    // This will be used by handleSubmit to know which existing files to delete
+    // It's essentially filesToRemove, but as a computed property if needed elsewhere
+    return Array.from(filesToRemove.value);
+});
 
 const handleAssigneeFilesUploaded = (updatedTicketDataFromApi?: TicketForm) => {
     // เมื่อ AssigneeFileUpload component emit 'files-uploaded'
@@ -664,6 +745,31 @@ async function handleSubmit() {
         return;
     }
 
+    // 1. Delete files marked for removal
+    if (filesToRemove.value.size > 0) {
+        Swal.fire({
+            title: 'กำลังลบไฟล์...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        try {
+            for (const fileId of Array.from(filesToRemove.value)) {
+                const fileToDelete = form.value.files.find(f => f.id === fileId);
+                if (fileToDelete) {
+                    await api.delete(`/tickets/requester-files/${ticketId}/${fileToDelete.filename}`, {
+                        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+                    });
+                }
+            }
+            Swal.close(); // Close loading swal for file deletion
+        } catch (err: any) {
+            Swal.close();
+            console.error("Error deleting marked files:", err);
+            await Swal.fire('ผิดพลาด', `ไม่สามารถลบไฟล์ที่เลือกไว้ได้: ${err.response?.data?.message || err.message}`, 'error');
+            return; // Stop submission if file deletion fails
+        }
+    }
     const formData = new FormData();
     formData.append('title', form.value.title);
     formData.append('description', form.value.description);
@@ -683,6 +789,12 @@ async function handleSubmit() {
     // ไม่จำเป็นต้องส่ง form.value.files ไปอีกครั้ง
 
     try {
+        Swal.fire({ // Show loading for ticket update
+            title: 'กำลังบันทึกข้อมูล Ticket...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
         await api.put(`/tickets/update/${route.params.id}`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data', // สำคัญมากสำหรับการอัปโหลดไฟล์
@@ -690,6 +802,7 @@ async function handleSubmit() {
             }
         })
 
+        Swal.close(); // Close loading for ticket update
         await Swal.fire({
             title: 'อัปเดต Ticket สำเร็จ',
             text: 'Ticket ของคุณถูกอัปเดตเรียบร้อยแล้ว',
@@ -701,9 +814,11 @@ async function handleSubmit() {
         })
         isEditing.value = false
         newFiles.value = []; // เคลียร์รายการไฟล์ใหม่หลังอัปเดตสำเร็จ
+        filesToRemove.value.clear(); // Clear the set after successful submission
         fetchTicket()
     } catch (err: any) {
         console.error("Error updating ticket:", err);
+        Swal.close();
         await Swal.fire({
             title: 'ผิดพลาด',
             text: `ไม่สามารถอัปเดต Ticket ได้: ${err.response?.data?.message || err.message}`,
@@ -730,6 +845,29 @@ async function handleSubmitAssignee() {
 
     let filesProcessedSuccessfully = true;
 
+    // 1. Delete assignee files marked for removal
+    if (assigneeFileUploadRef.value && assigneeFileUploadRef.value.assigneeFilesToRemove.size > 0) {
+        Swal.fire({
+            title: 'กำลังลบไฟล์ผู้รับผิดชอบ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+        try {
+            for (const fileId of Array.from(assigneeFileUploadRef.value.assigneeFilesToRemove)) {
+                await api.delete(`/tickets/assignee-files/${fileId}`, {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` },
+                });
+            }
+            Swal.close(); // Close loading for file deletion
+        } catch (err: any) {
+            Swal.close();
+            console.error("Error deleting marked assignee files:", err);
+            await Swal.fire('ผิดพลาด', `ไม่สามารถลบไฟล์ผู้รับผิดชอบที่เลือกไว้ได้: ${err.response?.data?.message || err.message}`, 'error');
+            return; // Stop if assignee file deletion fails
+        }
+    }
+
     // Check if AssigneeFileUpload component has files selected and trigger its upload
     if (assigneeFileUploadRef.value && assigneeFileUploadRef.value.selectedFiles.length > 0) {
         Swal.fire({
@@ -752,6 +890,12 @@ async function handleSubmitAssignee() {
     }
 
     try {
+        Swal.fire({
+            title: 'กำลังบันทึกข้อมูลผู้รับผิดชอบ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
         await api.put(`/tickets/update/${route.params.id}`, {
             status: form.value.status,
             assignee_id: selectedUserId.value || null, // Send null if no assignee selected
@@ -764,6 +908,7 @@ async function handleSubmitAssignee() {
                 },
             })
 
+        Swal.close();
         await Swal.fire({
             title: 'อัพเดทส่วนผู้รับผิดชอบสำเร็จ',
             text: 'ส่วนผู้รับผิดชอบของคุณถูกอัพเดทเรียบร้อยแล้ว',
@@ -774,8 +919,12 @@ async function handleSubmitAssignee() {
             timer: 2000
         });
         isEditingAssignee.value = false
+        if (assigneeFileUploadRef.value) {
+            assigneeFileUploadRef.value.resetFilesToRemoveState(); // Clear marked files in child
+        }
         fetchTicket();
-    } catch (err) {
+    } catch (err: any) {
+        Swal.close();
         await Swal.fire({
             title: 'ผิดพลาด',
             text: `ไม่สามารถอัปเดตข้อมูลผู้รับผิดชอบได้: ${err.response?.data?.message || err.message}`,
@@ -853,11 +1002,65 @@ async function openLogsModal() {
 function closeLogsModal() {
     showLogsModal.value = false;
 }
+
+async function unhideTicket() {
+    if (!form.value || !form.value.id) {
+        Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูล Ticket', 'error');
+        return;
+    }
+
+    const confirmResult = await Swal.fire({
+        title: 'ยืนยันการแสดงรายการ?',
+        text: `คุณต้องการให้ Ticket รหัส '${form.value.reference_number}' กลับมาแสดงในรายการหลักใช่หรือไม่?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ใช่, แสดงเลย!',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!confirmResult.isConfirmed) {
+        return;
+    }
+
+    try {
+        await api.patch('/tickets/visibility', { ticketIds: [form.value.id], isHidden: false });
+        Swal.fire('สำเร็จ!', 'Ticket กลับมาแสดงในรายการหลักแล้ว', 'success');
+        form.value.is_hidden = false; // อัปเดตสถานะใน form ทันที
+        // อาจจะต้อง fetchTicket() ใหม่ถ้าต้องการข้อมูลที่สดใหม่จาก server ทั้งหมด
+        // await fetchTicket(); 
+    } catch (error: any) {
+        console.error('Error unhiding ticket:', error);
+        Swal.fire('เกิดข้อผิดพลาด', `ไม่สามารถยกเลิกการจัดเก็บ Ticket ได้: ${error.response?.data?.message || error.message}`, 'error');
+    }
+}
 onMounted(() => {
     fetchTicket()
     fetchTypes()
     fetchDepartments()
     loadOfficer()
+})
+
+watch(() => route.params.id, (newId, oldId) => {
+    if (newId && newId !== oldId) {
+        fetchTicket(); // เรียก fetchTicket เพื่อโหลดข้อมูลของ ticket ใหม่
+        // รีเซ็ตสถานะการแก้ไขและไฟล์ต่างๆ
+        isEditing.value = false;
+        isEditingAssignee.value = false;
+        newFiles.value = [];
+        if (assigneeFileUploadRef.value && typeof assigneeFileUploadRef.value.resetSelectedFiles === 'function') {
+            assigneeFileUploadRef.value.resetSelectedFiles();
+        }
+        if (assigneeFileUploadRef.value && typeof assigneeFileUploadRef.value.resetFilesToRemoveState === 'function') {
+            assigneeFileUploadRef.value.resetFilesToRemoveState();
+        }
+        ticketLogs.value = []; // เคลียร์ logs ของ ticket เก่า
+        // selectedUserId จะถูกอัปเดตภายใน fetchTicket()
+
+        // Scroll to top of page
+        window.scrollTo(0, 0);
+    }
 })
 </script>
 

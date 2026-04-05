@@ -1,31 +1,44 @@
 <template>
-    <aside class="w-64 bg-black text-white h-screen flex flex-col position: sticky">
-        <router-link :to="isAdmin || isOfficer ? '/dashboard' : '/home'" class="border-b-2 border-[#333333] w-full">
+    <aside class="w-64 bg-black text-white h-screen flex flex-col relative"> <!-- Added relative for positioning -->
+        <!-- Mobile Close Button -->
+        <button
+            @click="requestCloseMobileSidebar"
+            class="md:hidden absolute top-2 right-2 text-gray-400 hover:text-white p-2 z-10 rounded-full hover:bg-gray-700 transition-colors"
+            aria-label="Close sidebar"
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+
+        <router-link :to="isAdmin || isOfficer ? '/tickets' : '/MyTickets'" class="border-b-2 border-[#333333] w-full">
             <div class="p-4">
                 <h1 class="text-lg font-bold">Issue Ticket System</h1>
                 <h2 class="text-[#6C6B6B]">ระบบแจ้งปัญหา</h2>
             </div>
         </router-link>
         <nav class="space-y-4 p-4" v-if="isAdmin">
-            <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
-            <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
-            <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
-            <button @click="departments" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
+            <button @click="navigateTo('/tickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการแจ้งปัญหา</button>
+            <button @click="navigateTo('/dashboard')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
+            <button @click="navigateTo('/users')" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
+            <button @click="navigateTo('/types')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
+            <button @click="navigateTo('/departments')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isOfficer">
-            <button @click="newticket" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
-            <button @click="myTickets" class="w-full text-center hover:bg-gray-800 p-2 rounded">My Ticket</button>
-            <button @click="admindashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
-            <button @click="users" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
-            <button @click="types" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
-            <button @click="departments" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
+            <button @click="navigateTo('/home')" class="w-full text-center hover:bg-gray-800 p-2 rounded">แจ้งปัญหา</button>
+            <button @click="navigateTo('/tickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการแจ้งปัญหา</button>
+            <button @click="navigateTo('/MyTickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการของฉัน</button>
+            <button @click="navigateTo('/dashboard')" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
+            <button @click="navigateTo('/users')" class="w-full text-center hover:bg-gray-800 p-2 rounded">ผู้ใช้งาน</button>
+            <button @click="navigateTo('/types')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการหมวดหมู่</button>
+            <button @click="navigateTo('/departments')" class="w-full text-center hover:bg-gray-800 p-2 rounded">จัดการแผนก</button>
         </nav>
 
         <nav class="space-y-4 p-4" v-else-if="isUser">
-            <button @click="newticket" class="w-full text-center hover:bg-gray-800 p-2 rounded">New Ticket</button>
-            <button @click="dashboard" class="w-full text-center hover:bg-gray-800 p-2 rounded">Dashboard</button>
-            <button @click="profile" class="w-full text-center hover:bg-gray-800 p-2 rounded">Profile</button>
+            <button @click="navigateTo('/home')" class="w-full text-center hover:bg-gray-800 p-2 rounded">แจ้งปัญหา</button>
+            <button @click="navigateTo('/MyTickets')" class="w-full text-center hover:bg-gray-800 p-2 rounded">รายการของฉัน</button>
+            <button @click="navigateTo('/profile')" class="w-full text-center hover:bg-gray-800 p-2 rounded">โปรไฟล์</button>
         </nav>
 
         <div class="mt-auto p-4">
@@ -38,6 +51,7 @@
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
+const emit = defineEmits(['navigated'])
 
 
 const auth = useAuthStore()
@@ -79,41 +93,13 @@ const logout = () => {
   })
 }
 
-// const logout = () => {
-//     auth.logout()
-//     router.push('/')
-// }
-//user
-const dashboard = () => {
-    router.push('/dashboard')
+const navigateTo = (path: string) => {
+  router.push(path)
+  emit('navigated')
 }
 
-const newticket = () => {
-    router.push('/home')
+const requestCloseMobileSidebar = () => {
+  emit('navigated'); // AppLayout listens to this event to close the mobile sidebar
 }
 
-const profile = () => {
-    router.push('/profile')
-}
-
-//admin
-const admindashboard = () => {
-    router.push('/dashboard')
-}
-
-const types = () => {
-    router.push('/types')
-}
-
-const departments = () => {
-    router.push('/departments')
-}
-
-const users = () => {
-    router.push('/users')
-}
-
-const myTickets = () => {
-  router.push('/MyTickets')
-}
 </script>

@@ -63,7 +63,6 @@ router.delete('/:filename', authenticateToken, async (req: AuthenticatedRequest,
         try {
             await fs.access(filePathToDelete); // ตรวจสอบว่าไฟล์มีอยู่จริงบน disk ก่อนลบ
             await fs.unlink(filePathToDelete);
-            console.log(`Successfully deleted file from filesystem: ${filePathToDelete}`);
         } catch (fsError: any) {
             if (fsError.code === 'ENOENT') {
                 // ENOENT หมายถึง File Not Found - ไฟล์อาจถูกลบไปแล้ว
