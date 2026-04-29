@@ -1,29 +1,60 @@
-# test2
+# Frontend - Issue Ticket System
 
-This template should help get you started developing with Vue 3 in Vite.
+## 1. อธิบายโปรเจคนี้
 
-## Recommended IDE Setup
+Frontend เป็นส่วนหน้าจอของระบบ Issue Ticket System พัฒนาด้วย Vue 3 และ Vite ใช้สำหรับให้ผู้ใช้สร้าง Ticket, ติดตามสถานะ, ดูรายละเอียดงาน, รับแจ้งเตือน และให้เจ้าหน้าที่หรือผู้ดูแลระบบจัดการ Ticket ผ่านหน้า dashboard
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+## 2. Tech Stack
 
-## Customize configuration
+- Vue 3
+- Vite
+- TypeScript / JavaScript
+- Vue Router
+- Pinia และ Pinia Persisted State
+- Axios
+- Tailwind CSS
+- Socket.IO Client
+- Chart.js และ vue-chartjs
+- SweetAlert2
+- SheetJS xlsx
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+## 3. Feature
 
-## Project Setup
+- Login, Register, Forgot Password และ Reset Password
+- Role-based route guard สำหรับ `USER`, `OFFICER`, `ADMIN`
+- สร้างและดูรายละเอียด Ticket
+- หน้ารายการ Ticket สำหรับเจ้าหน้าที่และผู้ดูแลระบบ
+- หน้า My Tickets สำหรับติดตาม Ticket ของผู้ใช้
+- Dashboard แสดงสรุปและกราฟ
+- จัดการผู้ใช้ แผนก และประเภท Ticket
+- Profile และ Change Password
+- แจ้งเตือนแบบ real-time ผ่าน Socket.IO
+- แนบไฟล์และดูไฟล์ที่เกี่ยวข้องกับ Ticket
 
-```sh
+## 4. Installation & Setup
+
+ติดตั้ง dependencies:
+
+```bash
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+รันโหมด development:
 
-```sh
+```bash
 npm run dev
 ```
 
-### Compile and Minify for Production
+Build สำหรับ production:
 
-```sh
+```bash
 npm run build
 ```
+
+Preview production build:
+
+```bash
+npm run preview
+```
+
+ค่า API URL ถูกตั้งไว้ในไฟล์ `src/api/axios-instance.ts` และ `src/config.ts` หากต้องการใช้งานกับ backend local ให้เปลี่ยน URL เป็น `http://localhost:3000` และ `http://localhost:3000/api` ตามตำแหน่งที่ใช้งาน
