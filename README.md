@@ -34,7 +34,7 @@ Issue Ticket System เป็นระบบแจ้งปัญหาและ
 ### Clone the repository:
 
 ```bash
-git clone [https://github.com/your-username/issue-ticket-vtest.git](https://github.com/your-username/issue-ticket-vtest.git)
+git clone https://github.com/your-username/issue-ticket-vtest.git
 cd financial-news-dashboard
 ```
 
