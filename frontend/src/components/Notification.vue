@@ -103,7 +103,7 @@ import { io, Socket } from 'socket.io-client';
 
 
 
-const socket = io('https://issue-ticket.hopto.org'); // ใช้ URL server จริงตอน deploy
+const socket = io('http://localhost:3000'); // ใช้ URL server จริงตอน deploy
 
 // const toast = useToast()
 const showDropdown = ref(false)

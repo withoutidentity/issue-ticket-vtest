@@ -1,3 +1,3 @@
 export const config = {
-    apiUrl: 'https://issue-ticket.hopto.org',
+    apiUrl: 'http://localhost:3000',
 }
