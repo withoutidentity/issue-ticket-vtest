@@ -31,6 +31,13 @@ Issue Ticket System เป็นระบบแจ้งปัญหาและ
 
 ## 4. Installation & Setup
 
+### Clone the repository:
+
+```bash
+git clone [https://github.com/your-username/issue-ticket-vtest.git](https://github.com/your-username/issue-ticket-vtest.git)
+cd financial-news-dashboard
+```
+
 ### Prerequisites
 
 - Node.js
